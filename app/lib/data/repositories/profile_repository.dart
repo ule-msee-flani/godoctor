@@ -1,0 +1,135 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../core/config/supabase_client.dart';
+import '../models/app_user.dart';
+import '../models/chemist_profile.dart';
+import '../models/doctor_profile.dart';
+import '../models/patient_profile.dart';
+
+class ProfileRepository {
+  SupabaseClient get _client => SupabaseService.client;
+
+  Future<AppUser?> fetchUser(String userId) async {
+    final row = await _client
+        .from('users')
+        .select()
+        .eq('id', userId)
+        .maybeSingle();
+    return row == null ? null : AppUser.fromMap(row);
+  }
+
+  Future<PatientProfile?> fetchPatientProfile(String userId) async {
+    final row = await _client
+        .from('patient_profiles')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
+    return row == null ? null : PatientProfile.fromMap(row);
+  }
+
+  Future<DoctorProfile?> fetchDoctorProfile(String userId) async {
+    final row = await _client
+        .from('doctor_profiles')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
+    return row == null ? null : DoctorProfile.fromMap(row);
+  }
+
+  Future<ChemistProfile?> fetchChemistProfile(String userId) async {
+    final row = await _client
+        .from('chemist_profiles')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
+    return row == null ? null : ChemistProfile.fromMap(row);
+  }
+
+  Future<void> updatePatientProfile(PatientProfile profile) async {
+    await _client
+        .from('patient_profiles')
+        .update(profile.toUpdateMap())
+        .eq('user_id', profile.userId);
+  }
+
+  Future<void> updateDoctorRegistration({
+    required String userId,
+    required String name,
+    required List<String> specialties,
+    required String licenseNumber,
+    DateTime? licenseExpiry,
+    List<String> verificationDocuments = const [],
+  }) async {
+    await _client
+        .from('doctor_profiles')
+        .update({
+          'name': name,
+          'specialties': specialties,
+          'license_number': licenseNumber,
+          'license_expiry': licenseExpiry?.toIso8601String().split('T').first,
+          'verification_documents': verificationDocuments,
+        })
+        .eq('user_id', userId);
+  }
+
+  Future<void> updateChemistRegistration({
+    required String userId,
+    required String businessName,
+    required String registrationNumber,
+    double? locationLat,
+    double? locationLng,
+    List<String> verificationDocuments = const [],
+  }) async {
+    await _client
+        .from('chemist_profiles')
+        .update({
+          'business_name': businessName,
+          'registration_number': registrationNumber,
+          'location_lat': locationLat,
+          'location_lng': locationLng,
+          'verification_documents': verificationDocuments,
+        })
+        .eq('user_id', userId);
+  }
+
+  Future<void> setDoctorAvailability(bool available) async {
+    await _client.rpc(
+      'set_doctor_availability',
+      params: {'p_available': available},
+    );
+  }
+
+  // --- Admin verification queue ---
+
+  Future<List<DoctorProfile>> fetchPendingDoctors() async {
+    final rows = await _client
+        .from('doctor_profiles')
+        .select()
+        .eq('license_verified', false)
+        .order('user_id');
+    return rows.map((r) => DoctorProfile.fromMap(r)).toList();
+  }
+
+  Future<List<ChemistProfile>> fetchPendingChemists() async {
+    final rows = await _client
+        .from('chemist_profiles')
+        .select()
+        .eq('verified', false)
+        .order('user_id');
+    return rows.map((r) => ChemistProfile.fromMap(r)).toList();
+  }
+
+  Future<void> adminSetDoctorVerified(String userId, bool verified) async {
+    await _client.rpc(
+      'admin_set_doctor_verified',
+      params: {'target_user_id': userId, 'verified': verified},
+    );
+  }
+
+  Future<void> adminSetChemistVerified(String userId, bool verified) async {
+    await _client.rpc(
+      'admin_set_chemist_verified',
+      params: {'target_user_id': userId, 'verified': verified},
+    );
+  }
+}

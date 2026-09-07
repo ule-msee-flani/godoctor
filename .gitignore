@@ -1,0 +1,12 @@
+# Flutter/Dart
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/build/
+app/.env
+app/*.iml
+app/.idea/
+
+# OS
+.DS_Store
+Thumbs.db
