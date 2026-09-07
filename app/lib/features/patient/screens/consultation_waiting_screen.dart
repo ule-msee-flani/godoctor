@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/install_prompt_banner.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/consultation.dart';
@@ -58,12 +61,25 @@ class _WaitingBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(),
+            AppImage(
+              assetPath: 'assets/images/waiting_search.png',
+              height: 200,
+              width: 280,
+              borderRadius: 28,
+              placeholderIcon: LucideIcons.search,
+              placeholderLabel: 'assets/images/waiting_search.png',
+            ),
+            const SizedBox(height: 28),
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
             const SizedBox(height: 20),
             Text(
               'Looking for an available doctor...',
@@ -89,20 +105,40 @@ class _MatchedBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 56),
-            const SizedBox(height: 16),
+            Container(
+              width: 88,
+              height: 88,
+              decoration: const BoxDecoration(
+                color: AppColors.successSoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(
+                  LucideIcons.circleCheckBig,
+                  color: AppColors.success,
+                  size: 44,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             Text(
               'You\'re matched with a doctor!',
               style: Theme.of(context).textTheme.titleLarge,
             ),
+            const SizedBox(height: 8),
+            Text(
+              'They\'re ready to see you whenever you are.',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              icon: const Icon(Icons.videocam),
+              icon: const Icon(LucideIcons.video, size: 18),
               label: const Text('Join the call'),
               onPressed: () =>
                   context.push('/patient/call/${consultation.id}'),
@@ -129,15 +165,29 @@ class _CompletedBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.task_alt, color: Colors.green, size: 56),
-            const SizedBox(height: 16),
+            Container(
+              width: 88,
+              height: 88,
+              decoration: const BoxDecoration(
+                color: AppColors.successSoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(
+                  LucideIcons.badgeCheck,
+                  color: AppColors.success,
+                  size: 44,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             Text(
               'Consultation completed',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
-              icon: const Icon(Icons.description_outlined),
+              icon: const Icon(LucideIcons.fileText, size: 18),
               label: const Text('View prescription'),
               onPressed: () => context.push('/patient/prescriptions'),
             ),
@@ -164,17 +214,32 @@ class _UnmatchedBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.hourglass_disabled, size: 56, color: Colors.orange),
-            const SizedBox(height: 16),
+            Container(
+              width: 88,
+              height: 88,
+              decoration: const BoxDecoration(
+                color: AppColors.warningSoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(
+                  LucideIcons.hourglass,
+                  color: AppColors.warning,
+                  size: 40,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             Text(
               'No doctors are available right now',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Please try again shortly, or check back later.',
               textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 20),
             FilledButton(
@@ -199,9 +264,26 @@ class _CancelledBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cancel_outlined, size: 56),
-            const SizedBox(height: 16),
-            const Text('This consultation was cancelled.'),
+            Container(
+              width: 88,
+              height: 88,
+              decoration: const BoxDecoration(
+                color: AppColors.primarySoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(
+                  LucideIcons.circleX,
+                  color: AppColors.inkSoft,
+                  size: 40,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'This consultation was cancelled.',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 20),
             FilledButton(
               onPressed: () => context.go('/patient'),

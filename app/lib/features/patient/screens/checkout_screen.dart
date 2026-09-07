@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../data/models/drug.dart';
 import '../../../data/models/prescription.dart';
 import '../../../data/providers/auth_providers.dart';
@@ -84,123 +86,261 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           padding: const EdgeInsets.all(20),
           children: [
             Card(
-              child: ListTile(
-                title: Text(widget.item.drug?.displayName ?? 'Medicine'),
-                subtitle: Text(widget.item.chemistName ?? ''),
-                trailing: Text('KES ${widget.item.price.toStringAsFixed(0)}'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Quantity'),
-                Row(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
-                      onPressed: _quantity > 1
-                          ? () => setState(() => _quantity--)
-                          : null,
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentTealSoft,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          LucideIcons.pill,
+                          color: AppColors.accentTeal,
+                          size: 22,
+                        ),
+                      ),
                     ),
-                    Text('$_quantity', style: Theme.of(context).textTheme.titleMedium),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      onPressed: _quantity < widget.item.quantity
-                          ? () => setState(() => _quantity++)
-                          : null,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.item.drug?.displayName ?? 'Medicine',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.item.chemistName ?? '',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      'KES ${widget.item.price.toStringAsFixed(0)}',
+                      style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: 12),
-            const Text('Fulfillment'),
-            const SizedBox(height: 8),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'pickup', label: Text('Pickup')),
-                ButtonSegment(value: 'delivery', label: Text('Delivery')),
-              ],
-              selected: {_fulfillment},
-              onSelectionChanged: (s) => setState(() => _fulfillment = s.first),
+            const SizedBox(height: 20),
+            _SectionCard(
+              title: 'Quantity',
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'How many do you need?',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  Row(
+                    children: [
+                      _StepperButton(
+                        icon: LucideIcons.minus,
+                        onTap: _quantity > 1
+                            ? () => setState(() => _quantity--)
+                            : null,
+                      ),
+                      SizedBox(
+                        width: 36,
+                        child: Text(
+                          '$_quantity',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      _StepperButton(
+                        icon: LucideIcons.plus,
+                        onTap: _quantity < widget.item.quantity
+                            ? () => setState(() => _quantity++)
+                            : null,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text(
-                'Pickup/delivery logistics are arranged directly with the chemist.',
-                style: TextStyle(fontSize: 12, color: Colors.black54),
+            const SizedBox(height: 16),
+            _SectionCard(
+              title: 'Fulfillment',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'pickup',
+                        label: Text('Pickup'),
+                        icon: Icon(LucideIcons.store, size: 16),
+                      ),
+                      ButtonSegment(
+                        value: 'delivery',
+                        label: Text('Delivery'),
+                        icon: Icon(LucideIcons.bike, size: 16),
+                      ),
+                    ],
+                    selected: {_fulfillment},
+                    onSelectionChanged: (s) => setState(() => _fulfillment = s.first),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Pickup/delivery logistics are arranged directly with the chemist.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ),
             ),
             if (_requiresPrescription) ...[
-              const SizedBox(height: 20),
-              const Text(
-                'Prescription required',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              prescriptions.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text('$e'),
-                data: (list) {
-                  if (list.isEmpty) {
-                    return OutlinedButton.icon(
-                      icon: const Icon(Icons.upload_file),
-                      label: const Text('Upload a prescription'),
-                      onPressed: () =>
-                          context.push('/patient/prescriptions/upload'),
-                    );
-                  }
-                  return DropdownButtonFormField<String>(
-                    initialValue: _selectedPrescriptionId,
-                    decoration: const InputDecoration(
-                      labelText: 'Select a prescription',
-                    ),
-                    items: list
-                        .map(
-                          (p) => DropdownMenuItem(
-                            value: p.id,
-                            child: Text(
-                              '${p.source.name == 'app' ? 'App-issued' : 'Uploaded'} · ${p.issuedAt.toLocal().toString().split(' ').first}',
+              const SizedBox(height: 16),
+              _SectionCard(
+                title: 'Prescription required',
+                titleIcon: LucideIcons.fileText,
+                child: prescriptions.when(
+                  loading: () => const LinearProgressIndicator(),
+                  error: (e, _) => Text('$e'),
+                  data: (list) {
+                    if (list.isEmpty) {
+                      return OutlinedButton.icon(
+                        icon: const Icon(LucideIcons.upload, size: 18),
+                        label: const Text('Upload a prescription'),
+                        onPressed: () =>
+                            context.push('/patient/prescriptions/upload'),
+                      );
+                    }
+                    return DropdownButtonFormField<String>(
+                      initialValue: _selectedPrescriptionId,
+                      decoration: const InputDecoration(
+                        labelText: 'Select a prescription',
+                      ),
+                      items: list
+                          .map(
+                            (p) => DropdownMenuItem(
+                              value: p.id,
+                              child: Text(
+                                '${p.source.name == 'app' ? 'App-issued' : 'Uploaded'} · ${p.issuedAt.toLocal().toString().split(' ').first}',
+                              ),
                             ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) =>
-                        setState(() => _selectedPrescriptionId = v),
-                  );
-                },
+                          )
+                          .toList(),
+                      onChanged: (v) =>
+                          setState(() => _selectedPrescriptionId = v),
+                    );
+                  },
+                ),
               ),
             ],
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(
-                  'KES ${total.toStringAsFixed(0)}',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ],
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Total',
+                    style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    'KES ${total.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
-              icon: const Icon(Icons.payment),
+              icon: const Icon(LucideIcons.wallet, size: 18),
               label: Text(_placing ? 'Placing order...' : 'Pay with M-Pesa (simulated)'),
               onPressed: _placing ? null : _placeOrder,
             ),
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text(
-                'Real M-Pesa payment isn\'t wired up yet -- this simulates a successful escrow hold.',
-                style: TextStyle(fontSize: 12, color: Colors.black54),
-              ),
+            const SizedBox(height: 8),
+            Text(
+              'Real M-Pesa payment isn\'t wired up yet -- this simulates a successful escrow hold.',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text(_error!, style: const TextStyle(color: AppColors.danger)),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.title, required this.child, this.titleIcon});
+
+  final String title;
+  final IconData? titleIcon;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                if (titleIcon case final icon?) ...[
+                  Icon(icon, size: 16, color: AppColors.primary),
+                  const SizedBox(width: 6),
+                ],
+                Text(title, style: Theme.of(context).textTheme.titleSmall),
+              ],
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StepperButton extends StatelessWidget {
+  const _StepperButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return Material(
+      color: enabled ? AppColors.primarySoft : AppColors.border,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: SizedBox(
+          width: 34,
+          height: 34,
+          child: Center(
+            child: Icon(
+              icon,
+              size: 16,
+              color: enabled ? AppColors.primary : AppColors.inkFaint,
+            ),
+          ),
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/consultation.dart';
@@ -118,7 +119,7 @@ class _DashboardBody extends ConsumerWidget {
             if (offers.isEmpty) {
               return const EmptyView(
                 message: 'No pending offers right now.',
-                icon: Icons.inbox_outlined,
+                icon: LucideIcons.inbox,
               );
             }
             return Column(

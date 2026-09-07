@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import '../theme/app_colors.dart';
 
 /// Placeholder for the video call surface.
 ///
@@ -24,28 +27,51 @@ class VideoCallPanel extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: AspectRatio(
         aspectRatio: 16 / 10,
-        child: Container(
-          color: const Color(0xFF1B1F23),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(gradient: AppColors.heroGradient),
           child: Stack(
             children: [
+              Positioned(
+                right: -30,
+                top: -30,
+                child: _softCircle(140),
+              ),
+              Positioned(
+                left: -40,
+                bottom: -40,
+                child: _softCircle(160),
+              ),
               Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.videocam_off_outlined,
-                      color: Colors.white54,
-                      size: 40,
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          LucideIcons.videoOff,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     Text(
                       'Video call with $otherPartyName',
-                      style: const TextStyle(color: Colors.white70),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Video SDK not yet integrated (see PROJECT_SPEC.md)',
-                      style: TextStyle(color: Colors.white38, fontSize: 12),
+                      'Video will appear here once connected',
+                      style: TextStyle(color: Colors.white60, fontSize: 12),
                     ),
                   ],
                 ),
@@ -58,10 +84,11 @@ class VideoCallPanel extends StatelessWidget {
                   child: Center(
                     child: FilledButton.icon(
                       style: FilledButton.styleFrom(
-                        backgroundColor: Colors.red,
+                        backgroundColor: AppColors.danger,
+                        minimumSize: const Size(140, 48),
                       ),
                       onPressed: onEndCall,
-                      icon: const Icon(Icons.call_end),
+                      icon: const Icon(LucideIcons.phoneOff),
                       label: const Text('End call'),
                     ),
                   ),
@@ -72,4 +99,13 @@ class VideoCallPanel extends StatelessWidget {
       ),
     );
   }
+
+  Widget _softCircle(double size) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: Colors.white.withValues(alpha: 0.08),
+    ),
+  );
 }

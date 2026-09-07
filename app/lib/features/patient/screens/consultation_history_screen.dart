@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
@@ -27,26 +29,67 @@ class ConsultationHistoryScreen extends ConsumerWidget {
           if (list.isEmpty) {
             return const EmptyView(
               message: 'No consultations yet.',
-              icon: Icons.medical_services_outlined,
+              icon: LucideIcons.stethoscope,
             );
           }
-          return ListView.builder(
+          return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: list.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, i) {
               final c = list[i];
+              final isActive = c.status.name == 'requested' || c.status.name == 'matched';
               return Card(
-                child: ListTile(
-                  title: Text(c.specialtyRequested),
-                  subtitle: Text(
-                    '${c.status.name} · ${c.createdAt.toLocal().toString().split(' ').first}',
-                  ),
-                  trailing: c.status.name == 'requested' || c.status.name == 'matched'
-                      ? const Icon(Icons.chevron_right)
-                      : null,
-                  onTap: (c.status.name == 'requested' || c.status.name == 'matched')
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: isActive
                       ? () => context.push('/patient/waiting/${c.id}')
                       : null,
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.accentTealSoft,
+                            borderRadius: BorderRadius.circular(13),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              LucideIcons.stethoscope,
+                              color: AppColors.accentTeal,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                c.specialtyRequested,
+                                style: Theme.of(context).textTheme.titleSmall,
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '${c.status.name} · ${c.createdAt.toLocal().toString().split(' ').first}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isActive)
+                          const Icon(
+                            LucideIcons.chevronRight,
+                            color: AppColors.inkFaint,
+                            size: 18,
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             },

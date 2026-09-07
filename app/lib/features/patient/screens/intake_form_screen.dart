@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../data/models/doctor_profile.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../services/emergency_check.dart';
@@ -82,7 +84,7 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Specialty', style: Theme.of(context).textTheme.titleSmall),
+              _SectionLabel(icon: LucideIcons.stethoscope, text: 'Specialty'),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: _specialty,
@@ -91,8 +93,11 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
                     .toList(),
                 onChanged: (v) => setState(() => _specialty = v ?? _specialty),
               ),
-              const SizedBox(height: 20),
-              Text('Describe your symptoms', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 22),
+              _SectionLabel(
+                icon: LucideIcons.notebookPen,
+                text: 'Describe your symptoms',
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: _symptomsCtrl,
@@ -100,12 +105,17 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
                 decoration: const InputDecoration(
                   hintText: 'E.g. fever and headache since yesterday...',
                 ),
+                onChanged: (_) => setState(() {}),
               ),
-              const SizedBox(height: 20),
-              Text('How long has this been going on?', style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 8),
+              const SizedBox(height: 22),
+              _SectionLabel(
+                icon: LucideIcons.clock,
+                text: 'How long has this been going on?',
+              ),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
+                runSpacing: 8,
                 children: _durations
                     .map(
                       (d) => ChoiceChip(
@@ -116,11 +126,15 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
                     )
                     .toList(),
               ),
-              const SizedBox(height: 20),
-              Text('Severity', style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 8),
+              const SizedBox(height: 22),
+              _SectionLabel(
+                icon: LucideIcons.gauge,
+                text: 'Severity',
+              ),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
+                runSpacing: 8,
                 children: _severities
                     .map(
                       (s) => ChoiceChip(
@@ -132,16 +146,20 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
                     .toList(),
               ),
               const SizedBox(height: 32),
-              FilledButton(
+              FilledButton.icon(
+                icon: const Icon(LucideIcons.search, size: 18),
                 onPressed:
                     _submitting || _symptomsCtrl.text.trim().isEmpty
                     ? null
                     : _submit,
-                child: _submitting
+                label: _submitting
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('Find me a doctor'),
               ),
@@ -149,6 +167,24 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.primary),
+        const SizedBox(width: 6),
+        Text(text, style: Theme.of(context).textTheme.titleSmall),
+      ],
     );
   }
 }
@@ -163,21 +199,34 @@ class _EmergencyStopView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.red.shade50,
+      backgroundColor: AppColors.dangerSoft,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.emergency_outlined, color: Colors.red.shade700, size: 64),
-              const SizedBox(height: 20),
+              Container(
+                width: 96,
+                height: 96,
+                decoration: const BoxDecoration(
+                  color: AppColors.danger,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Icon(
+                    LucideIcons.briefcaseMedical,
+                    color: Colors.white,
+                    size: 44,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               Text(
                 'This sounds like a medical emergency',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red.shade900,
+                  color: AppColors.danger,
                 ),
               ),
               const SizedBox(height: 12),
@@ -189,9 +238,9 @@ class _EmergencyStopView extends StatelessWidget {
               ),
               const SizedBox(height: 28),
               FilledButton.icon(
-                style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
                 onPressed: () => launchDialer('999'),
-                icon: const Icon(Icons.call),
+                icon: const Icon(LucideIcons.phoneCall, size: 18),
                 label: const Text('Call 999 (Emergency Services)'),
               ),
               const SizedBox(height: 12),

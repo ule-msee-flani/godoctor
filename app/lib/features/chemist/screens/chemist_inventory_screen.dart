@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/drug.dart';
@@ -56,7 +57,7 @@ class ChemistInventoryScreen extends ConsumerWidget {
           if (items.isEmpty) {
             return const EmptyView(
               message: 'No inventory yet. Add your first drug.',
-              icon: Icons.inventory_2_outlined,
+              icon: LucideIcons.package,
             );
           }
           return SingleChildScrollView(

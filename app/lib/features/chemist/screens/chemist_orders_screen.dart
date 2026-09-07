@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/order.dart' as model;
@@ -35,7 +36,10 @@ class ChemistOrdersScreen extends ConsumerWidget {
         error: (e, _) => ErrorView(message: '$e'),
         data: (orders) {
           if (orders.isEmpty) {
-            return const EmptyView(message: 'No orders yet.', icon: Icons.receipt_long);
+            return const EmptyView(
+              message: 'No orders yet.',
+              icon: LucideIcons.receipt,
+            );
           }
           return ListView.builder(
             padding: const EdgeInsets.all(16),

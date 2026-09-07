@@ -61,6 +61,18 @@ dependencies:
   web: ^1.1.0
   shared_preferences: ^2.3.3
 
+  # Design system: typography + a sleeker, more professional icon set than
+  # default Material icons (used throughout the patient flow). Lucide ships
+  # plain `IconData` constants (no IconData subclassing), so it stays
+  # compatible with Flutter's `final class IconData` -- unlike
+  # phosphor_flutter, which was tried first and fails to compile against
+  # this SDK for exactly that reason.
+  google_fonts: ^6.2.1
+  lucide_icons_flutter: ^3.1.19
+
+  # Skeleton loading shimmer for a more polished perceived-performance feel.
+  shimmer: ^3.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -86,6 +98,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
+    - assets/images/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

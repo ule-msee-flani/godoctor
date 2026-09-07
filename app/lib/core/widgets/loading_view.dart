@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import '../theme/app_colors.dart';
 
 class LoadingView extends StatelessWidget {
   const LoadingView({super.key, this.message});
@@ -11,7 +14,11 @@ class LoadingView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(),
+          const SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
           if (message != null) ...[
             const SizedBox(height: 16),
             Text(message!, style: Theme.of(context).textTheme.bodyMedium),
@@ -36,15 +43,19 @@ class ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              color: Theme.of(context).colorScheme.error,
-              size: 40,
+            _IconBadge(
+              icon: LucideIcons.circleAlert,
+              background: AppColors.dangerSoft,
+              iconColor: AppColors.danger,
             ),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             if (onRetry != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
             ],
           ],
@@ -55,10 +66,11 @@ class ErrorView extends StatelessWidget {
 }
 
 class EmptyView extends StatelessWidget {
-  const EmptyView({super.key, required this.message, this.icon});
+  const EmptyView({super.key, required this.message, this.icon, this.action});
 
   final String message;
   final IconData? icon;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -68,20 +80,43 @@ class EmptyView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon ?? Icons.inbox_outlined,
-              size: 40,
-              color: Theme.of(context).colorScheme.outline,
+            _IconBadge(
+              icon: icon ?? LucideIcons.inbox,
+              background: AppColors.primarySoft,
+              iconColor: AppColors.primary,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+            if (action != null) ...[const SizedBox(height: 16), action!],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _IconBadge extends StatelessWidget {
+  const _IconBadge({
+    required this.icon,
+    required this.background,
+    required this.iconColor,
+  });
+
+  final IconData icon;
+  final Color background;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 72,
+      height: 72,
+      decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+      child: Center(child: Icon(icon, size: 32, color: iconColor)),
     );
   }
 }

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../data/providers/repository_providers.dart';
 
 class UploadPrescriptionScreen extends ConsumerStatefulWidget {
@@ -57,39 +59,118 @@ class _UploadPrescriptionScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Take a clear photo of your prescription. The chemist '
-                'fulfilling your order will verify it manually before '
-                'preparing prescription-only items.',
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      LucideIcons.info,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Take a clear photo of your prescription. The chemist '
+                        'fulfilling your order will verify it manually before '
+                        'preparing prescription-only items.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 20),
-              if (_picked != null)
-                Text('Selected: ${_picked!.name}', style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.photo_camera_outlined),
-                label: Text(_picked == null ? 'Choose photo' : 'Choose a different photo'),
-                onPressed: _pick,
+              const SizedBox(height: 24),
+              GestureDetector(
+                onTap: _pick,
+                child: DottedBorderBox(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 36),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primarySoft,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              LucideIcons.camera,
+                              color: AppColors.primary,
+                              size: 26,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          _picked == null
+                              ? 'Choose a photo'
+                              : 'Change photo',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        if (_picked != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            _picked!.name,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               FilledButton(
                 onPressed: _picked == null || _uploading ? null : _upload,
                 child: _uploading
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('Upload'),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
-                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                Text(_error!, style: const TextStyle(color: AppColors.danger)),
               ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A soft dashed-look drop-zone using a plain border (kept dependency-free);
+/// visually reads as an upload target without needing a painter package.
+class DottedBorderBox extends StatelessWidget {
+  const DottedBorderBox({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.borderStrong, width: 1.6),
+      ),
+      child: child,
     );
   }
 }

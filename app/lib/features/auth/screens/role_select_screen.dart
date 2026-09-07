@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_image.dart';
 import '../../../data/models/enums.dart';
 
 class RoleSelectScreen extends StatelessWidget {
@@ -9,48 +12,85 @@ class RoleSelectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.primarySofter,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.local_hospital, size: 56, color: Color(0xFF0F9D6C)),
-              const SizedBox(height: 16),
-              Text(
-                'GoDoctor',
-                textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                child: AppImage(
+                  assetPath: 'assets/images/auth_hero.png',
+                  height: 220,
+                  borderRadius: 28,
+                  placeholderIcon: LucideIcons.video,
+                  placeholderLabel: 'assets/images/auth_hero.png',
+                ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Consult a doctor or order medicine, wherever you are.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 40),
-              _RoleCard(
-                icon: Icons.person_outline,
-                title: 'I am a patient',
-                subtitle: 'See a doctor or order medicine',
-                onTap: () => context.go('/auth/login/${_role(UserRole.patient)}'),
-              ),
-              const SizedBox(height: 12),
-              _RoleCard(
-                icon: Icons.medical_services_outlined,
-                title: 'I am a doctor',
-                subtitle: 'Accept consultations, issue prescriptions',
-                onTap: () => context.go('/auth/login/${_role(UserRole.doctor)}'),
-              ),
-              const SizedBox(height: 12),
-              _RoleCard(
-                icon: Icons.local_pharmacy_outlined,
-                title: 'I am a chemist',
-                subtitle: 'Manage inventory, fulfill orders',
-                onTap: () => context.go('/auth/login/${_role(UserRole.chemist)}'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              LucideIcons.heartPulse,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'GoDoctor',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Consult a doctor or order medicine,\nwherever you are.',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 28),
+                    _RoleCard(
+                      icon: LucideIcons.user,
+                      title: 'I am a patient',
+                      subtitle: 'See a doctor or order medicine',
+                      color: AppColors.primary,
+                      onTap: () =>
+                          context.go('/auth/login/${_role(UserRole.patient)}'),
+                    ),
+                    const SizedBox(height: 12),
+                    _RoleCard(
+                      icon: LucideIcons.stethoscope,
+                      title: 'I am a doctor',
+                      subtitle: 'Accept consultations, issue prescriptions',
+                      color: AppColors.accentTeal,
+                      onTap: () =>
+                          context.go('/auth/login/${_role(UserRole.doctor)}'),
+                    ),
+                    const SizedBox(height: 12),
+                    _RoleCard(
+                      icon: LucideIcons.pill,
+                      title: 'I am a chemist',
+                      subtitle: 'Manage inventory, fulfill orders',
+                      color: AppColors.primaryDark,
+                      onTap: () =>
+                          context.go('/auth/login/${_role(UserRole.chemist)}'),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -67,30 +107,36 @@ class _RoleCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.color,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final Color color;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.primaryContainer,
-                child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Icon(icon, color: color, size: 26),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -99,15 +145,18 @@ class _RoleCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
+                    const SizedBox(height: 2),
                     Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right),
+              const Icon(
+                LucideIcons.chevronRight,
+                color: AppColors.inkFaint,
+                size: 18,
+              ),
             ],
           ),
         ),

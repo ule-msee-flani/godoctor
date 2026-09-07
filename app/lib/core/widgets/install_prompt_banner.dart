@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../theme/app_colors.dart';
 import '../../services/pwa_install_service.dart';
 
 const _dismissedKey = 'install_prompt_dismissed';
@@ -44,26 +46,64 @@ class _InstallPromptBannerState extends State<InstallPromptBanner> {
       return const SizedBox.shrink();
     }
 
-    return Card(
-      color: Theme.of(context).colorScheme.secondaryContainer,
-      child: ListTile(
-        leading: const Icon(Icons.add_to_home_screen),
-        title: const Text('Install GoDoctor'),
-        subtitle: Text(
-          service.isIOS
-              ? 'Add it to your home screen for faster access and notifications.'
-              : 'Look for the install icon in your browser\'s address bar, or use its menu.',
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: AppColors.accentTealSoft,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: service.isIOS
+              ? () => showDialog(
+                  context: context,
+                  builder: (_) => const _IosInstallDialog(),
+                )
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: AppColors.accentTeal,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      LucideIcons.download,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Install GoDoctor',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      Text(
+                        service.isIOS
+                            ? 'Add it to your home screen for faster access and notifications.'
+                            : 'Look for the install icon in your browser\'s address bar, or use its menu.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(LucideIcons.x, size: 16),
+                  onPressed: _dismiss,
+                ),
+              ],
+            ),
+          ),
         ),
-        trailing: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: _dismiss,
-        ),
-        onTap: service.isIOS
-            ? () => showDialog(
-                context: context,
-                builder: (_) => const _IosInstallDialog(),
-              )
-            : null,
       ),
     );
   }
@@ -86,7 +126,7 @@ class _IosInstallDialog extends StatelessWidget {
           SizedBox(height: 8),
           Text(
             'Notifications only work once GoDoctor is installed this way.',
-            style: TextStyle(fontSize: 12, color: Colors.black54),
+            style: TextStyle(fontSize: 12, color: AppColors.inkFaint),
           ),
         ],
       ),
@@ -113,7 +153,14 @@ class _Step extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(radius: 11, child: Text('$number', style: const TextStyle(fontSize: 12))),
+          CircleAvatar(
+            radius: 11,
+            backgroundColor: AppColors.primary,
+            child: Text(
+              '$number',
+              style: const TextStyle(fontSize: 12, color: Colors.white),
+            ),
+          ),
           const SizedBox(width: 8),
           Expanded(child: Text(text)),
         ],

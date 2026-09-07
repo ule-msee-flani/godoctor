@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/drug.dart';
 import '../../../data/providers/auth_providers.dart';
@@ -33,7 +35,7 @@ class ChemistSelectScreen extends ConsumerWidget {
             if (items.isEmpty) {
               return const EmptyView(
                 message: 'No chemists currently have this in stock nearby.',
-                icon: Icons.inventory_2_outlined,
+                icon: LucideIcons.package,
               );
             }
 
@@ -64,42 +66,98 @@ class ChemistSelectScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               children: [
                 if (requiresRx)
-                  Card(
-                    color: Colors.amber.shade50,
-                    child: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline, color: Colors.amber),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'This medicine requires a valid prescription to order.',
-                            ),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningSoft,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          LucideIcons.info,
+                          color: AppColors.warning,
+                          size: 20,
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'This medicine requires a valid prescription to order.',
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                const SizedBox(height: 8),
                 ...withDistance.map(
-                  (entry) => Card(
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.local_pharmacy_outlined),
-                      ),
-                      title: Text(entry.item.chemistName ?? 'Chemist'),
-                      subtitle: Text(
-                        [
-                          'KES ${entry.item.price.toStringAsFixed(0)}',
-                          '${entry.item.quantity} in stock',
-                          if (entry.km != null) '${entry.km!.toStringAsFixed(1)} km away',
-                        ].join(' · '),
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push(
-                        '/patient/checkout',
-                        extra: entry.item,
+                  (entry) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Card(
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () => context.push(
+                          '/patient/checkout',
+                          extra: entry.item,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primarySoft,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    LucideIcons.store,
+                                    color: AppColors.primary,
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      entry.item.chemistName ?? 'Chemist',
+                                      style: Theme.of(context).textTheme.titleSmall,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Wrap(
+                                      spacing: 10,
+                                      runSpacing: 2,
+                                      children: [
+                                        _MetaChip(
+                                          icon: LucideIcons.wallet,
+                                          text: 'KES ${entry.item.price.toStringAsFixed(0)}',
+                                        ),
+                                        _MetaChip(
+                                          icon: LucideIcons.package,
+                                          text: '${entry.item.quantity} in stock',
+                                        ),
+                                        if (entry.km != null)
+                                          _MetaChip(
+                                            icon: LucideIcons.mapPin,
+                                            text: '${entry.km!.toStringAsFixed(1)} km',
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                LucideIcons.chevronRight,
+                                color: AppColors.inkFaint,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -109,6 +167,25 @@ class ChemistSelectScreen extends ConsumerWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: AppColors.inkFaint),
+        const SizedBox(width: 3),
+        Text(text, style: Theme.of(context).textTheme.bodySmall),
+      ],
     );
   }
 }

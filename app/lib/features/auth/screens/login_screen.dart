@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../data/models/enums.dart';
 import '../../../data/providers/repository_providers.dart';
 
@@ -38,6 +40,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _passwordCtrl.dispose();
     super.dispose();
   }
+
+  ({IconData icon, Color color}) get _roleBrand => switch (widget.role) {
+    UserRole.patient => (icon: LucideIcons.user, color: AppColors.primary),
+    UserRole.doctor => (
+      icon: LucideIcons.stethoscope,
+      color: AppColors.accentTeal,
+    ),
+    UserRole.chemist => (icon: LucideIcons.pill, color: AppColors.primaryDark),
+    UserRole.admin => (icon: LucideIcons.shieldCheck, color: AppColors.ink),
+  };
 
   String get _roleLabel => switch (widget.role) {
     UserRole.patient => 'patient',
@@ -106,33 +118,62 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final brand = _roleBrand;
+
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/auth'),
-        ),
-        title: Text(
-          '${_isRegistering ? 'Register' : 'Log in'} as $_roleLabel',
-        ),
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Row(
+                children: [
+                  IconButton.filled(
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.white,
+                      foregroundColor: AppColors.ink,
+                      side: const BorderSide(color: AppColors.border),
+                    ),
+                    icon: const Icon(LucideIcons.arrowLeft),
+                    onPressed: () => context.go('/auth'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: brand.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Center(
+                  child: Icon(brand.icon, color: brand.color, size: 28),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _isRegistering ? 'Create your account' : 'Welcome back',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${_isRegistering ? 'Register' : 'Log in'} as $_roleLabel',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
               SegmentedButton<_Method>(
                 segments: const [
                   ButtonSegment(
                     value: _Method.phone,
                     label: Text('Phone (OTP)'),
-                    icon: Icon(Icons.phone_android),
+                    icon: Icon(LucideIcons.smartphone, size: 16),
                   ),
                   ButtonSegment(
                     value: _Method.email,
                     label: Text('Email'),
-                    icon: Icon(Icons.email_outlined),
+                    icon: Icon(LucideIcons.mail, size: 16),
                   ),
                 ],
                 selected: {_method},
@@ -152,6 +193,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       labelText: widget.role == UserRole.chemist
                           ? 'Business name'
                           : 'Full name',
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: Icon(LucideIcons.idCard, size: 20),
+                      ),
                     ),
                   ),
                 ),
@@ -163,6 +208,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Phone number',
                     hintText: '+2547XXXXXXXX',
+                    prefixIcon: Padding(
+                      padding: EdgeInsets.all(14),
+                      child: Icon(LucideIcons.smartphone, size: 20),
+                    ),
                   ),
                 ),
                 if (_otpSent) ...[
@@ -172,6 +221,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Enter the code we sent you',
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(14),
+                        child: Icon(LucideIcons.lockKeyhole, size: 20),
+                      ),
                     ),
                   ),
                 ],
@@ -184,7 +237,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : Text(_otpSent ? 'Verify code' : 'Send code'),
                 ),
@@ -192,13 +248,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Padding(
+                      padding: EdgeInsets.all(14),
+                      child: Icon(LucideIcons.mail, size: 20),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _passwordCtrl,
                   obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: Padding(
+                      padding: EdgeInsets.all(14),
+                      child: Icon(LucideIcons.lockKeyhole, size: 20),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 FilledButton(
@@ -207,16 +275,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : Text(_isRegistering ? 'Create account' : 'Log in'),
                 ),
               ],
               if (_error != null) ...[
                 const SizedBox(height: 16),
-                Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.dangerSoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        LucideIcons.circleAlert,
+                        color: AppColors.danger,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: AppColors.danger),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
               const SizedBox(height: 16),
