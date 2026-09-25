@@ -11,6 +11,13 @@ class DoctorProfile {
     required this.verificationDocuments,
     required this.status,
     required this.ratingAvg,
+    this.ratingCount = 0,
+    this.bio,
+    this.consultationFee,
+    this.languages = const [],
+    this.gender,
+    this.yearsExperience,
+    this.avatarPath,
   });
 
   final String userId;
@@ -22,6 +29,15 @@ class DoctorProfile {
   final List<String> verificationDocuments;
   final DoctorStatus status;
   final double ratingAvg;
+  final int ratingCount;
+  final String? bio;
+  final double? consultationFee;
+  final List<String> languages;
+  final String? gender;
+  final int? yearsExperience;
+
+  /// Path inside the public `avatars` storage bucket.
+  final String? avatarPath;
 
   factory DoctorProfile.fromMap(Map<String, dynamic> map) => DoctorProfile(
     userId: map['user_id'] as String,
@@ -41,6 +57,13 @@ class DoctorProfile {
       DoctorStatus.offline,
     ),
     ratingAvg: (map['rating_avg'] as num?)?.toDouble() ?? 0,
+    ratingCount: (map['rating_count'] as num?)?.toInt() ?? 0,
+    bio: map['bio'] as String?,
+    consultationFee: (map['consultation_fee'] as num?)?.toDouble(),
+    languages: List<String>.from(map['languages'] as List? ?? const []),
+    gender: map['gender'] as String?,
+    yearsExperience: (map['years_experience'] as num?)?.toInt(),
+    avatarPath: map['avatar_url'] as String?,
   );
 }
 

@@ -16,7 +16,7 @@ This is explicitly NOT a linear "doctor then chemist" flow — a patient can go 
 
 ## Tech stack (decided)
 
-- **Frontend**: Flutter, built for web (`flutter create --platforms=web`), deployed as an installable PWA (manifest.json + service worker, `display: standalone`). No native app store builds planned — install via "Add to Home Screen" on iOS, browser install prompt on Android/desktop. Single Flutter codebase serves patient, doctor, and chemist interfaces — each with a distinct UI/dashboard appropriate to that role.
+- **Frontend**: Flutter, built for web (`flutter create --platforms=web`), deployed as an installable PWA (manifest.json + service worker, `display: standalone`). A native **Android** build (same Flutter codebase) ships alongside the PWA — chosen mainly for reliable push for the 20–30s doctor-offer window, which PWA push on iOS cannot guarantee. iOS stays on the PWA ("Add to Home Screen") until there is a Mac/cloud build and an Apple developer account. Single Flutter codebase serves patient, doctor, and chemist interfaces — each with a distinct UI/dashboard appropriate to that role.
 - **Backend**: Supabase (Postgres database + auto-generated REST API + built-in auth + file storage + realtime subscriptions + row-level security). Chosen specifically because the developer is solo, non-backend-experienced, and wants a WordPress-admin-like dashboard experience for managing data — Supabase's table editor fills that role.
 - **Business logic requiring custom code**: Supabase Edge Functions for anything that isn't simple CRUD — payment/escrow state transitions, M-Pesa Daraja API integration, emergency-keyword detection logic.
 - **Video calls**: not yet chosen/integrated — candidates are Agora or Daily.co (both have usable free tiers). To be added later; build the consultation flow with a clean interface/abstraction so the video SDK can be dropped in without reworking the rest of the flow.
@@ -38,13 +38,20 @@ This is explicitly NOT a linear "doctor then chemist" flow — a patient can go 
 - Emergency-detection keyword check on the intake form (hard-stop flow, not a warning)
 - Doctor verification workflow (admin approval queue; doctor cannot go "available" until `license_verified = true`)
 
+**Added after the first build (now built, see "Scheduling & directory" below):**
+- Scheduled appointments alongside on-demand consults (doctor weekly hours + time off, slot booking, cancel/reschedule, reminders)
+- Certified-doctor directory (only licence-verified doctors; search + filters: specialty, fee, language, gender, available-now) with public profiles
+- Verified-only reviews (only the patient of a *completed* consultation, once) and a rating summary per doctor
+- In-app notifications inbox (booking confirmation, reminders, cancellations)
+
+**Planned next, in this order:** in-consultation chat with attachments (also the low-bandwidth fallback to video); health-records wallet + family (dependant) profiles.
+
 **Explicitly deferred to a later session:**
 - M-Pesa Daraja API integration (real payment capture, escrow hold/release)
 - Video call SDK integration (Agora or Daily.co)
 - Chemist-doctor Q&A feature (phase 2)
 - Refill/repeat prescription flow (phase 2)
 - Multi-language support (Swahili) (phase 2)
-- Doctor scheduling / non-on-demand appointments (phase 2)
 - Admin analytics/reporting dashboards (phase 2)
 
 **Not engineering — open business/legal items the developer must handle separately, not something to build around silently:**
@@ -102,6 +109,18 @@ This is explicitly NOT a linear "doctor then chemist" flow — a patient can go 
 ### ChemistDoctorQuery (phase 2)
 - chemist_id, question, answered_by_doctor_id, answer, created_at
 
+## Scheduling & directory (added)
+
+- Doctors publish **weekly availability windows** (ISO weekday, start/end, slot length 15/20/30/45/60 min) and **time off**. Times are interpreted in **Africa/Nairobi (EAT)**; the platform is Kenya-only.
+- A scheduled appointment is a `consultations` row with `mode = 'scheduled'`, `status = 'scheduled'`, `scheduled_for/scheduled_end`, and a `fee_amount` snapshot. A database **exclusion constraint** makes double-booking a doctor impossible.
+- All state changes go through SQL functions (`book_appointment`, `cancel_appointment`, `reschedule_appointment`, `start_appointment`, `submit_review`). Clients can no longer write consultations directly.
+- Directory reads go through `search_doctors` / `get_public_doctor` / `doctor_reviews`, which expose only safe columns (never licence numbers or documents) and only for licence-verified doctors.
+- Booking has the same **emergency hard-stop** as the on-demand intake form.
+- An appointment can be opened from 10 minutes before its start until 30 minutes after its end. Unstarted appointments are auto-closed after their end time.
+- Reminders (24h and 1h before) and the offer-expiry sweep run on `pg_cron`. Reminders are written to a `notifications` table; **push/SMS delivery of those rows is not built yet** (in-app inbox only).
+- Doctor profile gains: bio, consultation fee, languages, gender, years of experience, photo (public `avatars` bucket), rating count.
+- Payment for consultations is **not** charged yet; the fee is displayed and recorded, and the UI says so plainly.
+
 ## Auth
 
 - Use Supabase Auth. Phone/OTP login preferred for the Kenyan market (also support email as fallback).
@@ -155,8 +174,13 @@ Needed for: doctor receiving a consultation offer, patient being matched, prescr
 
 ## Known open decisions (not yet resolved — flag rather than guess)
 
+- Cancellation / no-show / refund policy for scheduled appointments (today: free cancellation any time before the start; nothing is charged)
+- Consultation fee model: doctor-set fee is displayed; platform commission and payout are still undecided
+- Reminder delivery beyond the in-app inbox (web push, native push, SMS)
+- Insurance (e.g. SHA) integration — no assumption made that a usable third-party API exists; needs research
+- AI symptom checker — deliberately not built (liability); the emergency keyword check remains the safety mechanism. Search on the home screen only *signposts* a specialty
 - Business model / commission structure (platform fee amount/mechanism)
 - Doctor payout timing and method
 - Dispute/timeout policy specifics for orders and escrow
-- Whether in-consultation text chat is needed as a fallback alongside video
+- ~~Whether in-consultation text chat is needed~~ — decided yes; built next (also the low-bandwidth fallback to video)
 - Exact SMS-fallback-for-notifications decision

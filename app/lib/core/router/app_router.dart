@@ -16,6 +16,8 @@ import '../../features/doctor/screens/doctor_call_screen.dart';
 import '../../features/doctor/screens/doctor_dashboard_screen.dart';
 import '../../features/doctor/screens/doctor_history_screen.dart';
 import '../../features/doctor/screens/doctor_onboarding_screen.dart';
+import '../../features/doctor/screens/doctor_profile_edit_screen.dart';
+import '../../features/doctor/screens/doctor_schedule_screen.dart';
 import '../../features/patient/screens/checkout_screen.dart';
 import '../../features/patient/screens/chemist_select_screen.dart';
 import '../../features/patient/screens/consultation_history_screen.dart';
@@ -26,6 +28,11 @@ import '../../features/patient/screens/order_history_screen.dart';
 import '../../features/patient/screens/order_tracking_screen.dart';
 import '../../features/patient/screens/patient_call_screen.dart';
 import '../../features/patient/screens/activity_screen.dart';
+import '../../features/patient/screens/appointment_detail_screen.dart';
+import '../../features/patient/screens/book_appointment_screen.dart';
+import '../../features/patient/screens/doctor_profile_screen.dart';
+import '../../features/patient/screens/doctors_screen.dart';
+import '../../features/patient/screens/notifications_screen.dart';
 import '../../features/patient/screens/patient_home_screen.dart';
 import '../../features/patient/screens/patient_shell.dart';
 import '../../features/patient/screens/profile_screen.dart';
@@ -82,6 +89,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: '/patient/doctors',
+                builder: (_, _) => const DoctorsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: '/patient/activity',
                 builder: (_, _) => const ActivityScreen(),
               ),
@@ -103,6 +118,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           initialSpecialty: state.uri.queryParameters['specialty'],
           initialSymptoms: state.uri.queryParameters['symptoms'],
         ),
+      ),
+      GoRoute(
+        path: '/patient/doctor/:id',
+        builder: (context, state) =>
+            DoctorProfileScreen(doctorId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/patient/book/:doctorId',
+        builder: (context, state) => BookAppointmentScreen(
+          doctorId: state.pathParameters['doctorId']!,
+          rescheduleId: state.uri.queryParameters['reschedule'],
+        ),
+      ),
+      GoRoute(
+        path: '/patient/appointment/:id',
+        builder: (context, state) => AppointmentDetailScreen(
+          consultationId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/patient/notifications',
+        builder: (_, _) => const NotificationsScreen(),
       ),
       GoRoute(
         path: '/patient/waiting/:id',
@@ -175,6 +212,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/doctor/call/:id',
         builder: (context, state) =>
             _pro(DoctorCallScreen(consultationId: state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/doctor/schedule',
+        builder: (_, _) => _pro(const DoctorScheduleScreen()),
+      ),
+      GoRoute(
+        path: '/doctor/profile',
+        builder: (_, _) => _pro(const DoctorProfileEditScreen()),
+      ),
+      GoRoute(
+        path: '/doctor/notifications',
+        builder: (_, _) =>
+            _pro(const NotificationsScreen(appointmentRoute: null)),
       ),
       GoRoute(
         path: '/doctor/history',

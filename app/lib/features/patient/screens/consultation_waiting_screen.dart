@@ -7,6 +7,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/install_prompt_banner.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../widgets/review_sheet.dart';
+import 'doctor_profile_screen.dart' show publicDoctorProvider;
 import '../../../data/models/consultation.dart';
 import '../../../data/models/enums.dart';
 import '../../../data/providers/repository_providers.dart';
@@ -47,6 +49,9 @@ class ConsultationWaitingScreen extends ConsumerWidget {
                 consultation: consultation,
               ),
               ConsultationStatus.cancelled => const _CancelledBody(),
+              ConsultationStatus.scheduled => _ScheduledBody(
+                consultation: consultation,
+              ),
             };
           },
         ),
@@ -151,13 +156,19 @@ class _MatchedBody extends StatelessWidget {
   }
 }
 
-class _CompletedBody extends StatelessWidget {
+class _CompletedBody extends ConsumerWidget {
   const _CompletedBody({required this.consultation});
 
   final Consultation consultation;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final doctorName = consultation.doctorId == null
+        ? null
+        : ref
+              .watch(publicDoctorProvider(consultation.doctorId!))
+              .valueOrNull
+              ?.name;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -189,6 +200,11 @@ class _CompletedBody extends StatelessWidget {
               icon: const Icon(LucideIcons.fileText, size: 18),
               label: const Text('View prescription'),
               onPressed: () => context.push('/patient/prescriptions'),
+            ),
+            const SizedBox(height: 10),
+            ReviewPrompt(
+              consultationId: consultation.id,
+              doctorName: doctorName ?? 'your doctor',
             ),
             const SizedBox(height: 8),
             TextButton(
@@ -287,6 +303,45 @@ class _CancelledBody extends StatelessWidget {
             FilledButton(
               onPressed: () => context.go('/patient'),
               child: const Text('Back to home'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A booked appointment reached via the on-demand waiting route (e.g. from an
+/// older link): send the patient to the proper appointment page.
+class _ScheduledBody extends StatelessWidget {
+  const _ScheduledBody({required this.consultation});
+
+  final Consultation consultation;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              LucideIcons.calendarCheck,
+              size: 48,
+              color: AppColors.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'This is a booked appointment',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () => context.pushReplacement(
+                '/patient/appointment/${consultation.id}',
+              ),
+              child: const Text('View appointment'),
             ),
           ],
         ),

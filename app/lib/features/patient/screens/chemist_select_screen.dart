@@ -57,8 +57,9 @@ class ChemistSelectScreen extends ConsumerWidget {
                   }
                   return (item: item, km: km);
                 }).toList()..sort((a, b) {
-                  if (a.km == null && b.km == null)
+                  if (a.km == null && b.km == null) {
                     return a.item.price.compareTo(b.item.price);
+                  }
                   if (a.km == null) return 1;
                   if (b.km == null) return -1;
                   return a.km!.compareTo(b.km!);

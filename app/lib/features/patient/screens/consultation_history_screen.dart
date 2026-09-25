@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/format.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../data/providers/auth_providers.dart';
@@ -50,14 +51,17 @@ class ConsultationHistoryList extends ConsumerWidget {
           separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, i) {
             final c = list[i];
-            final isActive =
-                c.status.name == 'requested' || c.status.name == 'matched';
+            final scheduled = c.isScheduled && c.scheduledFor != null;
+            final route = c.isScheduled
+                ? '/patient/appointment/${c.id}'
+                : '/patient/waiting/${c.id}';
+            final statusLabel = c.status.name == 'inProgress'
+                ? 'in progress'
+                : c.status.name;
             return Card(
               child: InkWell(
                 borderRadius: BorderRadius.circular(20),
-                onTap: isActive
-                    ? () => context.push('/patient/waiting/${c.id}')
-                    : null,
+                onTap: () => context.push(route),
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Row(
@@ -69,9 +73,11 @@ class ConsultationHistoryList extends ConsumerWidget {
                           color: AppColors.accentTealSoft,
                           borderRadius: BorderRadius.circular(13),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Icon(
-                            LucideIcons.stethoscope,
+                            scheduled
+                                ? LucideIcons.calendarClock
+                                : LucideIcons.stethoscope,
                             color: AppColors.accentTeal,
                             size: 20,
                           ),
@@ -88,18 +94,19 @@ class ConsultationHistoryList extends ConsumerWidget {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              '${c.status.name} · ${c.createdAt.toLocal().toString().split(' ').first}',
+                              scheduled
+                                  ? '${formatDateTime(c.scheduledFor!)} · $statusLabel'
+                                  : '$statusLabel · ${formatDayShort(c.createdAt.toLocal())}',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
                         ),
                       ),
-                      if (isActive)
-                        const Icon(
-                          LucideIcons.chevronRight,
-                          color: AppColors.inkFaint,
-                          size: 18,
-                        ),
+                      const Icon(
+                        LucideIcons.chevronRight,
+                        color: AppColors.inkFaint,
+                        size: 18,
+                      ),
                     ],
                   ),
                 ),

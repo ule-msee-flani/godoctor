@@ -1,0 +1,96 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../core/config/supabase_client.dart';
+import '../models/public_doctor.dart';
+
+/// The certified-doctor directory: search, public profiles, open slots and
+/// public reviews. Everything goes through SQL functions that expose only
+/// safe columns for licence-verified doctors.
+class DoctorDirectoryRepository {
+  SupabaseClient get _client => SupabaseService.client;
+
+  Future<List<PublicDoctor>> search({
+    String? query,
+    String? specialty,
+    double? maxFee,
+    String? language,
+    String? gender,
+    bool availableNow = false,
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final rows = await _client.rpc(
+      'search_doctors',
+      params: {
+        'p_query': (query == null || query.trim().isEmpty)
+            ? null
+            : query.trim(),
+        'p_specialty': specialty,
+        'p_max_fee': maxFee,
+        'p_language': language,
+        'p_gender': gender,
+        'p_available_now': availableNow,
+        'p_limit': limit,
+        'p_offset': offset,
+      },
+    );
+    return (rows as List)
+        .map((r) => PublicDoctor.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<PublicDoctor?> getDoctor(String doctorId) async {
+    final rows = await _client.rpc(
+      'get_public_doctor',
+      params: {'p_id': doctorId},
+    );
+    final list = rows as List;
+    return list.isEmpty
+        ? null
+        : PublicDoctor.fromMap(list.first as Map<String, dynamic>);
+  }
+
+  /// Open slots for [doctorId] on each calendar day from [from] to [to]
+  /// (inclusive, max 31 days). Slots are computed in Kenya time on the server.
+  Future<List<TimeSlot>> openSlots(
+    String doctorId,
+    DateTime from,
+    DateTime to,
+  ) async {
+    final rows = await _client.rpc(
+      'doctor_open_slots',
+      params: {
+        'p_doctor_id': doctorId,
+        'p_from': _dateOnly(from),
+        'p_to': _dateOnly(to),
+      },
+    );
+    return (rows as List)
+        .map((r) => TimeSlot.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<DoctorReview>> reviews(
+    String doctorId, {
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final rows = await _client.rpc(
+      'doctor_reviews',
+      params: {'p_doctor_id': doctorId, 'p_limit': limit, 'p_offset': offset},
+    );
+    return (rows as List)
+        .map((r) => DoctorReview.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Public URL for a doctor's avatar, or null if they haven't set one.
+  String? avatarUrl(String? path) => (path == null || path.isEmpty)
+      ? null
+      : _client.storage.from('avatars').getPublicUrl(path);
+
+  static String _dateOnly(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+}

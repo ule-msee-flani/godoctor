@@ -46,3 +46,4 @@ app.*.map.json
 
 # Local secrets
 .env
+hs_err_pid*.log

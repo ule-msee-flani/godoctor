@@ -16,7 +16,10 @@ enum ConsultationStatus {
   completed,
   cancelled,
   unmatched,
+  scheduled,
 }
+
+enum ConsultationMode { onDemand, scheduled }
 
 enum OfferStatus { pending, accepted, declined, expired }
 

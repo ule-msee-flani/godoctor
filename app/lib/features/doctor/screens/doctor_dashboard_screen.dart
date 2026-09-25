@@ -10,6 +10,8 @@ import '../../../data/models/consultation.dart';
 import '../../../data/models/doctor_profile.dart';
 import '../../../data/models/enums.dart';
 import '../../../data/providers/auth_providers.dart';
+import '../../../data/providers/notification_providers.dart';
+import '../widgets/doctor_appointments_section.dart';
 import '../../../data/providers/repository_providers.dart';
 
 final _offersStreamProvider =
@@ -31,6 +33,26 @@ class DoctorDashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Doctor dashboard'),
         actions: [
+          Badge(
+            isLabelVisible: ref.watch(unreadNotificationCountProvider) > 0,
+            label: Text('${ref.watch(unreadNotificationCountProvider)}'),
+            offset: const Offset(-4, 4),
+            child: IconButton(
+              icon: const Icon(LucideIcons.bell),
+              tooltip: 'Notifications',
+              onPressed: () => context.push('/doctor/notifications'),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(LucideIcons.calendarClock),
+            tooltip: 'My schedule',
+            onPressed: () => context.push('/doctor/schedule'),
+          ),
+          IconButton(
+            icon: const Icon(LucideIcons.userRound),
+            tooltip: 'My public profile',
+            onPressed: () => context.push('/doctor/profile'),
+          ),
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: 'Consultation history',
@@ -115,6 +137,8 @@ class _DashboardBody extends ConsumerWidget {
               .map((s) => Chip(label: Text(s)))
               .toList(),
         ),
+        const SizedBox(height: 20),
+        const DoctorAppointmentsSection(),
         const SizedBox(height: 20),
         Text('Incoming offers', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),

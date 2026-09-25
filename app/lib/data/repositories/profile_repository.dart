@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_client.dart';
@@ -70,6 +72,49 @@ class ProfileRepository {
           'verification_documents': verificationDocuments,
         })
         .eq('user_id', userId);
+  }
+
+  /// The fields patients see in the directory. (Licence details are edited
+  /// separately during onboarding; verification stays admin-only.)
+  Future<void> updateDoctorPublicProfile({
+    required String userId,
+    String? bio,
+    double? consultationFee,
+    required List<String> languages,
+    String? gender,
+    int? yearsExperience,
+    String? avatarPath,
+  }) async {
+    await _client
+        .from('doctor_profiles')
+        .update({
+          'bio': bio,
+          'consultation_fee': consultationFee,
+          'languages': languages,
+          'gender': gender,
+          'years_experience': yearsExperience,
+          'avatar_url': ?avatarPath,
+        })
+        .eq('user_id', userId);
+  }
+
+  /// Uploads a new profile photo to the public `avatars` bucket (each user
+  /// may only write inside their own folder) and returns the storage path.
+  Future<String> uploadDoctorAvatar({
+    required String userId,
+    required Uint8List bytes,
+    required String fileExt,
+  }) async {
+    final ext = fileExt.toLowerCase().replaceAll('.', '');
+    final path = '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    await _client.storage
+        .from('avatars')
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: 'image/$ext', upsert: true),
+        );
+    return path;
   }
 
   Future<void> updateChemistRegistration({

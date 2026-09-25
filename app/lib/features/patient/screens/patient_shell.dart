@@ -29,6 +29,14 @@ class PatientShell extends StatelessWidget {
             label: 'Home',
           ),
           NavigationDestination(
+            icon: Icon(LucideIcons.stethoscope),
+            selectedIcon: Icon(
+              LucideIcons.stethoscope,
+              color: AppColors.primary,
+            ),
+            label: 'Doctors',
+          ),
+          NavigationDestination(
             icon: Icon(LucideIcons.layoutList),
             selectedIcon: Icon(
               LucideIcons.layoutList,

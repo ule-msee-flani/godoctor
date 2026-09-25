@@ -52,7 +52,6 @@ dependencies:
 
   # File picking (verification docs, prescription photo uploads)
   image_picker: ^1.1.2
-  file_picker: ^8.1.6
 
   # tel: links (emergency hard-stop "call now" button)
   url_launcher: ^6.3.1
@@ -84,6 +83,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -126,3 +126,17 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# App icon: regenerate assets with `flutter test tool/generate_icon_test.dart`,
+# then fan out to platform sizes with `dart run flutter_launcher_icons`.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/icon/icon.png
+  adaptive_icon_background: "#1B63F2"
+  adaptive_icon_foreground: assets/icon/icon_foreground.png
+  web:
+    generate: true
+    image_path: assets/icon/icon.png
+    background_color: "#F5F8FF"
+    theme_color: "#1B63F2"

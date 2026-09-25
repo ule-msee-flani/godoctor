@@ -4,12 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/format.dart';
+import '../../../data/providers/appointment_providers.dart';
 import '../../../data/providers/auth_providers.dart';
+import '../../../data/providers/notification_providers.dart';
 import '../../../services/emergency_check.dart';
 import '../../../services/specialty_search.dart';
+import '../widgets/emergency_stop_view.dart' show launchDialer;
 import '../widgets/promo_banner_carousel.dart';
 import '../widgets/specialty_tiles.dart';
-import 'intake_form_screen.dart' show launchDialer;
 
 String _greeting() {
   final hour = DateTime.now().hour;
@@ -56,6 +59,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     final name = profile?.name ?? '';
     final query = _searchCtrl.text.trim();
     final searching = query.isNotEmpty;
+    final unread = ref.watch(unreadNotificationCountProvider);
+    final upcoming = ref.watch(upcomingAppointmentsProvider).valueOrNull;
 
     return Scaffold(
       body: SafeArea(
@@ -81,6 +86,17 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                       ],
                     ),
                   ),
+                  Badge(
+                    isLabelVisible: unread > 0,
+                    label: Text(unread > 9 ? '9+' : '$unread'),
+                    offset: const Offset(-6, 4),
+                    child: IconButton(
+                      tooltip: 'Notifications',
+                      icon: const Icon(LucideIcons.bell),
+                      onPressed: () => context.push('/patient/notifications'),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                   InkWell(
                     borderRadius: BorderRadius.circular(24),
                     onTap: () => context.go('/patient/profile'),
@@ -122,6 +138,20 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             if (searching)
               _SearchResults(query: query, onPick: _startIntake)
             else ...[
+              if (upcoming != null && upcoming.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _UpcomingCard(
+                    when: upcoming.first.scheduledFor,
+                    specialty: upcoming.first.specialtyRequested,
+                    live: upcoming.first.canStartNow,
+                    onTap: () => context.push(
+                      '/patient/appointment/${upcoming.first.id}',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -153,9 +183,19 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               const SizedBox(height: 22),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'Specialties',
-                  style: Theme.of(context).textTheme.titleMedium,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Specialties',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.go('/patient/doctors'),
+                      child: const Text('Browse doctors'),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 12),
@@ -369,6 +409,79 @@ class _SearchResults extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Next appointment" strip shown when the patient has something booked.
+class _UpcomingCard extends StatelessWidget {
+  const _UpcomingCard({
+    required this.when,
+    required this.specialty,
+    required this.live,
+    required this.onTap,
+  });
+
+  final DateTime? when;
+  final String specialty;
+  final bool live;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return Material(
+      color: AppColors.primary,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  LucideIcons.calendarClock,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      live ? 'Your appointment is ready' : 'Next appointment',
+                      style: theme.bodySmall?.copyWith(color: Colors.white70),
+                    ),
+                    Text(
+                      when == null ? specialty : formatRelativeSlot(when!),
+                      style: theme.titleMedium?.copyWith(color: Colors.white),
+                    ),
+                    Text(
+                      specialty,
+                      style: theme.bodySmall?.copyWith(color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                LucideIcons.chevronRight,
+                color: Colors.white70,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

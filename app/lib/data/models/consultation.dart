@@ -12,6 +12,10 @@ class Consultation {
     this.startedAt,
     this.endedAt,
     required this.createdAt,
+    this.mode = ConsultationMode.onDemand,
+    this.scheduledFor,
+    this.scheduledEnd,
+    this.feeAmount,
   });
 
   final String id;
@@ -24,6 +28,23 @@ class Consultation {
   final DateTime? startedAt;
   final DateTime? endedAt;
   final DateTime createdAt;
+  final ConsultationMode mode;
+  final DateTime? scheduledFor;
+  final DateTime? scheduledEnd;
+  final double? feeAmount;
+
+  bool get isScheduled => mode == ConsultationMode.scheduled;
+
+  /// A booked appointment can be opened from 10 minutes before it starts
+  /// until 30 minutes after it ends (mirrors start_appointment() in SQL).
+  bool get canStartNow {
+    if (!isScheduled || scheduledFor == null || scheduledEnd == null) {
+      return false;
+    }
+    final now = DateTime.now();
+    return now.isAfter(scheduledFor!.subtract(const Duration(minutes: 10))) &&
+        now.isBefore(scheduledEnd!.add(const Duration(minutes: 30)));
+  }
 
   factory Consultation.fromMap(Map<String, dynamic> map) => Consultation(
     id: map['id'] as String,
@@ -44,6 +65,18 @@ class Consultation {
         ? DateTime.tryParse(map['ended_at'] as String)
         : null,
     createdAt: DateTime.parse(map['created_at'] as String),
+    mode: enumFromDb(
+      ConsultationMode.values,
+      map['mode'] as String?,
+      ConsultationMode.onDemand,
+    ),
+    scheduledFor: map['scheduled_for'] != null
+        ? DateTime.tryParse(map['scheduled_for'] as String)?.toLocal()
+        : null,
+    scheduledEnd: map['scheduled_end'] != null
+        ? DateTime.tryParse(map['scheduled_end'] as String)?.toLocal()
+        : null,
+    feeAmount: (map['fee_amount'] as num?)?.toDouble(),
   );
 }
 
