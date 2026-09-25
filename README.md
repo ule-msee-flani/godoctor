@@ -58,6 +58,41 @@ flutter build web
 `web/manifest.json` is already set to `display: standalone` for
 Add-to-Home-Screen / browser-install support.
 
+### Android app
+
+The same codebase builds a native Android app (recommended for reliable push
+on the 20-30s doctor-offer window):
+
+```
+cd app
+flutter build apk --debug --target-platform android-arm64   # quick test build
+flutter build apk --release                                 # needs a signing key (not set up yet)
+```
+
+Things that will bite on a fresh machine:
+
+- **One-time SDK setup.** `flutter doctor` must show the Android toolchain
+  green: install the SDK *command-line tools* and run
+  `flutter doctor --android-licenses` (you have to accept the licences
+  yourself).
+- **`JAVA_HOME` must point at a JDK that exists** (JDK 17-21 is safest). A
+  stale `JAVA_HOME` gives "The supplied javaHome seems to be invalid".
+- **Memory.** `android/gradle.properties` is sized for a 4 GB machine. The
+  Flutter default (`-Xmx8G`) crashes the Gradle JVM with "insufficient
+  memory" on small machines; raise it on a bigger one.
+- **The first build is slow** (it downloads the Flutter engine for each CPU
+  type). `--target-platform android-arm64` skips the emulator/32-bit engines.
+- After removing a plugin from `pubspec.yaml`, delete `app/.dart_tool/flutter_build`
+  if the web build complains about a package that no longer exists.
+- App icon: regenerate with `flutter test tool/generate_icon_test.dart`, then
+  `dart run flutter_launcher_icons`.
+
+### Database changes
+
+Migrations live in `supabase/migrations/` (apply in numeric order). The live
+project's schema is kept in sync through the Supabase MCP server
+(`.mcp.json`) rather than the SQL Editor.
+
 ## What's real vs. stubbed in this pass
 
 Everything in the spec's "build now" list is implemented against live
