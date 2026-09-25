@@ -85,7 +85,11 @@ final doctorSearchProvider = FutureProvider.autoDispose<List<PublicDoctor>>((
 });
 
 class DoctorsScreen extends ConsumerStatefulWidget {
-  const DoctorsScreen({super.key});
+  const DoctorsScreen({super.key, this.initialSpecialty});
+
+  /// Applied as the specialty filter when the screen opens or the link
+  /// changes (e.g. from a specialty page's "Find ENT doctors" button).
+  final String? initialSpecialty;
 
   @override
   ConsumerState<DoctorsScreen> createState() => _DoctorsScreenState();
@@ -94,6 +98,32 @@ class DoctorsScreen extends ConsumerStatefulWidget {
 class _DoctorsScreenState extends ConsumerState<DoctorsScreen> {
   final _searchCtrl = TextEditingController();
   Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _applyInitialSpecialty();
+  }
+
+  @override
+  void didUpdateWidget(covariant DoctorsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialSpecialty != oldWidget.initialSpecialty) {
+      _applyInitialSpecialty();
+    }
+  }
+
+  void _applyInitialSpecialty() {
+    final specialty = widget.initialSpecialty;
+    if (specialty == null || specialty.isEmpty) return;
+    // Providers can't be modified while the tree is building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(doctorFiltersProvider.notifier)
+          .update((f) => f.copyWith(specialty: specialty));
+    });
+  }
 
   @override
   void dispose() {

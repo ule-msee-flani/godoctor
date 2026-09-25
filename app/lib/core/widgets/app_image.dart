@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../utils/app_assets.dart';
 
-/// Displays a real asset image from `assets/images/` when present, and
-/// falls back to a designed placeholder panel when it isn't (yet) supplied.
+/// Shows a real image from `assets/` when one has been supplied, and a
+/// designed placeholder panel when it hasn't.
 ///
-/// The app ships without real photography — see `app/IMAGES.md` for the
-/// full shot list. Drop a file at the given [assetPath] and it renders
-/// automatically on next hot-restart/build, no code changes needed.
+/// [assetPath] is the file path *without* caring about the extension: save
+/// the picture as .png, .jpg or .webp and it is picked up automatically.
+/// See `assets/README.md` for the full list of file names.
+///
+/// [overlay], if set, is painted on top of the picture (real or placeholder).
+/// The home carousel uses it so every banner keeps its brand colour tint
+/// with the photo showing through underneath.
 class AppImage extends StatelessWidget {
   const AppImage({
     super.key,
@@ -20,6 +25,7 @@ class AppImage extends StatelessWidget {
     required this.placeholderLabel,
     this.gradient = AppColors.primaryGradient,
     this.showPlaceholderContent = true,
+    this.overlay,
   });
 
   final String assetPath;
@@ -34,25 +40,37 @@ class AppImage extends StatelessWidget {
   /// Set false when the image is a backdrop behind other content, so the
   /// fallback panel is just the gradient (no centred icon/filename hint).
   final bool showPlaceholderContent;
+  final Gradient? overlay;
 
   @override
   Widget build(BuildContext context) {
+    final found = AppAssets.find(assetPath);
+    Widget placeholder() => _Placeholder(
+      icon: placeholderIcon,
+      label: placeholderLabel,
+      gradient: gradient,
+      showContent: showPlaceholderContent,
+    );
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: SizedBox(
         height: height,
         width: width,
-        child: Image.asset(
-          assetPath,
-          height: height,
-          width: width,
-          fit: fit,
-          errorBuilder: (context, error, stackTrace) => _Placeholder(
-            icon: placeholderIcon,
-            label: placeholderLabel,
-            gradient: gradient,
-            showContent: showPlaceholderContent,
-          ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (found == null)
+              placeholder()
+            else
+              Image.asset(
+                found,
+                fit: fit,
+                errorBuilder: (_, _, _) => placeholder(),
+              ),
+            if (overlay != null)
+              DecoratedBox(decoration: BoxDecoration(gradient: overlay)),
+          ],
         ),
       ),
     );

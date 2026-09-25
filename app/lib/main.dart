@@ -3,13 +3,16 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/config/env.dart';
+import 'core/utils/app_assets.dart';
 import 'core/config/supabase_client.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/splash_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
+  await AppAssets.load();
   await SupabaseService.initialize();
   runApp(const ProviderScope(child: GoDoctorApp()));
 }
@@ -29,6 +32,9 @@ class GoDoctorApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.patientTheme,
       routerConfig: router,
+      // The launch video plays over the app while it starts up.
+      builder: (context, child) =>
+          SplashGate(child: child ?? const SizedBox.shrink()),
     );
   }
 }

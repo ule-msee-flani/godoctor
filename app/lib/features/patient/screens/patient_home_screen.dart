@@ -199,7 +199,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              SpecialtyRow(onSelected: _startIntake),
+              SpecialtyRow(
+                onSelected: (meta) =>
+                    context.push('/patient/specialty/${meta.slug}'),
+              ),
             ],
           ],
         ),

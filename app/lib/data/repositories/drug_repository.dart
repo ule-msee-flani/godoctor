@@ -6,6 +6,21 @@ import '../models/drug.dart';
 class DrugRepository {
   SupabaseClient get _client => SupabaseService.client;
 
+  /// The whole medicine catalogue (a few hundred rows), for the gallery.
+  Future<List<Drug>> fetchCatalog() async {
+    final rows = await _client
+        .from('drugs')
+        .select()
+        .order('generic_name')
+        .limit(1000);
+    return rows.map((r) => Drug.fromMap(r)).toList();
+  }
+
+  /// Public URL for a product photo stored in the `drug-images` bucket.
+  String? imageUrl(String? path) => (path == null || path.isEmpty)
+      ? null
+      : _client.storage.from('drug-images').getPublicUrl(path);
+
   Future<List<Drug>> searchDrugs(String query, {int limit = 20}) async {
     if (query.trim().isEmpty) {
       final rows = await _client

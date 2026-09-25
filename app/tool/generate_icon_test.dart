@@ -1,4 +1,4 @@
-// Draws the GoDoctor app icon to assets/icon/*.png.
+// Draws the GoDoctor app icon to assets/logo/*.png.
 //
 // Run with:  flutter test tool/generate_icon_test.dart
 // (It's a "test" only because that's the easiest way to get dart:ui image
@@ -69,7 +69,7 @@ void main() {
   testWidgets('generate icons', (tester) async {
     await tester.runAsync(() async {
       // Full-bleed icon (legacy Android, web, iOS).
-      await _write('assets/icon/icon.png', (canvas, size) {
+      await _write('assets/logo/app_icon.png', (canvas, size) {
         final rect = Rect.fromLTWH(0, 0, size, size);
         canvas.drawRect(
           rect,
@@ -95,7 +95,7 @@ void main() {
 
       // Transparent foreground for Android adaptive icons: the OS masks it,
       // so keep the mark inside the ~66% safe zone.
-      await _write('assets/icon/icon_foreground.png', (canvas, size) {
+      await _write('assets/logo/app_icon_foreground.png', (canvas, size) {
         _paintMark(canvas, size, scale: 0.62);
       });
     });

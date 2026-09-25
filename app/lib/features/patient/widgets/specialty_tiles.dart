@@ -2,37 +2,123 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/app_assets.dart';
 
 class SpecialtyMeta {
-  const SpecialtyMeta(this.name, this.label, this.icon);
+  const SpecialtyMeta(this.name, this.label, this.slug, this.icon);
 
   /// Canonical value stored in the database (matches kSpecialties).
   final String name;
 
   /// Short label that fits under a tile.
   final String label;
+
+  /// Also the picture file name: `assets/images/specialties/SLUG.png`
+  /// (any of png/jpg/webp), and the page route `/patient/specialty/SLUG`.
+  final String slug;
+
+  /// Only shown until a picture has been supplied.
   final IconData icon;
+
+  String get imageBase => 'assets/images/specialties/$slug';
+
+  /// Optional wide picture for the top of the specialty page. Falls back to
+  /// the tile picture when not supplied.
+  String get heroBase => 'assets/images/specialties/${slug}_hero';
 }
 
 const kSpecialtyMeta = <SpecialtyMeta>[
-  SpecialtyMeta('General Practice', 'General', LucideIcons.stethoscope),
-  SpecialtyMeta('Pediatrics', 'Children', LucideIcons.baby),
-  SpecialtyMeta('Obstetrics & Gynaecology', 'OB/GYN', LucideIcons.venus),
-  SpecialtyMeta('Internal Medicine', 'Internal', LucideIcons.activity),
-  SpecialtyMeta('Dermatology', 'Skin', LucideIcons.sparkles),
-  SpecialtyMeta('Psychiatry/Mental Health', 'Mental health', LucideIcons.brain),
-  SpecialtyMeta('Cardiology', 'Heart', LucideIcons.heartPulse),
-  SpecialtyMeta('ENT', 'ENT', LucideIcons.ear),
-  SpecialtyMeta('Orthopedics', 'Bones', LucideIcons.bone),
+  SpecialtyMeta(
+    'General Practice',
+    'General',
+    'general',
+    LucideIcons.stethoscope,
+  ),
+  SpecialtyMeta('Pediatrics', 'Children', 'children', LucideIcons.baby),
+  SpecialtyMeta(
+    'Obstetrics & Gynaecology',
+    'OB/GYN',
+    'obgyn',
+    LucideIcons.venus,
+  ),
+  SpecialtyMeta(
+    'Internal Medicine',
+    'Internal',
+    'internal',
+    LucideIcons.activity,
+  ),
+  SpecialtyMeta('Dermatology', 'Skin', 'skin', LucideIcons.sparkles),
+  SpecialtyMeta(
+    'Psychiatry/Mental Health',
+    'Mental health',
+    'mental-health',
+    LucideIcons.brain,
+  ),
+  SpecialtyMeta('Cardiology', 'Heart', 'heart', LucideIcons.heartPulse),
+  SpecialtyMeta('ENT', 'ENT', 'ent', LucideIcons.ear),
+  SpecialtyMeta('Orthopedics', 'Bones', 'bones', LucideIcons.bone),
 ];
 
 SpecialtyMeta specialtyMetaFor(String name) => kSpecialtyMeta.firstWhere(
   (m) => m.name == name,
-  orElse: () => SpecialtyMeta(name, name, LucideIcons.stethoscope),
+  orElse: () => SpecialtyMeta(name, name, '', LucideIcons.stethoscope),
 );
 
-/// One rounded specialty tile. Alternates blue/teal tints by [index] so a
-/// row reads as a varied set while staying inside the brand palette.
+SpecialtyMeta? specialtyMetaForSlug(String slug) {
+  for (final m in kSpecialtyMeta) {
+    if (m.slug == slug) return m;
+  }
+  return null;
+}
+
+/// The specialty's picture (rounded square), or a tinted icon tile when no
+/// picture has been supplied yet.
+class SpecialtyImage extends StatelessWidget {
+  const SpecialtyImage({
+    super.key,
+    required this.meta,
+    required this.size,
+    this.index = 0,
+    this.radius = 18,
+  });
+
+  final SpecialtyMeta meta;
+  final double size;
+  final int index;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final teal = index.isOdd;
+    final tint = teal ? AppColors.accentTealSoft : AppColors.primarySoft;
+    final accent = teal ? AppColors.accentTeal : AppColors.primary;
+    final found = AppAssets.find(meta.imageBase);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: found != null
+            ? Image.asset(
+                found,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => _fallback(tint, accent),
+              )
+            : _fallback(tint, accent),
+      ),
+    );
+  }
+
+  Widget _fallback(Color tint, Color accent) => ColoredBox(
+    color: tint,
+    child: Center(
+      child: Icon(meta.icon, size: size * 0.42, color: accent),
+    ),
+  );
+}
+
+/// One specialty tile: picture on top, label underneath.
 class SpecialtyTile extends StatelessWidget {
   const SpecialtyTile({
     super.key,
@@ -51,53 +137,68 @@ class SpecialtyTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final teal = index.isOdd;
-    final tint = teal ? AppColors.accentTealSoft : AppColors.primarySoft;
-    final accent = teal ? AppColors.accentTeal : AppColors.primary;
+    final accent = index.isOdd ? AppColors.accentTeal : AppColors.primary;
+    final imageSize = width - 8;
 
     return Semantics(
       button: true,
       selected: selected,
       label: meta.name,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+        child: SizedBox(
           width: width,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-          decoration: BoxDecoration(
-            color: selected ? accent : AppColors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: selected ? accent : AppColors.border,
-              width: 1.2,
-            ),
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 42,
-                height: 42,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                  color: selected ? Colors.white.withValues(alpha: 0.2) : tint,
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: selected ? accent : Colors.transparent,
+                    width: 2.5,
+                  ),
                 ),
-                child: Icon(
-                  meta.icon,
-                  size: 21,
-                  color: selected ? Colors.white : accent,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    SpecialtyImage(
+                      meta: meta,
+                      size: imageSize - 6,
+                      index: index,
+                    ),
+                    if (selected)
+                      Positioned(
+                        right: -4,
+                        top: -4,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: accent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            LucideIcons.check,
+                            size: 11,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 meta.label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: selected ? Colors.white : AppColors.ink,
+                  color: selected ? accent : AppColors.ink,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -113,12 +214,12 @@ class SpecialtyTile extends StatelessWidget {
 class SpecialtyRow extends StatelessWidget {
   const SpecialtyRow({super.key, required this.onSelected});
 
-  final ValueChanged<String> onSelected;
+  final ValueChanged<SpecialtyMeta> onSelected;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 104,
+      height: 122,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -127,7 +228,7 @@ class SpecialtyRow extends StatelessWidget {
         itemBuilder: (context, i) => SpecialtyTile(
           meta: kSpecialtyMeta[i],
           index: i,
-          onTap: () => onSelected(kSpecialtyMeta[i].name),
+          onTap: () => onSelected(kSpecialtyMeta[i]),
         ),
       ),
     );
@@ -149,7 +250,7 @@ class SpecialtyGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return Wrap(
       spacing: 10,
-      runSpacing: 10,
+      runSpacing: 12,
       children: [
         for (var i = 0; i < kSpecialtyMeta.length; i++)
           SpecialtyTile(

@@ -38,6 +38,7 @@ import '../../features/patient/screens/patient_shell.dart';
 import '../../features/patient/screens/profile_screen.dart';
 import '../../features/patient/screens/prescriptions_screen.dart';
 import '../../features/patient/screens/upload_prescription_screen.dart';
+import '../../features/patient/specialties/specialty_registry.dart';
 import '../theme/app_theme.dart';
 import '../widgets/pending_verification_view.dart';
 import 'go_router_refresh_stream.dart';
@@ -90,7 +91,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/patient/doctors',
-                builder: (_, _) => const DoctorsScreen(),
+                builder: (context, state) => DoctorsScreen(
+                  initialSpecialty: state.uri.queryParameters['specialty'],
+                ),
               ),
             ],
           ),
@@ -118,6 +121,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           initialSpecialty: state.uri.queryParameters['specialty'],
           initialSymptoms: state.uri.queryParameters['symptoms'],
         ),
+      ),
+      GoRoute(
+        path: '/patient/specialty/:slug',
+        builder: (context, state) =>
+            buildSpecialtyPage(context, state.pathParameters['slug']!) ??
+            const Scaffold(
+              body: Center(child: Text('That specialty page does not exist.')),
+            ),
       ),
       GoRoute(
         path: '/patient/doctor/:id',

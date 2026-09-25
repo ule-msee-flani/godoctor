@@ -6,6 +6,7 @@ class Drug {
     this.form,
     required this.requiresPrescription,
     this.category,
+    this.imagePath,
   });
 
   final String id;
@@ -15,6 +16,9 @@ class Drug {
   final bool requiresPrescription;
   final String? category;
 
+  /// Path in the public `drug-images` storage bucket (optional).
+  final String? imagePath;
+
   factory Drug.fromMap(Map<String, dynamic> map) => Drug(
     id: map['id'] as String,
     genericName: (map['generic_name'] as String?) ?? '',
@@ -22,6 +26,7 @@ class Drug {
     form: map['form'] as String?,
     requiresPrescription: (map['requires_prescription'] as bool?) ?? false,
     category: map['category'] as String?,
+    imagePath: map['image_path'] as String?,
   );
 
   String get displayName => brandNames.isNotEmpty

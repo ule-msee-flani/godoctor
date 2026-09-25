@@ -30,7 +30,7 @@ const _banners = <_Banner>[
     title: 'Feeling unwell?\nSee a doctor in minutes',
     cta: 'See a doctor',
     route: '/patient/intake',
-    image: 'assets/images/banner_doctor.png',
+    image: 'assets/images/banners/banner_doctor',
     icon: LucideIcons.stethoscope,
     gradient: AppColors.primaryGradient,
   ),
@@ -38,7 +38,7 @@ const _banners = <_Banner>[
     title: 'Medicine from chemists\nnear you',
     cta: 'Order medicine',
     route: '/patient/medicine-search',
-    image: 'assets/images/banner_pharmacy.png',
+    image: 'assets/images/banners/banner_pharmacy',
     icon: LucideIcons.pill,
     gradient: LinearGradient(
       begin: Alignment.topLeft,
@@ -50,7 +50,7 @@ const _banners = <_Banner>[
     title: 'Keep every prescription\nin one place',
     cta: 'My prescriptions',
     route: '/patient/prescriptions',
-    image: 'assets/images/banner_records.png',
+    image: 'assets/images/banners/banner_prescriptions',
     icon: LucideIcons.fileText,
     gradient: LinearGradient(
       begin: Alignment.topLeft,
@@ -60,8 +60,22 @@ const _banners = <_Banner>[
   ),
 ];
 
+/// Turns a solid brand gradient into a translucent overlay for a photo.
+Gradient _tint(Gradient g) {
+  final linear = g as LinearGradient;
+  final n = linear.colors.length;
+  return LinearGradient(
+    begin: linear.begin,
+    end: linear.end,
+    colors: [
+      for (var i = 0; i < n; i++)
+        linear.colors[i].withValues(alpha: 0.92 - 0.37 * (i / (n - 1))),
+    ],
+  );
+}
+
 /// Auto-advancing banner slider for the home screen. Each banner is a real
-/// image (drop the file in assets/images/) with a readable text scrim on
+/// image (drop the file in assets/images/banners/) with a readable text scrim on
 /// top; without the image it falls back to a branded gradient.
 class PromoBannerCarousel extends StatefulWidget {
   const PromoBannerCarousel({super.key});
@@ -148,6 +162,9 @@ class _BannerCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          // The photo sits at the back; the banner's brand colour is laid over
+          // it as a translucent tint (strongest behind the text, easing off
+          // to the right so the picture still shows through).
           AppImage(
             assetPath: banner.image,
             borderRadius: 24,
@@ -155,22 +172,7 @@ class _BannerCard extends StatelessWidget {
             placeholderLabel: banner.image,
             gradient: banner.gradient,
             showPlaceholderContent: false,
-          ),
-          // Left-to-right scrim keeps the copy legible over any photo.
-          ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    AppColors.primaryDarker.withValues(alpha: 0.78),
-                    AppColors.primaryDarker.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-            ),
+            overlay: _tint(banner.gradient),
           ),
           Padding(
             padding: const EdgeInsets.all(20),

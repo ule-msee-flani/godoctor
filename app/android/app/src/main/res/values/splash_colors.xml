@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kept apart from colors.xml because flutter_launcher_icons rewrites that
+     file. Colour shown while the app launches, before the splash video
+     starts: make it match the video's first frame, and keep the same value in
+     lib/core/widgets/splash_gate.dart and web/index.html. -->
+<resources>
+    <color name="splash_background">#0B1730</color>
+</resources>

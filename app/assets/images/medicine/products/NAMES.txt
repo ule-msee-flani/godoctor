@@ -1,0 +1,108 @@
+PRODUCT PICTURE FILE NAMES
+==========================
+Save a picture in this folder (png / jpg / webp) named exactly as shown below.
+Where a medicine comes in more than one form, use the form-specific name to
+give each form its own picture, or the plain name to use one picture for all.
+
+Regenerate this list any time with:  node tool/generate_medicine_names.js
+
+adrenaline-epinephrine                               Adrenaline (Epinephrine) (injection) -> injections  [Rx]
+albendazole                                          Albendazole (tablet) -> tablets
+amlodipine                                           Amlodipine (tablet) -> tablets  [Rx]
+amoxicillin                                          Amoxicillin (capsule) -> capsules  [Rx]
+amoxicillin-clavulanate                              Amoxicillin-Clavulanate (tablet) -> tablets  [Rx]
+artemether-lumefantrine                              Artemether-Lumefantrine (tablet) -> tablets  [Rx]
+artesunate                                           Artesunate (injection) -> injections  [Rx]
+aspirin-tablet-low-dose                              Aspirin (tablet (low-dose)) -> tablets
+                                                     (or just "aspirin" to share one picture across forms)
+aspirin-tablet                                       Aspirin (tablet) -> tablets
+                                                     (or just "aspirin" to share one picture across forms)
+atenolol                                             Atenolol (tablet) -> tablets  [Rx]
+atorvastatin                                         Atorvastatin (tablet) -> tablets  [Rx]
+azithromycin                                         Azithromycin (tablet) -> tablets  [Rx]
+beclomethasone                                       Beclomethasone (inhaler) -> drops  [Rx]
+benzyl-benzoate                                      Benzyl Benzoate (topical lotion) -> creams
+benzylpenicillin                                     Benzylpenicillin (injection) -> injections  [Rx]
+betamethasone-cream                                  Betamethasone Cream (topical cream) -> creams  [Rx]
+bisacodyl                                            Bisacodyl (tablet) -> tablets
+calcium-carbonate                                    Calcium Carbonate (tablet) -> tablets
+ceftriaxone                                          Ceftriaxone (injection) -> injections  [Rx]
+cetirizine                                           Cetirizine (tablet) -> tablets
+chloramphenicol-eye-drops                            Chloramphenicol Eye Drops (eye drops) -> drops
+chlorpheniramine                                     Chlorpheniramine (tablet) -> tablets
+ciprofloxacin                                        Ciprofloxacin (tablet) -> tablets  [Rx]
+clotrimazole-cream                                   Clotrimazole Cream (topical cream) -> creams
+combined-oral-contraceptive                          Combined Oral Contraceptive (tablet) -> tablets  [Rx]
+cotrimoxazole                                        Cotrimoxazole (tablet) -> tablets  [Rx]
+cotrimoxazole-prophylaxis                            Cotrimoxazole Prophylaxis (tablet) -> tablets  [Rx]
+dextromethorphan                                     Dextromethorphan (syrup) -> syrups
+dextrose-5                                           Dextrose 5% (IV infusion) -> injections  [Rx]
+diazepam-injection                                   Diazepam (injection) -> injections  [Rx]
+                                                     (or just "diazepam" to share one picture across forms)
+diazepam-tablet                                      Diazepam (tablet) -> tablets  [Rx]
+                                                     (or just "diazepam" to share one picture across forms)
+diclofenac-topical-gel                               Diclofenac (topical gel) -> creams
+                                                     (or just "diclofenac" to share one picture across forms)
+diclofenac-tablet                                    Diclofenac (tablet) -> tablets  [Rx]
+                                                     (or just "diclofenac" to share one picture across forms)
+doxycycline                                          Doxycycline (capsule) -> capsules  [Rx]
+emergency-contraceptive-pill                         Emergency Contraceptive Pill (tablet) -> tablets
+enalapril                                            Enalapril (tablet) -> tablets  [Rx]
+erythromycin                                         Erythromycin (tablet) -> tablets  [Rx]
+ferrous-sulphate                                     Ferrous Sulphate (tablet) -> tablets
+flucloxacillin                                       Flucloxacillin (capsule) -> capsules  [Rx]
+folic-acid                                           Folic Acid (tablet) -> tablets
+furosemide                                           Furosemide (tablet) -> tablets  [Rx]
+gentamicin                                           Gentamicin (injection) -> injections  [Rx]
+glibenclamide                                        Glibenclamide (tablet) -> tablets  [Rx]
+gliclazide                                           Gliclazide (tablet) -> tablets  [Rx]
+hydrochlorothiazide                                  Hydrochlorothiazide (tablet) -> tablets  [Rx]
+hydrocortisone-cream                                 Hydrocortisone Cream (topical cream) -> creams
+hydrocortisone-injection                             Hydrocortisone Injection (injection) -> injections  [Rx]
+ibuprofen                                            Ibuprofen (tablet) -> tablets
+insulin-isophane-nph                                 Insulin (isophane/NPH) (injection) -> injections  [Rx]
+insulin-soluble                                      Insulin (soluble) (injection) -> injections  [Rx]
+isoniazid                                            Isoniazid (tablet) -> tablets  [Rx]
+loperamide                                           Loperamide (capsule) -> capsules
+loratadine                                           Loratadine (tablet) -> tablets
+losartan                                             Losartan (tablet) -> tablets  [Rx]
+magnesium-sulphate                                   Magnesium Sulphate (injection) -> injections  [Rx]
+magnesium-trisilicate                                Magnesium Trisilicate (tablet) -> tablets
+mebendazole                                          Mebendazole (tablet) -> tablets
+medroxyprogesterone                                  Medroxyprogesterone (injection) -> injections  [Rx]
+metformin                                            Metformin (tablet) -> tablets  [Rx]
+metoclopramide                                       Metoclopramide (tablet) -> tablets
+metronidazole                                        Metronidazole (tablet) -> tablets  [Rx]
+misoprostol                                          Misoprostol (tablet) -> tablets  [Rx]
+morphine                                             Morphine (injection) -> injections  [Rx]
+multivitamin                                         Multivitamin (tablet) -> tablets
+nifedipine                                           Nifedipine (tablet) -> tablets  [Rx]
+normal-saline-0-9                                    Normal Saline 0.9% (IV infusion) -> injections  [Rx]
+omeprazole                                           Omeprazole (capsule) -> capsules
+oral-rehydration-salts                               Oral Rehydration Salts (sachet) -> syrups
+paracetamol-tablet                                   Paracetamol (tablet) -> tablets
+                                                     (or just "paracetamol" to share one picture across forms)
+paracetamol-syrup                                    Paracetamol (syrup) -> syrups
+                                                     (or just "paracetamol" to share one picture across forms)
+permethrin-cream                                     Permethrin Cream (topical cream) -> creams
+prednisolone                                         Prednisolone (tablet) -> tablets  [Rx]
+progestin-only-pill                                  Progestin-only Pill (tablet) -> tablets  [Rx]
+quinine                                              Quinine (tablet) -> tablets  [Rx]
+ranitidine                                           Ranitidine (tablet) -> tablets
+rifampicin-isoniazid-pyrazinamide-ethambutol         Rifampicin-Isoniazid-Pyrazinamide-Ethambutol (tablet) -> tablets  [Rx]
+ringer-s-lactate                                     Ringer's Lactate (IV infusion) -> injections  [Rx]
+salbutamol-inhaler                                   Salbutamol (inhaler) -> drops  [Rx]
+                                                     (or just "salbutamol" to share one picture across forms)
+salbutamol-syrup                                     Salbutamol (syrup) -> syrups
+                                                     (or just "salbutamol" to share one picture across forms)
+silver-sulfadiazine                                  Silver Sulfadiazine (topical cream) -> creams  [Rx]
+simvastatin                                          Simvastatin (tablet) -> tablets  [Rx]
+sodium-chloride-nasal-drops                          Sodium Chloride Nasal Drops (nasal drops) -> drops
+sulfadoxine-pyrimethamine                            Sulfadoxine-Pyrimethamine (tablet) -> tablets  [Rx]
+tenofovir-lamivudine-dolutegravir                    Tenofovir-Lamivudine-Dolutegravir (tablet) -> tablets  [Rx]
+tetracycline-eye-ointment                            Tetracycline Eye Ointment (eye ointment) -> drops
+tramadol                                             Tramadol (capsule) -> capsules  [Rx]
+vitamin-b-complex                                    Vitamin B Complex (tablet) -> tablets
+vitamin-c                                            Vitamin C (tablet) -> tablets
+xylometazoline                                       Xylometazoline (nasal spray) -> drops
+zinc-sulphate                                        Zinc Sulphate (tablet) -> tablets

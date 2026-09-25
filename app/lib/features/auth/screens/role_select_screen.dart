@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_image.dart';
+import '../../../core/widgets/app_logo.dart';
 import '../../../data/models/enums.dart';
 
 class RoleSelectScreen extends StatelessWidget {
@@ -21,11 +22,11 @@ class RoleSelectScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
                 child: AppImage(
-                  assetPath: 'assets/images/auth_hero.png',
+                  assetPath: 'assets/images/auth/auth_hero',
                   height: 220,
                   borderRadius: 28,
                   placeholderIcon: LucideIcons.video,
-                  placeholderLabel: 'assets/images/auth_hero.png',
+                  placeholderLabel: 'assets/images/auth/auth_hero',
                 ),
               ),
               Padding(
@@ -33,29 +34,9 @@ class RoleSelectScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            gradient: AppColors.primaryGradient,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              LucideIcons.heartPulse,
-                              color: Colors.white,
-                              size: 22,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'GoDoctor',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                      ],
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: AppLogo(height: 44),
                     ),
                     const SizedBox(height: 12),
                     Text(

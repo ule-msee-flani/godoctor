@@ -72,12 +72,12 @@ class _WaitingBody extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             AppImage(
-              assetPath: 'assets/images/waiting_search.png',
+              assetPath: 'assets/images/states/waiting_search',
               height: 200,
               width: 280,
               borderRadius: 28,
               placeholderIcon: LucideIcons.search,
-              placeholderLabel: 'assets/images/waiting_search.png',
+              placeholderLabel: 'assets/images/states/waiting_search',
             ),
             const SizedBox(height: 28),
             const SizedBox(
