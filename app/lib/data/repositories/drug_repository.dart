@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_client.dart';
@@ -7,15 +9,58 @@ import '../models/drug_info.dart';
 class DrugRepository {
   SupabaseClient get _client => SupabaseService.client;
 
-  /// The whole medicine catalogue (a few hundred rows), for the gallery.
+  /// The whole medicine catalogue (a few hundred rows), for the gallery,
+  /// with each medicine's latest chemist pack photo attached.
   Future<List<Drug>> fetchCatalog() async {
-    final rows = await _client
-        .from('drugs')
-        .select()
-        .order('generic_name')
-        .limit(1000);
-    return rows.map((r) => Drug.fromMap(r)).toList();
+    final results = await Future.wait([
+      _client.from('drugs').select().order('generic_name').limit(1000),
+      _client.from('drug_display_photos').select(),
+    ]);
+    final photos = {
+      for (final r in results[1])
+        r['drug_id'] as String: r['image_path'] as String?,
+    };
+    return results[0]
+        .map((r) => Drug.fromMap(r))
+        .map((d) => d.withChemistPhoto(photos[d.id]))
+        .toList();
   }
+
+  /// Public URL for a chemist's pack photo.
+  String? inventoryPhotoUrl(String? path) => (path == null || path.isEmpty)
+      ? null
+      : _client.storage.from('inventory-photos').getPublicUrl(path);
+
+  /// Uploads a pack photo into the chemist's own folder and returns its path.
+  Future<String> uploadInventoryPhoto({
+    required String chemistId,
+    required String drugId,
+    required Uint8List bytes,
+    required String fileExt,
+  }) async {
+    var ext = fileExt.toLowerCase().replaceAll('.', '');
+    if (ext == 'jpg') ext = 'jpeg';
+    final path =
+        '$chemistId/${drugId}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    await _client.storage
+        .from('inventory-photos')
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: 'image/$ext', upsert: true),
+        );
+    return path;
+  }
+
+  Future<void> setInventoryPhoto({
+    required String chemistId,
+    required String drugId,
+    required String imagePath,
+  }) => _client
+      .from('chemist_inventory')
+      .update({'image_path': imagePath})
+      .eq('chemist_id', chemistId)
+      .eq('drug_id', drugId);
 
   /// Patient information for one medicine, or null if none was imported.
   Future<DrugInfo?> fetchInfo(String drugId) async {
@@ -83,12 +128,14 @@ class DrugRepository {
     required String drugId,
     required int quantity,
     required double price,
+    String? imagePath,
   }) async {
     await _client.from('chemist_inventory').upsert({
       'chemist_id': chemistId,
       'drug_id': drugId,
       'quantity': quantity,
       'price': price,
+      'image_path': ?imagePath,
     });
   }
 

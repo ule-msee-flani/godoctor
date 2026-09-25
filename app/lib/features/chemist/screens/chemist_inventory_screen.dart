@@ -1,12 +1,47 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/widgets/loading_view.dart';
+import '../../../data/repositories/repository_errors.dart';
+import '../widgets/pack_photo.dart';
 import '../../../data/models/drug.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
+
+/// Photograph (or re-photograph) the pack for one inventory row.
+Future<void> _changePhoto(
+  BuildContext context,
+  WidgetRef ref,
+  ChemistInventoryItem item,
+) async {
+  final photo = await pickPackPhoto(context);
+  if (photo == null) return;
+  final repo = ref.read(drugRepositoryProvider);
+  try {
+    final path = await repo.uploadInventoryPhoto(
+      chemistId: item.chemistId,
+      drugId: item.drugId,
+      bytes: photo.bytes,
+      fileExt: photo.ext,
+    );
+    await repo.setInventoryPhoto(
+      chemistId: item.chemistId,
+      drugId: item.drugId,
+      imagePath: path,
+    );
+    ref.invalidate(_inventoryProvider);
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not upload photo: ${friendlyError(e)}')),
+      );
+    }
+  }
+}
 
 final _inventoryProvider = FutureProvider((ref) async {
   final userId = ref.watch(currentUserIdProvider);
@@ -64,6 +99,7 @@ class ChemistInventoryScreen extends ConsumerWidget {
             scrollDirection: Axis.horizontal,
             child: DataTable(
               columns: const [
+                DataColumn(label: Text('Photo')),
                 DataColumn(label: Text('Drug')),
                 DataColumn(label: Text('Quantity')),
                 DataColumn(label: Text('Price (KES)')),
@@ -74,6 +110,18 @@ class ChemistInventoryScreen extends ConsumerWidget {
                   .map(
                     (item) => DataRow(
                       cells: [
+                        DataCell(
+                          Tooltip(
+                            message: item.imagePath == null
+                                ? 'Add a photo of this pack'
+                                : 'Change photo',
+                            child: PackPhotoThumb(
+                              path: item.imagePath,
+                              size: 40,
+                              onTap: () => _changePhoto(context, ref, item),
+                            ),
+                          ),
+                        ),
                         DataCell(Text(item.drug?.displayName ?? item.drugId)),
                         DataCell(
                           _InlineNumberField(
@@ -189,6 +237,13 @@ class _AddDrugDialogState extends ConsumerState<_AddDrugDialog> {
   List<Drug> _results = [];
   Drug? _selected;
   bool _saving = false;
+  ({Uint8List bytes, String ext})? _photo;
+  String? _error;
+
+  Future<void> _pickPhoto() async {
+    final photo = await pickPackPhoto(context);
+    if (photo != null && mounted) setState(() => _photo = photo);
+  }
 
   Future<void> _search(String query) async {
     final results = await ref.read(drugRepositoryProvider).searchDrugs(query);
@@ -197,16 +252,34 @@ class _AddDrugDialogState extends ConsumerState<_AddDrugDialog> {
 
   Future<void> _save() async {
     if (_selected == null) return;
-    setState(() => _saving = true);
-    await ref
-        .read(drugRepositoryProvider)
-        .upsertInventory(
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final repo = ref.read(drugRepositoryProvider);
+    try {
+      String? imagePath;
+      if (_photo != null) {
+        imagePath = await repo.uploadInventoryPhoto(
           chemistId: widget.chemistId,
           drugId: _selected!.id,
-          quantity: int.tryParse(_quantityCtrl.text) ?? 0,
-          price: double.tryParse(_priceCtrl.text) ?? 0,
+          bytes: _photo!.bytes,
+          fileExt: _photo!.ext,
         );
-    if (mounted) Navigator.of(context).pop();
+      }
+      await repo.upsertInventory(
+        chemistId: widget.chemistId,
+        drugId: _selected!.id,
+        quantity: int.tryParse(_quantityCtrl.text) ?? 0,
+        price: double.tryParse(_priceCtrl.text) ?? 0,
+        imagePath: imagePath,
+      );
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) setState(() => _error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -265,6 +338,43 @@ class _AddDrugDialogState extends ConsumerState<_AddDrugDialog> {
                 ),
               ],
             ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                PackPhotoThumb(
+                  bytes: _photo?.bytes,
+                  size: 56,
+                  onTap: _pickPhoto,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pack photo (recommended)',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      Text(
+                        'Patients see this photo of the exact pack you sell.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: _saving ? null : _pickPhoto,
+                  child: Text(_photo == null ? 'Add' : 'Change'),
+                ),
+              ],
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
           ],
         ),
       ),

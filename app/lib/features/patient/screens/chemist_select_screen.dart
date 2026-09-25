@@ -108,21 +108,9 @@ class ChemistSelectScreen extends ConsumerWidget {
                           padding: const EdgeInsets.all(14),
                           child: Row(
                             children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primarySoft,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    LucideIcons.store,
-                                    color: AppColors.primary,
-                                    size: 22,
-                                  ),
-                                ),
-                              ),
+                              // This chemist's own pack photo if they
+                              // uploaded one, otherwise a shop icon.
+                              _ChemistPackThumb(path: entry.item.imagePath),
                               const SizedBox(width: 14),
                               Expanded(
                                 child: Column(
@@ -196,6 +184,37 @@ class _MetaChip extends StatelessWidget {
         const SizedBox(width: 3),
         Text(text, style: Theme.of(context).textTheme.bodySmall),
       ],
+    );
+  }
+}
+
+class _ChemistPackThumb extends ConsumerWidget {
+  const _ChemistPackThumb({required this.path});
+
+  final String? path;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final url = ref.watch(drugRepositoryProvider).inventoryPhotoUrl(path);
+    Widget shop() => Container(
+      color: AppColors.primarySoft,
+      child: const Center(
+        child: Icon(LucideIcons.store, color: AppColors.primary, size: 22),
+      ),
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: SizedBox(
+        width: 56,
+        height: 56,
+        child: url == null
+            ? shop()
+            : Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => shop(),
+              ),
+      ),
     );
   }
 }

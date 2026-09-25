@@ -118,12 +118,21 @@ layout, register a custom screen in `specialty_registry.dart`
 The "Order medicine" screen shows one big product picture at the top and shelves
 of medicines below. A medicine's picture is the first of these that exists:
 
-1. **Its own picture** in `products/`, named as listed in
+1. **A photo set in the database by an admin:** upload to the `drug-images`
+   bucket in Supabase and put the file name in that medicine's `image_path`.
+2. **A chemist's pack photo:** chemists photograph the pack they sell when
+   adding stock (or later, by tapping the photo in their inventory table). The
+   most recent one from a verified chemist is used. Patients also see each
+   chemist's own photo when choosing where to buy.
+3. **Its own picture** in `products/`, named as listed in
    `products/NAMES.txt` (all 90 current medicines, generated from the live catalogue).
-2. **A photo set in the database:** upload to the `drug-images` bucket in
-   Supabase and put the file name in that medicine's `image_path`.
-3. **The picture for its shelf** in `categories/` (below).
-4. A tinted illustration.
+4. **The picture for its shelf** in `categories/` (below).
+5. A tinted illustration.
+
+The shelf pictures and a few product pictures shipped now are **free placeholders
+for testing** (CC0 / public domain / CC BY). Sources and licences are listed in
+`images/medicine/CREDITS.md`; the CC BY ones need that credit shown somewhere in
+the app (e.g. an About/credits screen). Replace them before launch.
 
 Supplying just the 7 shelf pictures already makes the gallery look complete.
 

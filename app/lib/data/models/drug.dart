@@ -7,6 +7,7 @@ class Drug {
     required this.requiresPrescription,
     this.category,
     this.imagePath,
+    this.chemistPhotoPath,
   });
 
   final String id;
@@ -18,6 +19,21 @@ class Drug {
 
   /// Path in the public `drug-images` storage bucket (optional).
   final String? imagePath;
+
+  /// Most recent pack photo a verified chemist uploaded for this medicine
+  /// (path in the public `inventory-photos` bucket), if any.
+  final String? chemistPhotoPath;
+
+  Drug withChemistPhoto(String? path) => Drug(
+    id: id,
+    genericName: genericName,
+    brandNames: brandNames,
+    form: form,
+    requiresPrescription: requiresPrescription,
+    category: category,
+    imagePath: imagePath,
+    chemistPhotoPath: path,
+  );
 
   factory Drug.fromMap(Map<String, dynamic> map) => Drug(
     id: map['id'] as String,
@@ -45,6 +61,7 @@ class ChemistInventoryItem {
     this.chemistName,
     this.chemistLat,
     this.chemistLng,
+    this.imagePath,
   });
 
   final String chemistId;
@@ -57,6 +74,9 @@ class ChemistInventoryItem {
   final String? chemistName;
   final double? chemistLat;
   final double? chemistLng;
+
+  /// Photo of this chemist's pack (path in the `inventory-photos` bucket).
+  final String? imagePath;
 
   factory ChemistInventoryItem.fromMap(Map<String, dynamic> map) {
     final chemistProfile = map['chemist_profiles'] as Map<String, dynamic>?;
@@ -71,6 +91,7 @@ class ChemistInventoryItem {
       chemistName: chemistProfile?['business_name'] as String?,
       chemistLat: (chemistProfile?['location_lat'] as num?)?.toDouble(),
       chemistLng: (chemistProfile?['location_lng'] as num?)?.toDouble(),
+      imagePath: map['image_path'] as String?,
     );
   }
 }

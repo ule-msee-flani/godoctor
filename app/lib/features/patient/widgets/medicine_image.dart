@@ -31,11 +31,12 @@ extension MedicineCategoryStyle on MedicineCategory {
 }
 
 /// A medicine's picture. The first of these that exists wins:
-///  1. a product picture bundled in the app:
+///  1. the photo set on the drug by an admin (`drugs.image_path`)
+///  2. a real pack photo uploaded by a verified chemist
+///  3. a product picture bundled in the app:
 ///     `assets/images/medicine/products/NAME-FORM.png` or `NAME.png`
 ///     (exact names are listed in that folder's NAMES.txt)
-///  2. the photo set on the drug (`drugs.image_path` in the `drug-images` bucket)
-///  3. the picture for its category: `assets/images/medicine/categories/<slug>.png`
+///  4. the picture for its category: `assets/images/medicine/categories/SLUG.png`
 ///  4. a tinted illustration
 class MedicineImage extends ConsumerWidget {
   const MedicineImage({
@@ -78,24 +79,27 @@ class MedicineImage extends ConsumerWidget {
         'assets/images/medicine/products/$name-${medicineSlug(drug.form!)}',
       'assets/images/medicine/products/$name',
     ]);
-    final url = bundled == null
-        ? ref.watch(drugRepositoryProvider).imageUrl(drug.imagePath)
-        : null;
+    final repo = ref.watch(drugRepositoryProvider);
+    final url =
+        repo.imageUrl(drug.imagePath) ??
+        repo.inventoryPhotoUrl(drug.chemistPhotoPath);
 
     final Widget picture;
-    if (bundled != null) {
+    if (url != null) {
+      picture = Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => bundled != null
+            ? Image.asset(bundled, fit: BoxFit.cover)
+            : categoryPicture(),
+        loadingBuilder: (context, child, progress) =>
+            progress == null ? child : illustration(),
+      );
+    } else if (bundled != null) {
       picture = Image.asset(
         bundled,
         fit: BoxFit.cover,
         errorBuilder: (_, _, _) => categoryPicture(),
-      );
-    } else if (url != null) {
-      picture = Image.network(
-        url,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => categoryPicture(),
-        loadingBuilder: (context, child, progress) =>
-            progress == null ? child : illustration(),
       );
     } else {
       picture = categoryPicture();
