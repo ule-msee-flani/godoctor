@@ -12,6 +12,7 @@ import '../../../data/models/medicine_category.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../widgets/medicine_image.dart';
+import '../widgets/medicine_info_sheet.dart';
 
 final _catalogProvider = FutureProvider.autoDispose<List<Drug>>(
   (ref) => ref.watch(drugRepositoryProvider).fetchCatalog(),
@@ -256,11 +257,27 @@ class _Showcase extends ConsumerWidget {
                     ),
                   ),
                 ),
-                Text(
-                  drug.genericName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.titleLarge,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        drug.genericName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.titleLarge,
+                      ),
+                    ),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 36),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: () => showMedicineInfoSheet(context, drug),
+                      icon: const Icon(LucideIcons.info, size: 16),
+                      label: const Text('About'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(

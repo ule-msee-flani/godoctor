@@ -15,6 +15,7 @@ class _Banner {
     required this.image,
     required this.icon,
     required this.gradient,
+    this.alignment = Alignment.center,
   });
 
   final String title;
@@ -23,6 +24,9 @@ class _Banner {
   final String image;
   final IconData icon;
   final Gradient gradient;
+
+  /// Crop focus for the photo (see AppImage.alignment).
+  final Alignment alignment;
 }
 
 const _banners = <_Banner>[
@@ -31,6 +35,8 @@ const _banners = <_Banner>[
     cta: 'See a doctor',
     route: '/patient/intake',
     image: 'assets/images/banners/banner_doctor',
+    // Square portrait: keep the face, not the chest.
+    alignment: Alignment(0.3, -0.85),
     icon: LucideIcons.stethoscope,
     gradient: AppColors.primaryGradient,
   ),
@@ -39,6 +45,7 @@ const _banners = <_Banner>[
     cta: 'Order medicine',
     route: '/patient/medicine-search',
     image: 'assets/images/banners/banner_pharmacy',
+    alignment: Alignment(0, -0.3),
     icon: LucideIcons.pill,
     gradient: LinearGradient(
       begin: Alignment.topLeft,
@@ -51,6 +58,8 @@ const _banners = <_Banner>[
     cta: 'My prescriptions',
     route: '/patient/prescriptions',
     image: 'assets/images/banners/banner_prescriptions',
+    // Tall page: keep the top, with the cross and the Rx.
+    alignment: Alignment(0, -0.6),
     icon: LucideIcons.fileText,
     gradient: LinearGradient(
       begin: Alignment.topLeft,
@@ -173,6 +182,7 @@ class _BannerCard extends StatelessWidget {
             gradient: banner.gradient,
             showPlaceholderContent: false,
             overlay: _tint(banner.gradient),
+            alignment: banner.alignment,
           ),
           Padding(
             padding: const EdgeInsets.all(20),

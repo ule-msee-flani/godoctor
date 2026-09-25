@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_client.dart';
 import '../models/drug.dart';
+import '../models/drug_info.dart';
 
 class DrugRepository {
   SupabaseClient get _client => SupabaseService.client;
@@ -14,6 +15,16 @@ class DrugRepository {
         .order('generic_name')
         .limit(1000);
     return rows.map((r) => Drug.fromMap(r)).toList();
+  }
+
+  /// Patient information for one medicine, or null if none was imported.
+  Future<DrugInfo?> fetchInfo(String drugId) async {
+    final row = await _client
+        .from('drug_info')
+        .select()
+        .eq('drug_id', drugId)
+        .maybeSingle();
+    return row == null ? null : DrugInfo.fromMap(row);
   }
 
   /// Public URL for a product photo stored in the `drug-images` bucket.

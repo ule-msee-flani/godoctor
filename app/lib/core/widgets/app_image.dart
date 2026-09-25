@@ -26,6 +26,8 @@ class AppImage extends StatelessWidget {
     this.gradient = AppColors.primaryGradient,
     this.showPlaceholderContent = true,
     this.overlay,
+    this.alignment = Alignment.center,
+    this.zoom = 1,
   });
 
   final String assetPath;
@@ -41,6 +43,14 @@ class AppImage extends StatelessWidget {
   /// fallback panel is just the gradient (no centred icon/filename hint).
   final bool showPlaceholderContent;
   final Gradient? overlay;
+
+  /// Which part of the picture to keep when it is cropped to fit (e.g.
+  /// `Alignment(0, -1)` keeps the top edge, so a portrait photo cropped into a
+  /// wide strip shows the head rather than the middle of the body).
+  final Alignment alignment;
+
+  /// Enlarges the picture around [alignment] before cropping (1 = no zoom).
+  final double zoom;
 
   @override
   Widget build(BuildContext context) {
@@ -63,10 +73,15 @@ class AppImage extends StatelessWidget {
             if (found == null)
               placeholder()
             else
-              Image.asset(
-                found,
-                fit: fit,
-                errorBuilder: (_, _, _) => placeholder(),
+              Transform.scale(
+                scale: zoom,
+                alignment: alignment,
+                child: Image.asset(
+                  found,
+                  fit: fit,
+                  alignment: alignment,
+                  errorBuilder: (_, _, _) => placeholder(),
+                ),
               ),
             if (overlay != null)
               DecoratedBox(decoration: BoxDecoration(gradient: overlay)),

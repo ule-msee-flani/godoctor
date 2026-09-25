@@ -87,11 +87,41 @@ Things that will bite on a fresh machine:
 - App icon: regenerate with `flutter test tool/generate_icon_test.dart`, then
   `dart run flutter_launcher_icons`.
 
+### Medicine information (free public sources)
+
+"About this medicine" in the Order Medicine screen reads the `drug_info`
+table, filled from **RxNorm** (matching, free, no key) and **openFDA** drug
+labels (free; add `OPENFDA_API_KEY=...` to `app/.env` only if you hit rate
+limits):
+
+```
+cd app
+node tool/import_drug_info.js          # writes supabase/seed/drug_info.sql + a report
+```
+
+Then load `supabase/seed/drug_info.sql` into the database. Only labels for the
+same form/route are used (no IV label for eye drops); medicines without a safe
+match simply show "information not available yet". These are US labels, so the
+app never shows US dosing to patients and always shows the source. To switch to
+a paid Kenyan source later, replace the importer; the app only reads
+`drug_info`.
+
 ### Database changes
 
-Migrations live in `supabase/migrations/` (apply in numeric order). The live
-project's schema is kept in sync through the Supabase MCP server
-(`.mcp.json`) rather than the SQL Editor.
+Migrations live in `supabase/migrations/`. The repo is linked to the live
+project with the Supabase CLI (`supabase/config.toml`), and the local files
+and the database's migration history match exactly:
+
+```
+npx supabase migration list --linked     # local vs remote, should all match
+npx supabase migration new <name>        # create a new migration file
+npx supabase db push --linked            # apply any new ones to the live DB
+npx supabase db query --linked -f file.sql   # run a one-off SQL/data file
+```
+
+(The Supabase MCP server in `.mcp.json` works on the same project too.) Data
+files that aren't schema, like the medicine information, live in
+`supabase/seed/` and are loaded with `db query -f`.
 
 ## What's real vs. stubbed in this pass
 

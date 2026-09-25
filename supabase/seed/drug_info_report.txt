@@ -1,0 +1,90 @@
+OK    Adrenaline (Epinephrine) (injection) -> epinephrine [rxcui 3992] | INTRAVENOUS
+OK    Albendazole (tablet) -> albendazole [rxcui 430] | ORAL
+OK    Amlodipine (tablet) -> amlodipine [rxcui 17767] | ORAL
+OK    Amoxicillin (capsule) -> amoxicillin [rxcui 723] | ORAL
+OK    Amoxicillin-Clavulanate (tablet) -> amoxicillin / clavulanate [rxcui 19711] | ORAL
+OK    Artemether-Lumefantrine (tablet) -> artemether / lumefantrine [rxcui 282448] | ORAL
+MISS  Artesunate (injection) -> artesunate - no openFDA label for this form
+OK    Aspirin (tablet (low-dose)) -> aspirin [rxcui 1191] | ORAL
+OK    Aspirin (tablet) -> aspirin [rxcui 1191] | ORAL
+OK    Atenolol (tablet) -> atenolol [rxcui 1202] | ORAL
+OK    Atorvastatin (tablet) -> atorvastatin [rxcui 83367] | ORAL
+OK    Azithromycin (tablet) -> azithromycin [rxcui 18631] | ORAL
+OK    Beclomethasone (inhaler) -> beclomethasone [rxcui 1347] | RESPIRATORY (INHALATION)
+MISS  Benzyl Benzoate (topical lotion) -> benzyl benzoate - no openFDA label for this form
+OK    Benzylpenicillin (injection) -> penicillin G [rxcui 7980] | INTRAMUSCULAR
+OK    Betamethasone Cream (topical cream) -> betamethasone [rxcui 1514] | TOPICAL
+OK    Bisacodyl (tablet) -> bisacodyl [rxcui 1596] | ORAL
+OK    Calcium Carbonate (tablet) -> calcium carbonate [rxcui 1897] | ORAL
+OK    Ceftriaxone (injection) -> ceftriaxone [rxcui 2193] | INTRAVENOUS
+OK    Cetirizine (tablet) -> cetirizine [rxcui 20610] | ORAL
+MISS  Chloramphenicol Eye Drops (eye drops) -> chloramphenicol - no openFDA label for this form
+OK    Chlorpheniramine (tablet) -> chlorpheniramine [rxcui 2400] | ORAL
+OK    Ciprofloxacin (tablet) -> ciprofloxacin [rxcui 2551] | ORAL
+OK    Clotrimazole Cream (topical cream) -> clotrimazole [rxcui 2623] | TOPICAL
+OK    Combined Oral Contraceptive (tablet) -> levonorgestrel / ethinyl estradiol [rxcui 1008359] | ORAL
+OK    Cotrimoxazole (tablet) -> sulfamethoxazole / trimethoprim [rxcui 10831] | ORAL
+OK    Cotrimoxazole Prophylaxis (tablet) -> sulfamethoxazole / trimethoprim [rxcui 10831] | ORAL
+OK    Dextromethorphan (syrup) -> dextromethorphan [rxcui 3289] | ORAL
+OK    Dextrose 5% (IV infusion) -> dextrose [rxcui 4850] | INTRAVENOUS
+OK    Diazepam (injection) -> diazepam [rxcui 3322] | INTRAMUSCULAR,INTRAVENOUS
+OK    Diazepam (tablet) -> diazepam [rxcui 3322] | ORAL
+OK    Diclofenac (topical gel) -> diclofenac [rxcui 3355] | TOPICAL
+OK    Diclofenac (tablet) -> diclofenac [rxcui 3355] | ORAL
+OK    Doxycycline (capsule) -> doxycycline [rxcui 3640] | ORAL
+OK    Emergency Contraceptive Pill (tablet) -> levonorgestrel [rxcui 6373] | ORAL
+OK    Enalapril (tablet) -> enalapril [rxcui 3827] | ORAL
+OK    Erythromycin (tablet) -> erythromycin [rxcui 4053] | ORAL
+OK    Ferrous Sulphate (tablet) -> ferrous sulfate [rxcui 24947] | ORAL
+MISS  Flucloxacillin (capsule) -> cloxacillin - no openFDA label for this form
+OK    Folic Acid (tablet) -> folic acid [rxcui 4511] | ORAL
+OK    Furosemide (tablet) -> furosemide [rxcui 4603] | ORAL
+OK    Gentamicin (injection) -> gentamicin [rxcui 1596450] | INTRAVENOUS
+OK    Glibenclamide (tablet) -> glyburide [rxcui 4815] | ORAL
+MISS  Gliclazide (tablet) -> gliclazide - no openFDA label for this form
+OK    Hydrochlorothiazide (tablet) -> hydrochlorothiazide [rxcui 5487] | ORAL
+OK    Hydrocortisone Cream (topical cream) -> hydrocortisone [rxcui 5492] | TOPICAL
+MISS  Hydrocortisone Injection (injection) -> hydrocortisone - no openFDA label for this form
+OK    Ibuprofen (tablet) -> ibuprofen [rxcui 5640] | ORAL
+MISS  Insulin (isophane/NPH) (injection) -> insulin isophane, human - no openFDA label for this form
+MISS  Insulin (soluble) (injection) -> insulin regular, human - no openFDA label for this form
+OK    Isoniazid (tablet) -> isoniazid [rxcui 6038] | ORAL
+OK    Loperamide (capsule) -> loperamide [rxcui 6468] | ORAL
+OK    Loratadine (tablet) -> loratadine [rxcui 28889] | ORAL
+OK    Losartan (tablet) -> losartan [rxcui 52175] | ORAL
+OK    Magnesium Sulphate (injection) -> magnesium sulfate [rxcui 6585] | INTRAVENOUS
+MISS  Magnesium Trisilicate (tablet) -> magnesium trisilicate - no openFDA label for this form
+OK    Mebendazole (tablet) -> mebendazole [rxcui 6672] | ORAL
+OK    Medroxyprogesterone (injection) -> medroxyprogesterone [rxcui 6691] | INTRAMUSCULAR
+OK    Metformin (tablet) -> metformin [rxcui 6809] | ORAL
+OK    Metoclopramide (tablet) -> metoclopramide [rxcui 6915] | ORAL
+OK    Metronidazole (tablet) -> metronidazole [rxcui 6922] | ORAL
+OK    Misoprostol (tablet) -> misoprostol [rxcui 42331] | ORAL
+OK    Morphine (injection) -> morphine [rxcui 7052] | INTRAVENOUS
+SKIP  Multivitamin (tablet) - no suitable public label
+OK    Nifedipine (tablet) -> nifedipine [rxcui 7417] | ORAL
+OK    Normal Saline 0.9% (IV infusion) -> sodium chloride [rxcui 9863] | INTRAVENOUS
+OK    Omeprazole (capsule) -> omeprazole [rxcui 7646] | ORAL
+SKIP  Oral Rehydration Salts (sachet) - no suitable public label
+OK    Paracetamol (tablet) -> acetaminophen [rxcui 161] | ORAL
+OK    Paracetamol (syrup) -> acetaminophen [rxcui 161] | ORAL
+OK    Permethrin Cream (topical cream) -> permethrin [rxcui 33199] | TOPICAL
+OK    Prednisolone (tablet) -> prednisolone [rxcui 8638] | ORAL
+OK    Progestin-only Pill (tablet) -> norethindrone [rxcui 7514] | ORAL
+OK    Quinine (tablet) -> quinine [rxcui 9071] | ORAL
+OK    Ranitidine (tablet) -> ranitidine [rxcui 9143] | ORAL
+SKIP  Rifampicin-Isoniazid-Pyrazinamide-Ethambutol (tablet) - no suitable public label
+OK    Ringer's Lactate (IV infusion) -> calcium chloride / potassium chloride / sodium chloride / sodium lactate [rxcui 1008377] | INTRAVENOUS
+OK    Salbutamol (inhaler) -> albuterol [rxcui 435] | RESPIRATORY (INHALATION)
+OK    Salbutamol (syrup) -> albuterol [rxcui 435] | ORAL
+OK    Silver Sulfadiazine (topical cream) -> silver sulfadiazine [rxcui 9793] | TOPICAL
+OK    Simvastatin (tablet) -> simvastatin [rxcui 36567] | ORAL
+OK    Sodium Chloride Nasal Drops (nasal drops) -> sodium chloride [rxcui 9863] | NASAL
+MISS  Sulfadoxine-Pyrimethamine (tablet) -> sulfadoxine / pyrimethamine - no openFDA label for this form
+MISS  Tenofovir-Lamivudine-Dolutegravir (tablet) -> dolutegravir / lamivudine / tenofovir disoproxil - no openFDA label for this form
+MISS  Tetracycline Eye Ointment (eye ointment) -> tetracycline - no openFDA label for this form
+OK    Tramadol (capsule) -> tramadol [rxcui 10689] | ORAL
+SKIP  Vitamin B Complex (tablet) - no suitable public label
+OK    Vitamin C (tablet) -> ascorbic acid [rxcui 1151] | ORAL
+OK    Xylometazoline (nasal spray) -> xylometazoline [rxcui 39841] | NASAL
+OK    Zinc Sulphate (tablet) -> zinc sulfate [rxcui 39954] | ORAL
