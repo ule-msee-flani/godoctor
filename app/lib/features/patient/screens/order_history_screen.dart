@@ -5,11 +5,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../data/models/order.dart' as model;
 import '../../../core/widgets/skeleton.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 
-final _ordersProvider = FutureProvider((ref) async {
+final _ordersProvider = FutureProvider<List<model.Order>>((ref) async {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return const [];
   return ref.watch(orderRepositoryProvider).fetchForPatient(userId);

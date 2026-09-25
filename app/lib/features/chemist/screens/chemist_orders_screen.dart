@@ -73,7 +73,7 @@ class _OrderRow extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Order ${order.id.substring(0, 8)}',
+                    'Order ${order.id.length > 8 ? order.id.substring(0, 8) : order.id}',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
@@ -96,26 +96,27 @@ class _OrderRow extends ConsumerWidget {
                 ),
               ),
             const SizedBox(height: 12),
-            Row(
+            // Wrap (not Row) so the actions/status text flow onto a new line
+            // on narrow phone screens instead of overflowing.
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 if (order.status.name == 'placed')
                   FilledButton(
                     onPressed: () => repo.chemistConfirm(order.id),
                     child: const Text('Confirm'),
                   ),
-                if (order.status.name == 'confirmed') ...[
-                  const SizedBox(width: 8),
+                if (order.status.name == 'confirmed')
                   FilledButton(
                     onPressed: () => repo.chemistMarkReady(order.id),
                     child: const Text('Mark ready'),
                   ),
-                ],
-                if (order.status.name == 'ready') ...[
-                  const SizedBox(width: 8),
+                if (order.status.name == 'ready')
                   const Text(
                     'Waiting for patient pickup/delivery confirmation',
                   ),
-                ],
               ],
             ),
           ],

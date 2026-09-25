@@ -43,7 +43,9 @@ Future<void> _changePhoto(
   }
 }
 
-final _inventoryProvider = FutureProvider((ref) async {
+final _inventoryProvider = FutureProvider<List<ChemistInventoryItem>>((
+  ref,
+) async {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return const [];
   return ref.watch(drugRepositoryProvider).fetchChemistInventory(userId);

@@ -12,7 +12,14 @@ class AppTheme {
   AppTheme._();
 
   static TextTheme _baseTextTheme(Color ink, Color inkSoft) {
-    return GoogleFonts.plusJakartaSansTextTheme().copyWith(
+    // Start from Material's standard type scale so EVERY style has a font
+    // size. Without it, styles we don't override (labelMedium, displaySmall...)
+    // have no size, and `professionalTheme`'s `.apply(fontSizeFactor: ...)`
+    // throws -- which crashed every doctor, chemist and admin screen.
+    final base = Typography.material2021(
+      platform: TargetPlatform.android,
+    ).black.merge(Typography.englishLike2021);
+    return GoogleFonts.plusJakartaSansTextTheme(base).copyWith(
       displayLarge: GoogleFonts.plusJakartaSans(
         fontSize: 40,
         fontWeight: FontWeight.w700,

@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/loading_view.dart';
+import '../../../data/models/consultation.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 
-final _doctorHistoryProvider = FutureProvider((ref) async {
+final _doctorHistoryProvider = FutureProvider<List<Consultation>>((ref) async {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return const [];
   return ref

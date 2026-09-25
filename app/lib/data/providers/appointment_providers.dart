@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/consultation.dart';
@@ -31,6 +33,16 @@ final appointmentProvider = StreamProvider.autoDispose
 
 /// Ticks every 20s so time-dependent UI ("Join" appearing 10 minutes before
 /// the start) updates without the user doing anything.
-final clockTickProvider = StreamProvider.autoDispose<DateTime>(
-  (ref) => Stream.periodic(const Duration(seconds: 20), (_) => DateTime.now()),
-);
+final clockTickProvider = StreamProvider.autoDispose<DateTime>((ref) {
+  final controller = StreamController<DateTime>();
+  final timer = Timer.periodic(
+    const Duration(seconds: 20),
+    (_) => controller.add(DateTime.now()),
+  );
+  // Stop ticking as soon as no screen is listening any more.
+  ref.onDispose(() {
+    timer.cancel();
+    controller.close();
+  });
+  return controller.stream;
+});

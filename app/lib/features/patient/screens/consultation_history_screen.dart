@@ -6,11 +6,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../data/models/consultation.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 
-final _historyProvider = FutureProvider((ref) async {
+final _historyProvider = FutureProvider<List<Consultation>>((ref) async {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return const [];
   return ref
