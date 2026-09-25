@@ -7,9 +7,11 @@ import '../../../data/models/order.dart' as model;
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 
-final _chemistOrdersStreamProvider = StreamProvider.family<List<model.Order>, String>(
-  (ref, chemistId) => ref.watch(orderRepositoryProvider).watchForChemist(chemistId),
-);
+final _chemistOrdersStreamProvider =
+    StreamProvider.family<List<model.Order>, String>(
+      (ref, chemistId) =>
+          ref.watch(orderRepositoryProvider).watchForChemist(chemistId),
+    );
 
 class ChemistOrdersScreen extends ConsumerWidget {
   const ChemistOrdersScreen({super.key});
@@ -110,7 +112,9 @@ class _OrderRow extends ConsumerWidget {
                 ],
                 if (order.status.name == 'ready') ...[
                   const SizedBox(width: 8),
-                  const Text('Waiting for patient pickup/delivery confirmation'),
+                  const Text(
+                    'Waiting for patient pickup/delivery confirmation',
+                  ),
                 ],
               ],
             ),

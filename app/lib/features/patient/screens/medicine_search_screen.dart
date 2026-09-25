@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/skeleton.dart';
 import '../../../data/models/drug.dart';
 import '../../../data/providers/repository_providers.dart';
 
@@ -68,7 +69,7 @@ class _MedicineSearchScreenState extends ConsumerState<MedicineSearchScreen> {
             ),
             Expanded(
               child: results.when(
-                loading: () => const LoadingView(),
+                loading: () => const SkeletonList(),
                 error: (e, _) => ErrorView(message: '$e'),
                 data: (drugs) {
                   if (drugs.isEmpty) {
@@ -131,24 +132,36 @@ class _DrugTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(drug.displayName, style: Theme.of(context).textTheme.titleSmall),
+                    Text(
+                      drug.displayName,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
                     const SizedBox(height: 3),
                     Row(
                       children: [
                         if (drug.form != null) ...[
-                          Text(drug.form!, style: Theme.of(context).textTheme.bodySmall),
+                          Text(
+                            drug.form!,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
                           const SizedBox(width: 8),
                         ],
                         if (drug.requiresPrescription)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.warningSoft,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: const Text(
                               'Rx required',
-                              style: TextStyle(color: AppColors.warning, fontSize: 11),
+                              style: TextStyle(
+                                color: AppColors.warning,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                       ],

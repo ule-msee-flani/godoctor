@@ -72,6 +72,7 @@ dependencies:
 
   # Skeleton loading shimmer for a more polished perceived-performance feel.
   shimmer: ^3.0.0
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:

@@ -8,7 +8,9 @@ import '../../../data/providers/repository_providers.dart';
 final _doctorHistoryProvider = FutureProvider((ref) async {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return const [];
-  return ref.watch(consultationRepositoryProvider).fetchHistoryForDoctor(userId);
+  return ref
+      .watch(consultationRepositoryProvider)
+      .fetchHistoryForDoctor(userId);
 });
 
 class DoctorHistoryScreen extends ConsumerWidget {

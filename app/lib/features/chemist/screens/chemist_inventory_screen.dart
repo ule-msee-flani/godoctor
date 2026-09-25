@@ -109,7 +109,11 @@ class ChemistInventoryScreen extends ConsumerWidget {
                         ),
                         DataCell(
                           Text(
-                            item.lastUpdatedAt.toLocal().toString().split('.').first,
+                            item.lastUpdatedAt
+                                .toLocal()
+                                .toString()
+                                .split('.')
+                                .first,
                           ),
                         ),
                         DataCell(
@@ -158,7 +162,10 @@ class _InlineNumberFieldState extends State<_InlineNumberField> {
       child: TextField(
         controller: _ctrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+        decoration: const InputDecoration(
+          isDense: true,
+          border: OutlineInputBorder(),
+        ),
         onSubmitted: widget.onSubmit,
         onTapOutside: (_) => widget.onSubmit(_ctrl.text),
       ),
@@ -250,7 +257,9 @@ class _AddDrugDialogState extends ConsumerState<_AddDrugDialog> {
                 Expanded(
                   child: TextField(
                     controller: _priceCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: const InputDecoration(labelText: 'Price (KES)'),
                   ),
                 ),
@@ -260,7 +269,10 @@ class _AddDrugDialogState extends ConsumerState<_AddDrugDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
           onPressed: _selected == null || _saving ? null : _save,
           child: const Text('Add'),

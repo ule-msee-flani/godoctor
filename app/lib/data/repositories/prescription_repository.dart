@@ -37,15 +37,14 @@ class PrescriptionRepository {
           .insert(
             items
                 .map(
-                  (i) =>
-                      PrescriptionItem(
-                        prescriptionId: prescriptionId,
-                        drugId: i.drugId,
-                        freeTextName: i.freeTextName,
-                        dosage: i.dosage,
-                        quantity: i.quantity,
-                        instructions: i.instructions,
-                      ).toInsertMap(),
+                  (i) => PrescriptionItem(
+                    prescriptionId: prescriptionId,
+                    drugId: i.drugId,
+                    freeTextName: i.freeTextName,
+                    dosage: i.dosage,
+                    quantity: i.quantity,
+                    instructions: i.instructions,
+                  ).toInsertMap(),
                 )
                 .toList(),
           );
@@ -60,8 +59,7 @@ class PrescriptionRepository {
     required String fileExt,
   }) async {
     final patientId = _client.auth.currentUser!.id;
-    final path =
-        '$patientId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+    final path = '$patientId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
 
     await _client.storage
         .from('prescription-uploads')

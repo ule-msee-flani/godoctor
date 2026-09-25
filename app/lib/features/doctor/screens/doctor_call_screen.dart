@@ -10,20 +10,25 @@ import '../../../data/models/prescription.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../widgets/prescription_builder.dart';
 
-final _consultationDetailProvider = FutureProvider.family<
-  ({Consultation? consultation, IntakeForm? intake, PatientProfile? patient}),
-  String
->((ref, consultationId) async {
-  final consultationRepo = ref.watch(consultationRepositoryProvider);
-  final consultation = await consultationRepo.fetchById(consultationId);
-  final intake = await consultationRepo.fetchIntakeForm(consultationId);
-  final patient = consultation == null
-      ? null
-      : await ref
-            .watch(profileRepositoryProvider)
-            .fetchPatientProfile(consultation.patientId);
-  return (consultation: consultation, intake: intake, patient: patient);
-});
+final _consultationDetailProvider =
+    FutureProvider.family<
+      ({
+        Consultation? consultation,
+        IntakeForm? intake,
+        PatientProfile? patient,
+      }),
+      String
+    >((ref, consultationId) async {
+      final consultationRepo = ref.watch(consultationRepositoryProvider);
+      final consultation = await consultationRepo.fetchById(consultationId);
+      final intake = await consultationRepo.fetchIntakeForm(consultationId);
+      final patient = consultation == null
+          ? null
+          : await ref
+                .watch(profileRepositoryProvider)
+                .fetchPatientProfile(consultation.patientId);
+      return (consultation: consultation, intake: intake, patient: patient);
+    });
 
 class DoctorCallScreen extends ConsumerStatefulWidget {
   const DoctorCallScreen({super.key, required this.consultationId});
@@ -112,17 +117,24 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Notes', style: Theme.of(context).textTheme.titleSmall),
+                        Text(
+                          'Notes',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _notesCtrl,
                           maxLines: 4,
                           decoration: const InputDecoration(
-                            hintText: 'Clinical notes (not shared with patient)...',
+                            hintText:
+                                'Clinical notes (not shared with patient)...',
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Text('Prescription', style: Theme.of(context).textTheme.titleSmall),
+                        Text(
+                          'Prescription',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
                         const SizedBox(height: 8),
                         PrescriptionBuilder(
                           items: _items,
@@ -131,10 +143,14 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen> {
                         const SizedBox(height: 16),
                         FilledButton.icon(
                           icon: const Icon(Icons.check_circle_outline),
-                          label: Text(_finishing ? 'Finishing...' : 'Finish consultation'),
+                          label: Text(
+                            _finishing ? 'Finishing...' : 'Finish consultation',
+                          ),
                           onPressed: _finishing
                               ? null
-                              : () => _finishConsultation(detail.consultation!.patientId),
+                              : () => _finishConsultation(
+                                  detail.consultation!.patientId,
+                                ),
                         ),
                       ],
                     ),
@@ -150,7 +166,13 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen> {
                           Expanded(child: notesAndRx),
                         ],
                       )
-                    : Column(children: [videoAndInfo, const SizedBox(height: 16), notesAndRx]);
+                    : Column(
+                        children: [
+                          videoAndInfo,
+                          const SizedBox(height: 16),
+                          notesAndRx,
+                        ],
+                      );
 
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(16),

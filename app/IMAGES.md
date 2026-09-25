@@ -1,7 +1,7 @@
 # Image shot list
 
 The app ships without real photography. Every spot below currently renders a
-designed blue-gradient placeholder (icon + filename label) via `AppImage`
+designed blue-gradient placeholder via `AppImage`
 (`lib/core/widgets/app_image.dart`) so nothing looks broken in the meantime.
 
 **Drop a file at the exact path below and it displays automatically** — no
@@ -9,21 +9,24 @@ code changes needed, just a hot-restart / rebuild.
 
 | File path | Used on | Suggested size / ratio | Content idea |
 |---|---|---|---|
-| `assets/images/auth_hero.png` | Role-select screen (top) and reused on the login screen | ~1200×900 (4:3), will render at 220px tall | A warm, professional shot or illustration of a video consultation — patient on a phone/laptop talking to a doctor. Sets the tone for the whole app. |
-| `assets/images/home_banner.png` | Patient home screen, below the greeting | ~1200×600 (2:1), renders at 140px tall | A friendly wellness/health banner — could be a simple lifestyle photo or a calming health-themed graphic. Low-detail is fine since it renders small. |
-| `assets/images/waiting_search.png` | "Looking for a doctor" waiting screen | ~1000×750, renders at 200×280 | An illustration/photo conveying "searching" or "connecting" — e.g. a doctor on-call, a phone ringing, a calm waiting-room feel. |
+| `assets/images/auth_hero.png` | Role-select screen (top) | ~1200×900 (4:3), renders 220px tall | A warm, professional shot or illustration of a video consultation — patient on a phone/laptop talking to a doctor. Sets the tone for the whole app. |
+| `assets/images/banner_doctor.png` | Home banner carousel, slide 1 ("See a doctor in minutes") | ~1200×500 (≈2.4:1), renders ~150px tall | A doctor (friendly, approachable) or a video-consult scene. Keep the subject on the **right** — the left third is covered by a dark text scrim. |
+| `assets/images/banner_pharmacy.png` | Home banner carousel, slide 2 ("Medicine from chemists near you") | ~1200×500 | A pharmacist/shelf of medicines or a medicine pack in hand. Subject on the right. |
+| `assets/images/banner_records.png` | Home banner carousel, slide 3 ("Keep every prescription in one place") | ~1200×500 | A phone showing a prescription, or a tidy health-folder graphic. Subject on the right. |
+| `assets/images/waiting_search.png` | "Looking for a doctor" waiting screen | ~1000×750, renders 200×280 | An illustration/photo conveying "searching" or "connecting" — e.g. a doctor on-call, a phone ringing, a calm waiting-room feel. |
 
-Only three images are wired up for now — enough to make the patient flow feel
-designed without over-committing to assets before you have them. If you want
-more spots covered (e.g. a distinct "matched" or "order confirmed" image
-instead of the icon-badge treatment currently used there), say which screen
-and I'll wire up an `AppImage` slot for it the same way.
+Banner text is drawn by the app on top of the image, so **don't bake text into
+the banner images**.
 
 ## Notes
 
-- Any common web format works (PNG, JPG, WebP); PNG is assumed above but the
-  extension doesn't matter as long as the path matches.
+- Any common web format works (PNG, JPG, WebP); the path must match exactly
+  (including the extension you actually use — if you supply `.jpg`, tell me and
+  I'll update the path, or just save as `.png`).
 - Images are served from `assets/images/`, already registered in
   `pubspec.yaml`.
-- `AppImage` uses `BoxFit.cover` by default, so images get cropped to fill
-  the given box — pick source images with the subject centered.
+- `AppImage` uses `BoxFit.cover`, so images are cropped to fill the box — pick
+  sources with the subject centred (or on the right for banners).
+- Only use images you have the rights to. Stock/illustration sites with a
+  clear commercial licence are fine; don't lift photos from other apps or
+  repos.

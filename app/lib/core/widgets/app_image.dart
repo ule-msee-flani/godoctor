@@ -19,6 +19,7 @@ class AppImage extends StatelessWidget {
     required this.placeholderIcon,
     required this.placeholderLabel,
     this.gradient = AppColors.primaryGradient,
+    this.showPlaceholderContent = true,
   });
 
   final String assetPath;
@@ -29,6 +30,10 @@ class AppImage extends StatelessWidget {
   final IconData placeholderIcon;
   final String placeholderLabel;
   final Gradient gradient;
+
+  /// Set false when the image is a backdrop behind other content, so the
+  /// fallback panel is just the gradient (no centred icon/filename hint).
+  final bool showPlaceholderContent;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +51,7 @@ class AppImage extends StatelessWidget {
             icon: placeholderIcon,
             label: placeholderLabel,
             gradient: gradient,
+            showContent: showPlaceholderContent,
           ),
         ),
       ),
@@ -58,11 +64,13 @@ class _Placeholder extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.gradient,
+    required this.showContent,
   });
 
   final IconData icon;
   final String label;
   final Gradient gradient;
+  final bool showContent;
 
   @override
   Widget build(BuildContext context) {
@@ -71,35 +79,28 @@ class _Placeholder extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Positioned(
-            right: -20,
-            top: -20,
-            child: _softCircle(90),
-          ),
-          Positioned(
-            left: -30,
-            bottom: -30,
-            child: _softCircle(120),
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 40),
-              const SizedBox(height: 10),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+          Positioned(right: -20, top: -20, child: _softCircle(90)),
+          Positioned(left: -30, bottom: -30, child: _softCircle(120)),
+          if (showContent)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: Colors.white, size: 40),
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );

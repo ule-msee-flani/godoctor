@@ -192,14 +192,14 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.primarySoft,
         selectedColor: AppColors.primary,
-        labelStyle: textTheme.bodyMedium?.copyWith(color: AppColors.primaryDark),
+        labelStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.primaryDark,
+        ),
         secondaryLabelStyle: textTheme.bodyMedium?.copyWith(
           color: AppColors.white,
         ),
         side: BorderSide.none,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       ),
       dividerTheme: const DividerThemeData(
@@ -219,9 +219,7 @@ class AppTheme {
           color: AppColors.white,
         ),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.white,
@@ -233,9 +231,29 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: AppColors.primarySoft,
+        height: 68,
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: states.contains(WidgetState.selected)
+                ? AppColors.primary
+                : AppColors.inkSoft,
+          ),
         ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: AppColors.primary,
+        unselectedLabelColor: AppColors.inkSoft,
+        indicatorColor: AppColors.primary,
+        dividerColor: AppColors.border,
+        labelStyle: textTheme.titleSmall,
+        unselectedLabelStyle: textTheme.bodyMedium,
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: SegmentedButton.styleFrom(
@@ -250,9 +268,10 @@ class AppTheme {
   }
 
   static ThemeData get professionalTheme {
-    final textTheme = _baseTextTheme(AppColors.ink, AppColors.inkSoft).apply(
-      fontSizeFactor: 0.95,
-    );
+    final textTheme = _baseTextTheme(
+      AppColors.ink,
+      AppColors.inkSoft,
+    ).apply(fontSizeFactor: 0.95);
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: const ColorScheme.light(

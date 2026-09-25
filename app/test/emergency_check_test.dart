@@ -15,18 +15,26 @@ void main() {
     });
 
     test('is case-insensitive', () {
-      final result = checkForEmergency(['DIFFICULTY BREATHING since this morning']);
+      final result = checkForEmergency([
+        'DIFFICULTY BREATHING since this morning',
+      ]);
       expect(result.flagged, isTrue);
     });
 
     test('does not flag ordinary symptoms', () {
-      final result = checkForEmergency(['mild headache and runny nose for two days']);
+      final result = checkForEmergency([
+        'mild headache and runny nose for two days',
+      ]);
       expect(result.flagged, isFalse);
       expect(result.matchedKeyword, isNull);
     });
 
     test('checks across multiple text fields', () {
-      final result = checkForEmergency(['feeling unwell', null, 'severe bleeding from a cut']);
+      final result = checkForEmergency([
+        'feeling unwell',
+        null,
+        'severe bleeding from a cut',
+      ]);
       expect(result.flagged, isTrue);
     });
 

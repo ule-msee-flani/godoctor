@@ -45,8 +45,7 @@ class Prescription {
         const [],
   );
 
-  bool get isValid =>
-      validUntil == null || validUntil!.isAfter(DateTime.now());
+  bool get isValid => validUntil == null || validUntil!.isAfter(DateTime.now());
 }
 
 class PrescriptionItem {
@@ -87,8 +86,7 @@ class PrescriptionItem {
         quantity: (map['quantity'] as num?)?.toInt() ?? 1,
         instructions: map['instructions'] as String?,
         drugName:
-            (map['drugs'] as Map<String, dynamic>?)?['generic_name']
-                as String?,
+            (map['drugs'] as Map<String, dynamic>?)?['generic_name'] as String?,
       );
 
   Map<String, dynamic> toInsertMap() => {

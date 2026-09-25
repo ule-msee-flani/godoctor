@@ -11,9 +11,11 @@ import '../../../data/models/consultation.dart';
 import '../../../data/models/enums.dart';
 import '../../../data/providers/repository_providers.dart';
 
-final _consultationStreamProvider = StreamProvider.family<Consultation?, String>(
-  (ref, id) => ref.watch(consultationRepositoryProvider).watchConsultation(id),
-);
+final _consultationStreamProvider =
+    StreamProvider.family<Consultation?, String>(
+      (ref, id) =>
+          ref.watch(consultationRepositoryProvider).watchConsultation(id),
+    );
 
 class ConsultationWaitingScreen extends ConsumerWidget {
   const ConsultationWaitingScreen({super.key, required this.consultationId});
@@ -38,10 +40,8 @@ class ConsultationWaitingScreen extends ConsumerWidget {
             }
             return switch (consultation.status) {
               ConsultationStatus.requested => const _WaitingBody(),
-              ConsultationStatus.matched ||
-              ConsultationStatus.inProgress => _MatchedBody(
-                consultation: consultation,
-              ),
+              ConsultationStatus.matched || ConsultationStatus.inProgress =>
+                _MatchedBody(consultation: consultation),
               ConsultationStatus.unmatched => const _UnmatchedBody(),
               ConsultationStatus.completed => _CompletedBody(
                 consultation: consultation,
@@ -140,8 +140,7 @@ class _MatchedBody extends StatelessWidget {
             FilledButton.icon(
               icon: const Icon(LucideIcons.video, size: 18),
               label: const Text('Join the call'),
-              onPressed: () =>
-                  context.push('/patient/call/${consultation.id}'),
+              onPressed: () => context.push('/patient/call/${consultation.id}'),
             ),
             const SizedBox(height: 20),
             const InstallPromptBanner(),

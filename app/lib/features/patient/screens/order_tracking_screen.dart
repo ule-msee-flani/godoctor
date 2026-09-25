@@ -129,7 +129,10 @@ class _OrderDetail extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Total', style: Theme.of(context).textTheme.titleSmall),
+                    Text(
+                      'Total',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
                     Text(
                       'KES ${order.totalAmount.toStringAsFixed(0)}',
                       style: Theme.of(context).textTheme.titleMedium,
@@ -183,7 +186,9 @@ class _OrderDetail extends StatelessWidget {
             icon: const Icon(LucideIcons.circleCheckBig, size: 18),
             label: const Text('Confirm receipt & release payment'),
             onPressed: () async {
-              await ref.read(orderRepositoryProvider).patientConfirmReceipt(order.id);
+              await ref
+                  .read(orderRepositoryProvider)
+                  .patientConfirmReceipt(order.id);
               ref.invalidate(_patientOrdersProvider);
             },
           ),
@@ -216,7 +221,8 @@ class _OrderStepper extends StatelessWidget {
           children: List.generate(_statusSteps.length, (i) {
             final step = _statusSteps[i];
             final isDone = i <= currentIndex;
-            final isCurrent = i == currentIndex.clamp(0, _statusSteps.length - 1);
+            final isCurrent =
+                i == currentIndex.clamp(0, _statusSteps.length - 1);
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -226,7 +232,9 @@ class _OrderStepper extends StatelessWidget {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: isDone ? AppColors.primary : AppColors.primarySoft,
+                        color: isDone
+                            ? AppColors.primary
+                            : AppColors.primarySoft,
                         shape: BoxShape.circle,
                       ),
                       child: Center(

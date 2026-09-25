@@ -112,9 +112,7 @@ class _UploadPrescriptionScreenState
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          _picked == null
-                              ? 'Choose a photo'
-                              : 'Change photo',
+                          _picked == null ? 'Choose a photo' : 'Change photo',
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
                         if (_picked != null) ...[

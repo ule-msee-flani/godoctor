@@ -5,15 +5,17 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/skeleton.dart';
 import '../../../data/models/drug.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../services/distance.dart';
 
-final _stockForDrugProvider = FutureProvider.family<
-  List<ChemistInventoryItem>,
-  String
->((ref, drugId) => ref.watch(drugRepositoryProvider).findStockForDrug(drugId));
+final _stockForDrugProvider =
+    FutureProvider.family<List<ChemistInventoryItem>, String>(
+      (ref, drugId) =>
+          ref.watch(drugRepositoryProvider).findStockForDrug(drugId),
+    );
 
 class ChemistSelectScreen extends ConsumerWidget {
   const ChemistSelectScreen({super.key, required this.drugId});
@@ -29,7 +31,7 @@ class ChemistSelectScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Choose a chemist')),
       body: SafeArea(
         child: stockAsync.when(
-          loading: () => const LoadingView(),
+          loading: () => const SkeletonList(),
           error: (e, _) => ErrorView(message: '$e'),
           data: (items) {
             if (items.isEmpty) {
@@ -39,26 +41,28 @@ class ChemistSelectScreen extends ConsumerWidget {
               );
             }
 
-            final withDistance = items.map((item) {
-              double? km;
-              if (patientProfile?.locationLat != null &&
-                  patientProfile?.locationLng != null &&
-                  item.chemistLat != null &&
-                  item.chemistLng != null) {
-                km = distanceKm(
-                  patientProfile!.locationLat!,
-                  patientProfile.locationLng!,
-                  item.chemistLat!,
-                  item.chemistLng!,
-                );
-              }
-              return (item: item, km: km);
-            }).toList()..sort((a, b) {
-              if (a.km == null && b.km == null) return a.item.price.compareTo(b.item.price);
-              if (a.km == null) return 1;
-              if (b.km == null) return -1;
-              return a.km!.compareTo(b.km!);
-            });
+            final withDistance =
+                items.map((item) {
+                  double? km;
+                  if (patientProfile?.locationLat != null &&
+                      patientProfile?.locationLng != null &&
+                      item.chemistLat != null &&
+                      item.chemistLng != null) {
+                    km = distanceKm(
+                      patientProfile!.locationLat!,
+                      patientProfile.locationLng!,
+                      item.chemistLat!,
+                      item.chemistLng!,
+                    );
+                  }
+                  return (item: item, km: km);
+                }).toList()..sort((a, b) {
+                  if (a.km == null && b.km == null)
+                    return a.item.price.compareTo(b.item.price);
+                  if (a.km == null) return 1;
+                  if (b.km == null) return -1;
+                  return a.km!.compareTo(b.km!);
+                });
 
             final requiresRx = items.first.drug?.requiresPrescription ?? false;
 
@@ -125,7 +129,9 @@ class ChemistSelectScreen extends ConsumerWidget {
                                   children: [
                                     Text(
                                       entry.item.chemistName ?? 'Chemist',
-                                      style: Theme.of(context).textTheme.titleSmall,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleSmall,
                                     ),
                                     const SizedBox(height: 4),
                                     Wrap(
@@ -134,16 +140,19 @@ class ChemistSelectScreen extends ConsumerWidget {
                                       children: [
                                         _MetaChip(
                                           icon: LucideIcons.wallet,
-                                          text: 'KES ${entry.item.price.toStringAsFixed(0)}',
+                                          text:
+                                              'KES ${entry.item.price.toStringAsFixed(0)}',
                                         ),
                                         _MetaChip(
                                           icon: LucideIcons.package,
-                                          text: '${entry.item.quantity} in stock',
+                                          text:
+                                              '${entry.item.quantity} in stock',
                                         ),
                                         if (entry.km != null)
                                           _MetaChip(
                                             icon: LucideIcons.mapPin,
-                                            text: '${entry.km!.toStringAsFixed(1)} km',
+                                            text:
+                                                '${entry.km!.toStringAsFixed(1)} km',
                                           ),
                                       ],
                                     ),

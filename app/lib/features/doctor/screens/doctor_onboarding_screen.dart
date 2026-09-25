@@ -34,7 +34,10 @@ class _DoctorOnboardingScreenState
     if (_nameCtrl.text.trim().isEmpty ||
         _licenseCtrl.text.trim().isEmpty ||
         _specialties.isEmpty) {
-      setState(() => _error = 'Please fill in all fields and pick at least one specialty.');
+      setState(
+        () => _error =
+            'Please fill in all fields and pick at least one specialty.',
+      );
       return;
     }
     setState(() {
@@ -50,7 +53,11 @@ class _DoctorOnboardingScreenState
         final path = '$userId/license.$ext';
         await SupabaseService.client.storage
             .from('verification-documents')
-            .uploadBinary(path, bytes, fileOptions: const FileOptions(upsert: true));
+            .uploadBinary(
+              path,
+              bytes,
+              fileOptions: const FileOptions(upsert: true),
+            );
         docs.add(path);
       }
       await ref
@@ -95,7 +102,10 @@ class _DoctorOnboardingScreenState
               ),
             ),
             const SizedBox(height: 16),
-            const Text('Specialties', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text(
+              'Specialties',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -106,7 +116,8 @@ class _DoctorOnboardingScreenState
                       label: Text(s),
                       selected: _specialties.contains(s),
                       onSelected: (sel) => setState(
-                        () => sel ? _specialties.add(s) : _specialties.remove(s),
+                        () =>
+                            sel ? _specialties.add(s) : _specialties.remove(s),
                       ),
                     ),
                   )
@@ -116,7 +127,9 @@ class _DoctorOnboardingScreenState
             OutlinedButton.icon(
               icon: const Icon(Icons.upload_file),
               label: Text(
-                _document == null ? 'Upload license document' : 'Change document',
+                _document == null
+                    ? 'Upload license document'
+                    : 'Change document',
               ),
               onPressed: _pickDocument,
             ),
@@ -133,7 +146,10 @@ class _DoctorOnboardingScreenState
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ],
           ],
         ),

@@ -8,9 +8,18 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/doctor_profile.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../services/emergency_check.dart';
+import '../widgets/specialty_tiles.dart';
 
 class IntakeFormScreen extends ConsumerStatefulWidget {
-  const IntakeFormScreen({super.key});
+  const IntakeFormScreen({
+    super.key,
+    this.initialSpecialty,
+    this.initialSymptoms,
+  });
+
+  /// Pre-selected from the home search / specialty tiles.
+  final String? initialSpecialty;
+  final String? initialSymptoms;
 
   @override
   ConsumerState<IntakeFormScreen> createState() => _IntakeFormScreenState();
@@ -18,11 +27,26 @@ class IntakeFormScreen extends ConsumerStatefulWidget {
 
 class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
   String _specialty = kSpecialties.first;
-  final _symptomsCtrl = TextEditingController();
+  late final _symptomsCtrl = TextEditingController(
+    text: widget.initialSymptoms,
+  );
   String? _duration;
   String _severity = 'Moderate';
   bool _submitting = false;
   EmergencyCheckResult? _emergencyResult;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialSpecialty;
+    if (initial != null && kSpecialties.contains(initial)) _specialty = initial;
+  }
+
+  @override
+  void dispose() {
+    _symptomsCtrl.dispose();
+    super.dispose();
+  }
 
   static const _durations = ['< 1 hour', 'Today', 'Few days', '> 1 week'];
   static const _severities = ['Mild', 'Moderate', 'Severe'];
@@ -73,7 +97,9 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
   @override
   Widget build(BuildContext context) {
     if (_emergencyResult != null) {
-      return _EmergencyStopView(matchedKeyword: _emergencyResult!.matchedKeyword);
+      return _EmergencyStopView(
+        matchedKeyword: _emergencyResult!.matchedKeyword,
+      );
     }
 
     return Scaffold(
@@ -86,12 +112,9 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
             children: [
               _SectionLabel(icon: LucideIcons.stethoscope, text: 'Specialty'),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _specialty,
-                items: kSpecialties
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                    .toList(),
-                onChanged: (v) => setState(() => _specialty = v ?? _specialty),
+              SpecialtyGrid(
+                selected: _specialty,
+                onSelected: (v) => setState(() => _specialty = v),
               ),
               const SizedBox(height: 22),
               _SectionLabel(
@@ -127,10 +150,7 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
                     .toList(),
               ),
               const SizedBox(height: 22),
-              _SectionLabel(
-                icon: LucideIcons.gauge,
-                text: 'Severity',
-              ),
+              _SectionLabel(icon: LucideIcons.gauge, text: 'Severity'),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -148,8 +168,7 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
               const SizedBox(height: 32),
               FilledButton.icon(
                 icon: const Icon(LucideIcons.search, size: 18),
-                onPressed:
-                    _submitting || _symptomsCtrl.text.trim().isEmpty
+                onPressed: _submitting || _symptomsCtrl.text.trim().isEmpty
                     ? null
                     : _submit,
                 label: _submitting
@@ -225,9 +244,9 @@ class _EmergencyStopView extends StatelessWidget {
               Text(
                 'This sounds like a medical emergency',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.danger,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.copyWith(color: AppColors.danger),
               ),
               const SizedBox(height: 12),
               Text(
@@ -238,7 +257,9 @@ class _EmergencyStopView extends StatelessWidget {
               ),
               const SizedBox(height: 28),
               FilledButton.icon(
-                style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.danger,
+                ),
                 onPressed: () => launchDialer('999'),
                 icon: const Icon(LucideIcons.phoneCall, size: 18),
                 label: const Text('Call 999 (Emergency Services)'),

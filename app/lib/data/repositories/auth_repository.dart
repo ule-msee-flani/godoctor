@@ -55,11 +55,7 @@ class AuthRepository {
     required String phone,
     required String otp,
   }) async {
-    await _client.auth.verifyOTP(
-      phone: phone,
-      token: otp,
-      type: OtpType.sms,
-    );
+    await _client.auth.verifyOTP(phone: phone, token: otp, type: OtpType.sms);
   }
 
   Future<void> signOut() => _client.auth.signOut();

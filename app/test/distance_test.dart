@@ -3,7 +3,10 @@ import 'package:godoctor_app/services/distance.dart';
 
 void main() {
   test('distance between identical points is zero', () {
-    expect(distanceKm(-1.286389, 36.817223, -1.286389, 36.817223), closeTo(0, 0.0001));
+    expect(
+      distanceKm(-1.286389, 36.817223, -1.286389, 36.817223),
+      closeTo(0, 0.0001),
+    );
   });
 
   test('distance between Nairobi CBD and JKIA is roughly correct', () {

@@ -31,16 +31,8 @@ class VideoCallPanel extends StatelessWidget {
           decoration: const BoxDecoration(gradient: AppColors.heroGradient),
           child: Stack(
             children: [
-              Positioned(
-                right: -30,
-                top: -30,
-                child: _softCircle(140),
-              ),
-              Positioned(
-                left: -40,
-                bottom: -40,
-                child: _softCircle(160),
-              ),
+              Positioned(right: -30, top: -30, child: _softCircle(140)),
+              Positioned(left: -40, bottom: -40, child: _softCircle(160)),
               Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

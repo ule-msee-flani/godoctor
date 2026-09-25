@@ -32,14 +32,14 @@ class AdminVerificationScreen extends ConsumerWidget {
             ),
           ],
           bottom: const TabBar(
-            tabs: [Tab(text: 'Doctors'), Tab(text: 'Chemists')],
+            tabs: [
+              Tab(text: 'Doctors'),
+              Tab(text: 'Chemists'),
+            ],
           ),
         ),
         body: TabBarView(
-          children: [
-            _PendingDoctorsList(),
-            _PendingChemistsList(),
-          ],
+          children: [_PendingDoctorsList(), _PendingChemistsList()],
         ),
       ),
     );

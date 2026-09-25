@@ -32,10 +32,7 @@ class PwaInstallService {
     if (!kIsWeb) return false;
     try {
       final ua = web.window.navigator.userAgent;
-      return RegExp(
-        r'iPhone|iPad|iPod',
-        caseSensitive: false,
-      ).hasMatch(ua);
+      return RegExp(r'iPhone|iPad|iPod', caseSensitive: false).hasMatch(ua);
     } catch (_) {
       return false;
     }

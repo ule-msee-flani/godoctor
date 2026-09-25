@@ -30,7 +30,9 @@ class DrugRepository {
   Future<List<ChemistInventoryItem>> findStockForDrug(String drugId) async {
     final rows = await _client
         .from('chemist_inventory')
-        .select('*, chemist_profiles!inner(business_name, location_lat, location_lng, verified), drugs(*)')
+        .select(
+          '*, chemist_profiles!inner(business_name, location_lat, location_lng, verified), drugs(*)',
+        )
         .eq('drug_id', drugId)
         .eq('chemist_profiles.verified', true)
         .gt('quantity', 0);

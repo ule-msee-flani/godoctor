@@ -45,9 +45,7 @@ class _PrescriptionBuilderState extends ConsumerState<PrescriptionBuilder> {
         setState(() => _suggestions = []);
         return;
       }
-      final results = await ref
-          .read(drugRepositoryProvider)
-          .searchDrugs(value);
+      final results = await ref.read(drugRepositoryProvider).searchDrugs(value);
       if (mounted) setState(() => _suggestions = results);
     });
   }
@@ -140,18 +138,20 @@ class _PrescriptionBuilderState extends ConsumerState<PrescriptionBuilder> {
           ),
         ),
         if (!_freeText && _suggestions.isNotEmpty)
-          ...(_suggestions.take(5).map(
-            (d) => ListTile(
-              dense: true,
-              title: Text(d.displayName),
-              selected: _selectedDrug?.id == d.id,
-              onTap: () => setState(() {
-                _selectedDrug = d;
-                _searchCtrl.text = d.displayName;
-                _suggestions = [];
-              }),
-            ),
-          )),
+          ...(_suggestions
+              .take(5)
+              .map(
+                (d) => ListTile(
+                  dense: true,
+                  title: Text(d.displayName),
+                  selected: _selectedDrug?.id == d.id,
+                  onTap: () => setState(() {
+                    _selectedDrug = d;
+                    _searchCtrl.text = d.displayName;
+                    _suggestions = [];
+                  }),
+                ),
+              )),
         const SizedBox(height: 8),
         Row(
           children: [

@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/skeleton.dart';
 import '../../../data/models/prescription.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
@@ -17,48 +18,56 @@ final _patientPrescriptionsProvider = FutureProvider<List<Prescription>>((
   return ref.watch(prescriptionRepositoryProvider).fetchForPatient(userId);
 });
 
-class PrescriptionsScreen extends ConsumerWidget {
+class PrescriptionsScreen extends StatelessWidget {
   const PrescriptionsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('My prescriptions')),
+    body: const PrescriptionsList(),
+  );
+}
+
+/// The list itself (with an upload action on top), reused by the Activity tab.
+class PrescriptionsList extends ConsumerWidget {
+  const PrescriptionsList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prescriptions = ref.watch(_patientPrescriptionsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My prescriptions'),
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.upload),
-            tooltip: 'Upload an external prescription',
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: OutlinedButton.icon(
+            icon: const Icon(LucideIcons.upload, size: 18),
+            label: const Text('Upload an external prescription'),
             onPressed: () => context.push('/patient/prescriptions/upload'),
           ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      body: prescriptions.when(
-        loading: () => const LoadingView(),
-        error: (e, _) => ErrorView(message: '$e'),
-        data: (list) {
-          if (list.isEmpty) {
-            return EmptyView(
-              message: 'No prescriptions yet.',
-              icon: LucideIcons.fileText,
-              action: OutlinedButton.icon(
-                icon: const Icon(LucideIcons.upload, size: 18),
-                label: const Text('Upload one'),
-                onPressed: () => context.push('/patient/prescriptions/upload'),
-              ),
-            );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: list.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, i) => _PrescriptionCard(prescription: list[i]),
-          );
-        },
-      ),
+        ),
+        Expanded(
+          child: prescriptions.when(
+            loading: () => const SkeletonList(),
+            error: (e, _) => ErrorView(message: '$e'),
+            data: (list) {
+              if (list.isEmpty) {
+                return const EmptyView(
+                  message: 'No prescriptions yet.',
+                  icon: LucideIcons.fileText,
+                );
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: list.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, i) =>
+                    _PrescriptionCard(prescription: list[i]),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -83,14 +92,14 @@ class _PrescriptionCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isExternal ? AppColors.warningSoft : AppColors.successSoft,
+                    color: isExternal
+                        ? AppColors.warningSoft
+                        : AppColors.successSoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
                     child: Icon(
-                      isExternal
-                          ? LucideIcons.image
-                          : LucideIcons.badgeCheck,
+                      isExternal ? LucideIcons.image : LucideIcons.badgeCheck,
                       size: 20,
                       color: isExternal ? AppColors.warning : AppColors.success,
                     ),
@@ -99,7 +108,9 @@ class _PrescriptionCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    isExternal ? 'Uploaded prescription' : 'Issued via GoDoctor',
+                    isExternal
+                        ? 'Uploaded prescription'
+                        : 'Issued via GoDoctor',
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                 ),
@@ -113,7 +124,10 @@ class _PrescriptionCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.dangerSoft,
                     borderRadius: BorderRadius.circular(20),

@@ -50,19 +50,20 @@ class OrderRepository {
         .single();
     final orderId = orderRow['id'] as String;
 
-    await _client.from('order_items').insert(
-      lines
-          .map(
-            (l) =>
-                OrderItem(
+    await _client
+        .from('order_items')
+        .insert(
+          lines
+              .map(
+                (l) => OrderItem(
                   orderId: orderId,
                   drugId: l.drugId,
                   quantity: l.quantity,
                   unitPrice: l.unitPrice,
                 ).toInsertMap(),
-          )
-          .toList(),
-    );
+              )
+              .toList(),
+        );
 
     // --- Mock payment step (M-Pesa STK push simulated) ---
     await _client.from('payments').insert({
@@ -79,7 +80,9 @@ class OrderRepository {
   Future<List<Order>> fetchForPatient(String patientId) async {
     final rows = await _client
         .from('orders')
-        .select('*, order_items(*, drugs(generic_name)), chemist_profiles(business_name)')
+        .select(
+          '*, order_items(*, drugs(generic_name)), chemist_profiles(business_name)',
+        )
         .eq('patient_id', patientId)
         .order('created_at', ascending: false);
     return rows.map((r) => Order.fromMap(r)).toList();
@@ -106,14 +109,20 @@ class OrderRepository {
   Future<void> chemistConfirm(String orderId) async {
     await _client
         .from('orders')
-        .update({'status': 'confirmed', 'confirmed_at': DateTime.now().toIso8601String()})
+        .update({
+          'status': 'confirmed',
+          'confirmed_at': DateTime.now().toIso8601String(),
+        })
         .eq('id', orderId);
   }
 
   Future<void> chemistMarkReady(String orderId) async {
     await _client
         .from('orders')
-        .update({'status': 'ready', 'ready_at': DateTime.now().toIso8601String()})
+        .update({
+          'status': 'ready',
+          'ready_at': DateTime.now().toIso8601String(),
+        })
         .eq('id', orderId);
   }
 

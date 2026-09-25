@@ -12,10 +12,12 @@ import '../../../data/models/enums.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 
-final _offersStreamProvider = StreamProvider.family<List<ConsultationOffer>, String>(
-  (ref, doctorId) =>
-      ref.watch(consultationRepositoryProvider).watchOffersForDoctor(doctorId),
-);
+final _offersStreamProvider =
+    StreamProvider.family<List<ConsultationOffer>, String>(
+      (ref, doctorId) => ref
+          .watch(consultationRepositoryProvider)
+          .watchOffersForDoctor(doctorId),
+    );
 
 class DoctorDashboardScreen extends ConsumerWidget {
   const DoctorDashboardScreen({super.key});
@@ -85,7 +87,9 @@ class _DashboardBody extends ConsumerWidget {
                   child: Text(
                     isBusy
                         ? 'In a consultation'
-                        : (isAvailable ? 'Available for consultations' : 'Offline'),
+                        : (isAvailable
+                              ? 'Available for consultations'
+                              : 'Offline'),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
@@ -107,7 +111,9 @@ class _DashboardBody extends ConsumerWidget {
         const SizedBox(height: 8),
         Wrap(
           spacing: 6,
-          children: profile.specialties.map((s) => Chip(label: Text(s))).toList(),
+          children: profile.specialties
+              .map((s) => Chip(label: Text(s)))
+              .toList(),
         ),
         const SizedBox(height: 20),
         Text('Incoming offers', style: Theme.of(context).textTheme.titleMedium),
@@ -123,9 +129,7 @@ class _DashboardBody extends ConsumerWidget {
               );
             }
             return Column(
-              children: offers
-                  .map((o) => _OfferCard(offer: o))
-                  .toList(),
+              children: offers.map((o) => _OfferCard(offer: o)).toList(),
             );
           },
         ),
@@ -156,7 +160,9 @@ class _OfferCardState extends ConsumerState<_OfferCard> {
 
   void _tick() {
     final remaining = widget.offer.expiresAt.difference(DateTime.now());
-    setState(() => _remaining = remaining.isNegative ? Duration.zero : remaining);
+    setState(
+      () => _remaining = remaining.isNegative ? Duration.zero : remaining,
+    );
   }
 
   @override

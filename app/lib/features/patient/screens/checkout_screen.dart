@@ -187,7 +187,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ),
                     ],
                     selected: {_fulfillment},
-                    onSelectionChanged: (s) => setState(() => _fulfillment = s.first),
+                    onSelectionChanged: (s) =>
+                        setState(() => _fulfillment = s.first),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -248,7 +249,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 children: [
                   const Text(
                     'Total',
-                    style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Text(
                     'KES ${total.toStringAsFixed(0)}',
@@ -264,7 +268,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             const SizedBox(height: 20),
             FilledButton.icon(
               icon: const Icon(LucideIcons.wallet, size: 18),
-              label: Text(_placing ? 'Placing order...' : 'Pay with M-Pesa (simulated)'),
+              label: Text(
+                _placing ? 'Placing order...' : 'Pay with M-Pesa (simulated)',
+              ),
               onPressed: _placing ? null : _placeOrder,
             ),
             const SizedBox(height: 8),
@@ -284,7 +290,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child, this.titleIcon});
+  const _SectionCard({
+    required this.title,
+    required this.child,
+    this.titleIcon,
+  });
 
   final String title;
   final IconData? titleIcon;

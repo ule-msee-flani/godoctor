@@ -32,7 +32,10 @@ class _ChemistOnboardingScreenState
 
   Future<void> _submit() async {
     if (_nameCtrl.text.trim().isEmpty || _regCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Please fill in your business name and registration number.');
+      setState(
+        () => _error =
+            'Please fill in your business name and registration number.',
+      );
       return;
     }
     setState(() {
@@ -48,7 +51,11 @@ class _ChemistOnboardingScreenState
         final path = '$userId/registration.$ext';
         await SupabaseService.client.storage
             .from('verification-documents')
-            .uploadBinary(path, bytes, fileOptions: const FileOptions(upsert: true));
+            .uploadBinary(
+              path,
+              bytes,
+              fileOptions: const FileOptions(upsert: true),
+            );
         docs.add(path);
       }
       await ref
@@ -89,7 +96,9 @@ class _ChemistOnboardingScreenState
             const SizedBox(height: 12),
             TextField(
               controller: _regCtrl,
-              decoration: const InputDecoration(labelText: 'Registration number'),
+              decoration: const InputDecoration(
+                labelText: 'Registration number',
+              ),
             ),
             const SizedBox(height: 12),
             Row(
@@ -97,7 +106,10 @@ class _ChemistOnboardingScreenState
                 Expanded(
                   child: TextField(
                     controller: _latCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: true,
+                    ),
                     decoration: const InputDecoration(labelText: 'Latitude'),
                   ),
                 ),
@@ -105,7 +117,10 @@ class _ChemistOnboardingScreenState
                 Expanded(
                   child: TextField(
                     controller: _lngCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: true,
+                    ),
                     decoration: const InputDecoration(labelText: 'Longitude'),
                   ),
                 ),
@@ -114,7 +129,11 @@ class _ChemistOnboardingScreenState
             const SizedBox(height: 20),
             OutlinedButton.icon(
               icon: const Icon(Icons.upload_file),
-              label: Text(_document == null ? 'Upload registration document' : 'Change document'),
+              label: Text(
+                _document == null
+                    ? 'Upload registration document'
+                    : 'Change document',
+              ),
               onPressed: _pickDocument,
             ),
             const SizedBox(height: 24),
@@ -130,7 +149,10 @@ class _ChemistOnboardingScreenState
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ],
           ],
         ),

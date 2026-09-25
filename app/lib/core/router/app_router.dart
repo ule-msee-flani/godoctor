@@ -25,7 +25,10 @@ import '../../features/patient/screens/medicine_search_screen.dart';
 import '../../features/patient/screens/order_history_screen.dart';
 import '../../features/patient/screens/order_tracking_screen.dart';
 import '../../features/patient/screens/patient_call_screen.dart';
+import '../../features/patient/screens/activity_screen.dart';
 import '../../features/patient/screens/patient_home_screen.dart';
+import '../../features/patient/screens/patient_shell.dart';
+import '../../features/patient/screens/profile_screen.dart';
 import '../../features/patient/screens/prescriptions_screen.dart';
 import '../../features/patient/screens/upload_prescription_screen.dart';
 import '../theme/app_theme.dart';
@@ -64,10 +67,42 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // --- Patient ---
-      GoRoute(path: '/patient', builder: (_, _) => const PatientHomeScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            PatientShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/patient',
+                builder: (_, _) => const PatientHomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/patient/activity',
+                builder: (_, _) => const ActivityScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/patient/profile',
+                builder: (_, _) => const ProfileScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
       GoRoute(
         path: '/patient/intake',
-        builder: (_, _) => const IntakeFormScreen(),
+        builder: (context, state) => IntakeFormScreen(
+          initialSpecialty: state.uri.queryParameters['specialty'],
+          initialSymptoms: state.uri.queryParameters['symptoms'],
+        ),
       ),
       GoRoute(
         path: '/patient/waiting/:id',
@@ -138,9 +173,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/doctor/call/:id',
-        builder: (context, state) => _pro(
-          DoctorCallScreen(consultationId: state.pathParameters['id']!),
-        ),
+        builder: (context, state) =>
+            _pro(DoctorCallScreen(consultationId: state.pathParameters['id']!)),
       ),
       GoRoute(
         path: '/doctor/history',
@@ -182,7 +216,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 });
 
 Future<String?> _redirect(Ref ref, GoRouterState state) async {
-  final loggingIn = state.matchedLocation == '/auth' ||
+  final loggingIn =
+      state.matchedLocation == '/auth' ||
       state.matchedLocation.startsWith('/auth/login');
 
   final userId = ref.read(currentUserIdProvider);
