@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GoDoctor — Download</title>
+<meta name="description" content="Download GoDoctor: on-demand doctor consultations and medicine delivery for Kenya.">
+<meta name="theme-color" content="#1B63F2">
+
+<meta property="og:title" content="GoDoctor — Download">
+<meta property="og:description" content="On-demand doctor consultations and medicine delivery for Kenya.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="icon-512.png">
+
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --primary:#1B63F2;
+    --primary-dark:#0D3E8F;
+    --primary-darker:#082A63;
+    --primary-soft:#E8F0FE;
+    --primary-softer:#F5F8FF;
+    --teal:#0EA5A8;
+    --ink:#0B1730;
+    --ink-soft:#57617A;
+    --ink-faint:#9AA8C3;
+    --border:#E3E9F5;
+    --surface:#FFFFFF;
+    --bg:var(--primary-softer);
+    --radius:18px;
+    --shadow:0 1px 2px rgba(11,23,48,.04), 0 12px 32px rgba(11,23,48,.08);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#F2F6FF; --ink-soft:#A8B4CE; --ink-faint:#6C7896;
+      --border:#1E2B47; --surface:#111C33; --bg:#0A1222;
+      --primary-soft:#14294F; --primary-softer:#0F1E38;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.4);
+    }
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:""; position:fixed; inset:0 0 auto 0; height:420px; z-index:-1;
+    background:radial-gradient(90% 100% at 50% 0%, var(--primary-soft) 0%, transparent 70%);
+  }
+
+  .wrap{max-width:560px; margin:0 auto; padding:48px 20px 64px}
+  @media (max-width:480px){ .wrap{padding:32px 16px 48px} }
+
+  /* ---------- header ---------- */
+  header{text-align:center; margin-bottom:32px}
+  .logo{
+    width:88px; height:88px; border-radius:22px; display:block; margin:0 auto 18px;
+    box-shadow:var(--shadow);
+  }
+  h1{font-size:2rem; font-weight:700; letter-spacing:-.02em; margin:0 0 8px}
+  .tagline{color:var(--ink-soft); font-size:1.0625rem; margin:0 auto; max-width:38ch}
+
+  /* ---------- card ---------- */
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:24px; margin-bottom:16px;
+  }
+
+  /* ---------- download button ---------- */
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; padding:17px 24px; border:0; border-radius:14px;
+    background:var(--primary); color:#fff;
+    font:600 1.0625rem/1 Inter,sans-serif; text-decoration:none; cursor:pointer;
+    transition:background .15s ease, transform .1s ease, box-shadow .15s ease;
+    box-shadow:0 4px 14px rgba(27,99,242,.3);
+  }
+  .btn:hover{background:var(--primary-dark); box-shadow:0 6px 20px rgba(27,99,242,.38)}
+  .btn:active{transform:translateY(1px)}
+  .btn:focus-visible{outline:3px solid var(--primary); outline-offset:3px}
+  .btn[aria-disabled="true"]{
+    background:var(--primary-soft); color:var(--ink-faint);
+    box-shadow:none; cursor:default; pointer-events:none;
+  }
+  .btn svg{flex:none}
+
+  .meta{
+    display:flex; justify-content:center; flex-wrap:wrap; gap:6px 14px;
+    margin-top:14px; font-size:.875rem; color:var(--ink-soft);
+  }
+  .meta span{display:inline-flex; align-items:center; gap:5px; white-space:nowrap}
+  .dot{width:4px; height:4px; border-radius:50%; background:var(--ink-faint); flex:none}
+
+  .note{
+    margin:14px 0 0; padding:12px 14px; border-radius:11px;
+    background:var(--primary-softer); border:1px solid var(--border);
+    font-size:.875rem; color:var(--ink-soft);
+  }
+  .note.warn{background:rgba(14,165,168,.08); border-color:rgba(14,165,168,.3)}
+  .note strong{color:var(--ink); font-weight:600}
+
+  /* ---------- steps ---------- */
+  h2{font-size:.8125rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+     color:var(--ink-faint); margin:0 0 16px}
+  ol{margin:0; padding:0; list-style:none; counter-reset:step}
+  ol li{
+    counter-increment:step; position:relative; padding:0 0 18px 42px;
+    font-size:.9375rem; color:var(--ink-soft);
+  }
+  ol li:last-child{padding-bottom:0}
+  ol li::before{
+    content:counter(step); position:absolute; left:0; top:-1px;
+    width:26px; height:26px; border-radius:50%;
+    background:var(--primary-soft); color:var(--primary);
+    font-size:.8125rem; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+  }
+  @media (prefers-color-scheme: dark){ ol li::before{color:#7FA8FF} }
+  ol li::after{
+    content:""; position:absolute; left:13px; top:30px; bottom:6px; width:1px;
+    background:var(--border);
+  }
+  ol li:last-child::after{display:none}
+  ol li b{color:var(--ink); font-weight:600}
+
+  /* ---------- footer ---------- */
+  footer{text-align:center; margin-top:28px; font-size:.875rem; color:var(--ink-faint)}
+  footer a{color:var(--primary); text-decoration:none; font-weight:500}
+  @media (prefers-color-scheme: dark){ footer a{color:#7FA8FF} }
+  footer a:hover{text-decoration:underline}
+  .sep{margin:0 8px; opacity:.5}
+
+  .spin{animation:spin 1s linear infinite; transform-origin:center}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} }
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img src="icon.png" srcset="icon.png 192w, icon-512.png 512w" sizes="88px"
+         alt="GoDoctor app icon" class="logo" width="88" height="88">
+    <h1>GoDoctor</h1>
+    <p class="tagline">Talk to a doctor and get medicine delivered — on demand, across Kenya.</p>
+  </header>
+
+  <main>
+    <div class="card">
+      <a id="dl" class="btn" aria-disabled="true" href="#" aria-describedby="meta">
+        <svg id="dl-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+             class="spin" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-6.22-8.56"/>
+        </svg>
+        <span id="dl-text">Checking for latest version…</span>
+      </a>
+
+      <div class="meta" id="meta" role="status" aria-live="polite"></div>
+
+      <p class="note" id="note" hidden></p>
+    </div>
+
+    <div class="card" id="steps-card">
+      <h2>Installing on Android</h2>
+      <ol>
+        <li>Tap <b>Download</b> above. Chrome may warn that this file type can harm your device — that warning shows for every app installed outside the Play Store. Choose <b>Download anyway</b>.</li>
+        <li>Open the downloaded <b>.apk</b> file from your notifications or the <b>Downloads</b> folder.</li>
+        <li>Android will ask to allow installs from this source. Tap <b>Settings</b>, turn on <b>Allow from this source</b>, then press back.</li>
+        <li>Tap <b>Install</b>, then <b>Open</b>. Sign in with your phone number to get started.</li>
+      </ol>
+    </div>
+  </main>
+
+  <footer>
+    <a href="https://github.com/ule-msee-flani/godoctor">Source code</a>
+    <span class="sep">·</span>
+    <a href="https://github.com/ule-msee-flani/godoctor/releases">All versions</a>
+    <span class="sep">·</span>
+    <a href="https://github.com/ule-msee-flani/godoctor/issues">Report a problem</a>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var REPO = 'ule-msee-flani/godoctor';
+
+  var btn   = document.getElementById('dl');
+  var icon  = document.getElementById('dl-icon');
+  var label = document.getElementById('dl-text');
+  var meta  = document.getElementById('meta');
+  var note  = document.getElementById('note');
+
+  var ICONS = {
+    down: '<path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+    ext:  '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/>'
+  };
+
+  function setIcon(kind) {
+    icon.classList.remove('spin');
+    icon.innerHTML = ICONS[kind];
+  }
+
+  function bytes(n) {
+    if (!n && n !== 0) return null;
+    return n >= 1073741824
+      ? (n / 1073741824).toFixed(1) + ' GB'
+      : Math.round(n / 1048576) + ' MB';
+  }
+
+  function when(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return null;
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function chips(parts) {
+    meta.innerHTML = parts
+      .filter(Boolean)
+      .map(function (p) { return '<span>' + p + '</span>'; })
+      .join('<span class="dot" aria-hidden="true"></span>');
+  }
+
+  function fallback(message) {
+    setIcon('ext');
+    label.textContent = 'View releases on GitHub';
+    btn.href = 'https://github.com/' + REPO + '/releases';
+    btn.removeAttribute('aria-disabled');
+    chips([]);
+    note.hidden = false;
+    note.innerHTML = message;
+  }
+
+  fetch('https://api.github.com/repos/' + REPO + '/releases/latest', {
+    headers: { Accept: 'application/vnd.github+json' }
+  })
+    .then(function (r) {
+      if (r.status === 404) return null;               // no published release yet
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function (rel) {
+      if (!rel) {
+        fallback('<strong>No release published yet.</strong> The Android build will appear here as soon as the first release goes up.');
+        return;
+      }
+
+      var apk = (rel.assets || []).filter(function (a) {
+        return /\.apk$/i.test(a.name);
+      })[0];
+
+      if (!apk) {
+        fallback('<strong>' + (rel.name || rel.tag_name) + '</strong> has no Android package attached yet.');
+        return;
+      }
+
+      setIcon('down');
+      label.textContent = 'Download for Android';
+      btn.href = apk.browser_download_url;
+      btn.setAttribute('download', '');
+      btn.removeAttribute('aria-disabled');
+
+      chips([
+        rel.tag_name,
+        bytes(apk.size),
+        when(rel.published_at)
+      ]);
+
+      note.hidden = false;
+      note.className = 'note';
+      note.innerHTML = 'Android 8.0 or newer. Installs directly — not via the Play Store.';
+    })
+    .catch(function () {
+      fallback('<strong>Could not reach GitHub just now.</strong> Check your connection, or browse the releases page directly.');
+    });
+})();
+</script>
+</body>
+</html>
