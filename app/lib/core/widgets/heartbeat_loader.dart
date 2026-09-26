@@ -4,6 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
+/// How long a screen change takes. The heartbeat is fully visible for about
+/// 0.8 s of it (one clear "lub-dub"), then the new screen fades in. Long
+/// enough to notice, short enough not to feel slow.
+const kHeartbeatScreenDuration = Duration(milliseconds: 1250);
+
+/// How long switching bottom-nav tabs shows the heartbeat.
+const kHeartbeatTabDuration = Duration(milliseconds: 1100);
+
 /// A beating heart ("lub-dub") over a moving ECG trace. Used while a screen
 /// loads, between screens, and between tabs. Galleries and lists keep their
 /// own skeleton placeholders instead.
@@ -23,7 +31,7 @@ class _HeartbeatLoaderState extends State<HeartbeatLoader>
   // One heartbeat cycle (~70 bpm, a calm resting pulse).
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1100),
+    duration: const Duration(milliseconds: 1000),
   )..repeat();
 
   @override
@@ -195,7 +203,7 @@ class HeartbeatPageTransitionsBuilder extends PageTransitionsBuilder {
   const HeartbeatPageTransitionsBuilder();
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 750);
+  Duration get transitionDuration => kHeartbeatScreenDuration;
 
   @override
   Duration get reverseTransitionDuration => const Duration(milliseconds: 220);
@@ -222,13 +230,13 @@ class HeartbeatTransition extends StatelessWidget {
   final Widget child;
 
   static final _cover = TweenSequence<double>([
-    TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 8),
-    TweenSequenceItem(tween: ConstantTween(1.0), weight: 50),
-    TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 17),
-    TweenSequenceItem(tween: ConstantTween(0.0), weight: 25),
+    TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 6),
+    TweenSequenceItem(tween: ConstantTween(1.0), weight: 62),
+    TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 12),
+    TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
   ]);
 
-  static const _reveal = Interval(0.55, 1.0, curve: Curves.easeOutCubic);
+  static const _reveal = Interval(0.70, 1.0, curve: Curves.easeOutCubic);
 
   @override
   Widget build(BuildContext context) {
@@ -287,13 +295,13 @@ class _HeartbeatTabSwitcherState extends State<HeartbeatTabSwitcher>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 700),
+    duration: kHeartbeatTabDuration,
     value: 1,
   );
 
   static final _cover = TweenSequence<double>([
-    TweenSequenceItem(tween: ConstantTween(1.0), weight: 62),
-    TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 38),
+    TweenSequenceItem(tween: ConstantTween(1.0), weight: 72),
+    TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 28),
   ]);
 
   @override

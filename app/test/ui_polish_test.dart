@@ -51,8 +51,11 @@ void main() {
     await tester.pump(); // route added
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.byType(HeartbeatLoader), findsOneWidget);
+    // Still clearly showing after most of a second, so people see it.
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(HeartbeatLoader), findsOneWidget);
 
-    await tester.pump(const Duration(milliseconds: 700)); // transition done
+    await tester.pump(kHeartbeatScreenDuration); // transition done
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.byType(HeartbeatLoader), findsNothing);
     expect(find.text('next screen'), findsOneWidget);
@@ -90,7 +93,9 @@ void main() {
     await tester.pumpWidget(shell(2)); // normal tab
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(HeartbeatLoader), findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 800));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(HeartbeatLoader), findsOneWidget);
+    await tester.pump(kHeartbeatTabDuration);
     expect(find.byType(HeartbeatLoader), findsNothing);
     expect(find.text('tab 2'), findsOneWidget);
   });
@@ -122,9 +127,12 @@ void main() {
   });
 
   group('pictures are in place', () {
-    bool exists(String base) => ['png', 'jpg', 'jpeg', 'webp'].any(
-      (ext) => File('$base.$ext').existsSync(),
-    );
+    bool exists(String base) => [
+      'png',
+      'jpg',
+      'jpeg',
+      'webp',
+    ].any((ext) => File('$base.$ext').existsSync());
 
     test('home tiles', () {
       expect(exists('assets/images/home/see_doctor'), isTrue);
