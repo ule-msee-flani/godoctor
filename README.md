@@ -4,6 +4,12 @@ On-demand telemedicine + medicine ordering marketplace for Kenya (patients,
 doctors, chemists). See [PROJECT_SPEC.md](PROJECT_SPEC.md) for the full
 product/technical spec this build follows.
 
+### **[⬇ Download the app](https://ule-msee-flani.github.io/godoctor/)**
+
+The download page always serves the latest published release, with install
+steps for Android. Its source is in [`docs/`](docs/) and it's published with
+GitHub Pages from `main` — no build step, no action needed per release.
+
 ## Repo layout
 
 ```
