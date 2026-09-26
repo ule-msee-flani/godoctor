@@ -38,7 +38,7 @@ class RoleShell extends StatelessWidget {
   );
 
   Widget _icon(ShellTab t, {bool selected = false}) {
-    final icon = Icon(t.icon, color: selected ? AppColors.primary : null);
+    final icon = Icon(t.icon, color: selected ? AppColors.ink : null);
     return t.badge > 0 ? Badge(label: Text('${t.badge}'), child: icon) : icon;
   }
 

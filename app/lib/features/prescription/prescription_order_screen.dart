@@ -335,7 +335,7 @@ class _ChemistOption extends StatelessWidget {
               children: [
                 Icon(
                   selected ? LucideIcons.circleCheck : LucideIcons.circle,
-                  color: selected ? AppColors.primary : AppColors.inkFaint,
+                  color: selected ? AppColors.ink : AppColors.inkFaint,
                   size: 20,
                 ),
                 const SizedBox(width: 12),
