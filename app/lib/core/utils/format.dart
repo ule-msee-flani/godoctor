@@ -11,6 +11,8 @@ String formatTime(DateTime d) => DateFormat('HH:mm').format(d);
 
 String formatDayShort(DateTime d) => DateFormat('EEE d MMM').format(d);
 
+String formatDate(DateTime d) => DateFormat('d MMM yyyy').format(d);
+
 String formatDateTime(DateTime d) => '${formatDayShort(d)}, ${formatTime(d)}';
 
 bool isSameDay(DateTime a, DateTime b) =>

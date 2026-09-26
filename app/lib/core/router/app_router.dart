@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../data/models/drug.dart';
 import '../../data/models/enums.dart';
@@ -15,6 +16,7 @@ import '../../features/chemist/screens/chemist_orders_screen.dart';
 import '../../features/doctor/screens/doctor_call_screen.dart';
 import '../../features/doctor/screens/doctor_dashboard_screen.dart';
 import '../../features/doctor/screens/doctor_history_screen.dart';
+import '../../features/doctor/screens/doctor_medicines_screen.dart';
 import '../../features/doctor/screens/doctor_onboarding_screen.dart';
 import '../../features/doctor/screens/doctor_profile_edit_screen.dart';
 import '../../features/doctor/screens/doctor_schedule_screen.dart';
@@ -41,8 +43,10 @@ import '../../features/patient/screens/profile_screen.dart';
 import '../../features/patient/screens/prescriptions_screen.dart';
 import '../../features/patient/screens/upload_prescription_screen.dart';
 import '../../features/patient/specialties/specialty_registry.dart';
+import '../../features/prescription/prescription_order_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/pending_verification_view.dart';
+import '../widgets/role_shell.dart';
 import 'go_router_refresh_stream.dart';
 
 /// Wraps professional (doctor/chemist/admin) screens in the denser desktop
@@ -181,6 +185,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const PrescriptionsScreen(),
       ),
       GoRoute(
+        path: '/patient/prescription/:id/order',
+        builder: (context, state) => PrescriptionOrderScreen(
+          prescriptionId: state.pathParameters['id']!,
+          initialChemistId: state.uri.queryParameters['chemist'],
+        ),
+      ),
+      GoRoute(
         path: '/patient/prescriptions/upload',
         builder: (_, _) => const UploadPrescriptionScreen(),
       ),
@@ -228,9 +239,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ),
       ),
-      GoRoute(
-        path: '/doctor',
-        builder: (_, _) => _pro(const DoctorDashboardScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => _pro(
+          RoleShell(
+            navigationShell: navigationShell,
+            tabs: const [
+              ShellTab(LucideIcons.house, 'Home'),
+              ShellTab(LucideIcons.calendarDays, 'Schedule'),
+              ShellTab(LucideIcons.pill, 'Medicines'),
+              ShellTab(LucideIcons.history, 'History'),
+              ShellTab(LucideIcons.circleUserRound, 'Profile'),
+            ],
+          ),
+        ),
+        branches: [
+          _branch('/doctor', const DoctorDashboardScreen()),
+          _branch('/doctor/schedule', const DoctorScheduleScreen()),
+          _branch('/doctor/medicines', const DoctorMedicinesScreen()),
+          _branch('/doctor/history', const DoctorHistoryScreen()),
+          _branch('/doctor/profile', const DoctorProfileEditScreen()),
+        ],
       ),
       GoRoute(
         path: '/doctor/call/:id',
@@ -238,21 +266,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             _pro(DoctorCallScreen(consultationId: state.pathParameters['id']!)),
       ),
       GoRoute(
-        path: '/doctor/schedule',
-        builder: (_, _) => _pro(const DoctorScheduleScreen()),
-      ),
-      GoRoute(
-        path: '/doctor/profile',
-        builder: (_, _) => _pro(const DoctorProfileEditScreen()),
-      ),
-      GoRoute(
         path: '/doctor/notifications',
         builder: (_, _) =>
             _pro(const NotificationsScreen(appointmentRoute: null)),
-      ),
-      GoRoute(
-        path: '/doctor/history',
-        builder: (_, _) => _pro(const DoctorHistoryScreen()),
       ),
 
       // --- Chemist ---
@@ -271,13 +287,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ),
       ),
-      GoRoute(
-        path: '/chemist',
-        builder: (_, _) => _pro(const ChemistInventoryScreen()),
-      ),
-      GoRoute(
-        path: '/chemist/orders',
-        builder: (_, _) => _pro(const ChemistOrdersScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => _pro(
+          Consumer(
+            builder: (context, ref, _) => RoleShell(
+              navigationShell: navigationShell,
+              tabs: [
+                ShellTab(
+                  LucideIcons.receipt,
+                  'Orders',
+                  badge: ref.watch(chemistNewOrderCountProvider),
+                ),
+                const ShellTab(LucideIcons.boxes, 'Stock'),
+              ],
+            ),
+          ),
+        ),
+        branches: [
+          _branch('/chemist', const ChemistOrdersScreen()),
+          _branch('/chemist/stock', const ChemistInventoryScreen()),
+        ],
       ),
 
       // --- Admin ---
@@ -288,6 +317,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// One bottom-nav tab of a doctor/chemist shell.
+StatefulShellBranch _branch(String path, Widget screen) => StatefulShellBranch(
+  routes: [GoRoute(path: path, builder: (_, _) => screen)],
+);
 
 Future<String?> _redirect(Ref ref, GoRouterState state) async {
   final loggingIn =

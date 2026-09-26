@@ -20,6 +20,15 @@ String friendlyError(Object error) {
   if (text.contains('consultation_not_awaiting_payment')) {
     return 'This consultation has already been paid for or was cancelled.';
   }
+  if (text.contains('consultation_not_active')) {
+    return 'This consultation has ended, so a prescription can no longer be sent from it.';
+  }
+  if (text.contains('prescription_empty')) {
+    return 'Add at least one medicine to the prescription.';
+  }
+  if (text.contains('prescription_too_long')) {
+    return 'A prescription can have at most 20 medicines.';
+  }
   if (text.contains('slot_unavailable')) {
     return 'That time was just taken. Please pick another slot.';
   }

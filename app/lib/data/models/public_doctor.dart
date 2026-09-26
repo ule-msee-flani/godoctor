@@ -150,6 +150,7 @@ class AppNotificationItem {
     required this.title,
     this.body,
     this.consultationId,
+    this.prescriptionId,
     this.readAt,
     required this.createdAt,
   });
@@ -159,25 +160,28 @@ class AppNotificationItem {
   final String title;
   final String? body;
   final String? consultationId;
+  final String? prescriptionId;
   final DateTime? readAt;
   final DateTime createdAt;
 
   bool get isRead => readAt != null;
 
-  factory AppNotificationItem.fromMap(Map<String, dynamic> map) =>
-      AppNotificationItem(
-        id: map['id'] as String,
-        kind: (map['kind'] as String?) ?? '',
-        title: (map['title'] as String?) ?? '',
-        body: map['body'] as String?,
-        consultationId:
-            (map['data'] as Map<String, dynamic>?)?['consultation_id']
-                as String?,
-        readAt: map['read_at'] != null
-            ? DateTime.tryParse(map['read_at'] as String)?.toLocal()
-            : null,
-        createdAt: DateTime.parse(map['created_at'] as String).toLocal(),
-      );
+  factory AppNotificationItem.fromMap(
+    Map<String, dynamic> map,
+  ) => AppNotificationItem(
+    id: map['id'] as String,
+    kind: (map['kind'] as String?) ?? '',
+    title: (map['title'] as String?) ?? '',
+    body: map['body'] as String?,
+    consultationId:
+        (map['data'] as Map<String, dynamic>?)?['consultation_id'] as String?,
+    prescriptionId:
+        (map['data'] as Map<String, dynamic>?)?['prescription_id'] as String?,
+    readAt: map['read_at'] != null
+        ? DateTime.tryParse(map['read_at'] as String)?.toLocal()
+        : null,
+    createdAt: DateTime.parse(map['created_at'] as String).toLocal(),
+  );
 }
 
 /// Languages a doctor can list (and patients can filter by). Stored verbatim

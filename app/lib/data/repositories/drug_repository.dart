@@ -110,6 +110,23 @@ class DrugRepository {
     return rows.map((r) => ChemistInventoryItem.fromMap(r)).toList();
   }
 
+  /// Stock at verified chemists for any of [drugIds] (for ordering a whole
+  /// prescription from one chemist).
+  Future<List<ChemistInventoryItem>> findStockForDrugs(
+    List<String> drugIds,
+  ) async {
+    if (drugIds.isEmpty) return const [];
+    final rows = await _client
+        .from('chemist_inventory')
+        .select(
+          '*, chemist_profiles!inner(business_name, location_lat, location_lng, verified), drugs(*)',
+        )
+        .inFilter('drug_id', drugIds)
+        .eq('chemist_profiles.verified', true)
+        .gt('quantity', 0);
+    return rows.map((r) => ChemistInventoryItem.fromMap(r)).toList();
+  }
+
   // --- Chemist inventory management ---
 
   Future<List<ChemistInventoryItem>> fetchChemistInventory(

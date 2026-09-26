@@ -52,6 +52,55 @@ class PrescriptionRepository {
     return prescriptionId;
   }
 
+  /// Doctor sends a prescription for [consultationId] (during the call or
+  /// shortly after). Header and items are written in one transaction by the
+  /// `issue_prescription` function, which also notifies the patient.
+  Future<String> issueForConsultation({
+    required String consultationId,
+    required List<PrescriptionItem> items,
+    int validDays = 30,
+  }) async {
+    final id = await _client.rpc(
+      'issue_prescription',
+      params: {
+        'p_consultation_id': consultationId,
+        'p_items': [
+          for (final i in items)
+            {
+              'drug_id': i.drugId,
+              'free_text_name': i.freeTextName,
+              'dosage': i.dosage,
+              'quantity': i.quantity,
+              'instructions': i.instructions,
+            },
+        ],
+        'p_valid_days': validDays,
+      },
+    );
+    return id as String;
+  }
+
+  /// Prescriptions for one consultation, updating live as the doctor sends
+  /// them (the stream carries headers only; items are fetched per change).
+  Stream<List<Prescription>> watchForConsultation(String consultationId) =>
+      _client
+          .from('prescriptions')
+          .stream(primaryKey: ['id'])
+          .eq('consultation_id', consultationId)
+          .order('issued_at')
+          .asyncMap((_) => fetchForConsultation(consultationId));
+
+  Future<List<Prescription>> fetchForConsultation(String consultationId) async {
+    final rows = await _client
+        .from('prescriptions')
+        .select(_withItems)
+        .eq('consultation_id', consultationId)
+        .order('issued_at');
+    return rows.map((r) => Prescription.fromMap(r)).toList();
+  }
+
+  static const _withItems = '*, prescription_items(*, drugs(*))';
+
   /// Patient uploads a photo of an external (non-app) prescription. Chemist
   /// manually verifies the photo before allowing the order to proceed.
   Future<String> uploadExternalPrescription({
@@ -83,7 +132,7 @@ class PrescriptionRepository {
   Future<List<Prescription>> fetchForPatient(String patientId) async {
     final rows = await _client
         .from('prescriptions')
-        .select('*, prescription_items(*, drugs(generic_name))')
+        .select(_withItems)
         .eq('patient_id', patientId)
         .order('issued_at', ascending: false);
     return rows.map((r) => Prescription.fromMap(r)).toList();
@@ -92,7 +141,7 @@ class PrescriptionRepository {
   Future<Prescription?> fetchById(String id) async {
     final row = await _client
         .from('prescriptions')
-        .select('*, prescription_items(*, drugs(generic_name))')
+        .select(_withItems)
         .eq('id', id)
         .maybeSingle();
     return row == null ? null : Prescription.fromMap(row);

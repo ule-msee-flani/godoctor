@@ -34,25 +34,7 @@ class DoctorDashboardScreen extends ConsumerWidget {
               onPressed: () => context.push('/doctor/notifications'),
             ),
           ),
-          IconButton(
-            icon: const Icon(LucideIcons.calendarClock),
-            tooltip: 'My schedule',
-            onPressed: () => context.push('/doctor/schedule'),
-          ),
-          IconButton(
-            icon: const Icon(LucideIcons.userRound),
-            tooltip: 'My public profile',
-            onPressed: () => context.push('/doctor/profile'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.history),
-            tooltip: 'Consultation history',
-            onPressed: () => context.push('/doctor/history'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authRepositoryProvider).signOut(),
-          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(

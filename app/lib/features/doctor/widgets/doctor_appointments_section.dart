@@ -41,7 +41,7 @@ class DoctorAppointmentsSection extends ConsumerWidget {
               ),
             ),
             TextButton.icon(
-              onPressed: () => context.push('/doctor/schedule'),
+              onPressed: () => context.go('/doctor/schedule'),
               icon: const Icon(LucideIcons.calendarClock, size: 16),
               label: const Text('Manage schedule'),
             ),

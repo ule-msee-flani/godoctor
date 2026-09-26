@@ -1,3 +1,4 @@
+import 'drug.dart';
 import 'enums.dart';
 
 class Prescription {
@@ -58,6 +59,7 @@ class PrescriptionItem {
     required this.quantity,
     this.instructions,
     this.drugName,
+    this.drug,
   });
 
   final String? id;
@@ -70,6 +72,9 @@ class PrescriptionItem {
   // Populated when joined with `drugs` (see PrescriptionRepository queries).
   final String? drugName;
 
+  /// The catalogue entry (for pictures), when joined with `drugs(*)`.
+  final Drug? drug;
+
   bool get isStructured => drugId != null;
 
   /// The best available display name for this item, regardless of whether
@@ -78,6 +83,10 @@ class PrescriptionItem {
 
   factory PrescriptionItem.fromMap(Map<String, dynamic> map) =>
       PrescriptionItem(
+        drug: switch (map['drugs']) {
+          final Map<String, dynamic> d when d['id'] != null => Drug.fromMap(d),
+          _ => null,
+        },
         id: map['id'] as String?,
         prescriptionId: map['prescription_id'] as String,
         drugId: map['drug_id'] as String?,

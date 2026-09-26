@@ -66,9 +66,18 @@ class NotificationsScreen extends ConsumerWidget {
                 if (!n.isRead) {
                   await ref.read(notificationRepositoryProvider).markRead(n.id);
                 }
-                if (appointmentRoute != null &&
-                    n.consultationId != null &&
-                    context.mounted) {
+                if (!context.mounted) return;
+                // Prescriptions open straight on "order your medicines"
+                // (patients only; doctors pass a null appointmentRoute).
+                if (n.kind == 'prescription_issued' &&
+                    n.prescriptionId != null &&
+                    appointmentRoute != null) {
+                  context.push(
+                    '/patient/prescription/${n.prescriptionId}/order',
+                  );
+                  return;
+                }
+                if (appointmentRoute != null && n.consultationId != null) {
                   context.push('$appointmentRoute/${n.consultationId}');
                 }
               },
@@ -91,12 +100,16 @@ class _NotificationTile extends StatelessWidget {
     'appointment_reminder' => LucideIcons.bellRing,
     'appointment_cancelled' => LucideIcons.calendarX,
     'appointment_rescheduled' => LucideIcons.calendarClock,
+    'prescription_issued' => LucideIcons.fileCheck,
+    'patient_selected' => LucideIcons.userRound,
+    'patient_paid' => LucideIcons.circleCheck,
     _ => LucideIcons.bell,
   };
 
   Color get _color => switch (item.kind) {
     'appointment_cancelled' => AppColors.danger,
     'appointment_reminder' => AppColors.warning,
+    'prescription_issued' || 'patient_paid' => AppColors.success,
     _ => AppColors.primary,
   };
 

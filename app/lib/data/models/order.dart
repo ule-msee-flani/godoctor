@@ -1,3 +1,4 @@
+import 'drug.dart';
 import 'enums.dart';
 
 class Order {
@@ -68,6 +69,7 @@ class OrderItem {
     required this.quantity,
     required this.unitPrice,
     this.drugName,
+    this.drug,
   });
 
   final String? id;
@@ -77,6 +79,9 @@ class OrderItem {
   final double unitPrice;
   final String? drugName;
 
+  /// The catalogue entry (for pictures), when joined with `drugs(*)`.
+  final Drug? drug;
+
   factory OrderItem.fromMap(Map<String, dynamic> map) => OrderItem(
     id: map['id'] as String?,
     orderId: map['order_id'] as String,
@@ -85,6 +90,10 @@ class OrderItem {
     unitPrice: (map['unit_price'] as num?)?.toDouble() ?? 0,
     drugName:
         (map['drugs'] as Map<String, dynamic>?)?['generic_name'] as String?,
+    drug: switch (map['drugs']) {
+      final Map<String, dynamic> d when d['id'] != null => Drug.fromMap(d),
+      _ => null,
+    },
   );
 
   Map<String, dynamic> toInsertMap() => {

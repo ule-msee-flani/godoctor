@@ -91,19 +91,20 @@ class OrderRepository {
   Future<List<Order>> fetchForChemist(String chemistId) async {
     final rows = await _client
         .from('orders')
-        .select('*, order_items(*, drugs(generic_name))')
+        .select('*, order_items(*, drugs(*))')
         .eq('chemist_id', chemistId)
         .order('created_at', ascending: false);
     return rows.map((r) => Order.fromMap(r)).toList();
   }
 
+  /// Live orders for a chemist. Realtime rows carry no joins, so each change
+  /// re-fetches the orders with their items.
   Stream<List<Order>> watchForChemist(String chemistId) {
     return _client
         .from('orders')
         .stream(primaryKey: ['id'])
         .eq('chemist_id', chemistId)
-        .order('created_at', ascending: false)
-        .map((rows) => rows.map((r) => Order.fromMap(r)).toList());
+        .asyncMap((_) => fetchForChemist(chemistId));
   }
 
   Future<void> chemistConfirm(String orderId) async {

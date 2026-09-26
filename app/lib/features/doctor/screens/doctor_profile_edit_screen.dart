@@ -21,7 +21,16 @@ class DoctorProfileEditScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(currentDoctorProfileProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('My public profile')),
+      appBar: AppBar(
+        title: const Text('My public profile'),
+        actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(LucideIcons.logOut),
+            onPressed: () => ref.read(authRepositoryProvider).signOut(),
+          ),
+        ],
+      ),
       body: async.when(
         loading: () => const LoadingView(),
         error: (e, _) => ErrorView(message: friendlyError(e)),

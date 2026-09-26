@@ -14,15 +14,18 @@ import 'package:godoctor_app/data/models/drug.dart';
 import 'package:godoctor_app/data/models/enums.dart';
 import 'package:godoctor_app/data/models/order.dart' as model;
 import 'package:godoctor_app/data/models/patient_profile.dart';
+import 'package:godoctor_app/data/models/prescription.dart';
 import 'package:godoctor_app/data/models/public_doctor.dart';
 import 'package:godoctor_app/data/providers/auth_providers.dart';
 import 'package:godoctor_app/data/providers/repository_providers.dart';
 import 'package:godoctor_app/data/repositories/appointment_repository.dart';
 import 'package:godoctor_app/data/repositories/consultation_repository.dart';
+import 'package:godoctor_app/data/repositories/doctor_directory_repository.dart';
 import 'package:godoctor_app/data/repositories/doctor_schedule_repository.dart';
 import 'package:godoctor_app/data/repositories/drug_repository.dart';
 import 'package:godoctor_app/data/repositories/notification_repository.dart';
 import 'package:godoctor_app/data/repositories/order_repository.dart';
+import 'package:godoctor_app/data/repositories/prescription_repository.dart';
 import 'package:godoctor_app/data/repositories/profile_repository.dart';
 import 'package:godoctor_app/features/admin/screens/admin_verification_screen.dart';
 import 'package:godoctor_app/features/chemist/screens/chemist_inventory_screen.dart';
@@ -31,6 +34,7 @@ import 'package:godoctor_app/features/chemist/screens/chemist_orders_screen.dart
 import 'package:godoctor_app/features/doctor/screens/doctor_call_screen.dart';
 import 'package:godoctor_app/features/doctor/screens/doctor_dashboard_screen.dart';
 import 'package:godoctor_app/features/doctor/screens/doctor_history_screen.dart';
+import 'package:godoctor_app/features/doctor/screens/doctor_medicines_screen.dart';
 import 'package:godoctor_app/features/doctor/screens/doctor_onboarding_screen.dart';
 import 'package:godoctor_app/features/doctor/screens/doctor_profile_edit_screen.dart';
 import 'package:godoctor_app/features/doctor/screens/doctor_schedule_screen.dart';
@@ -191,7 +195,97 @@ class _Schedule extends DoctorScheduleRepository {
   ];
 }
 
+const _paracetamol = Drug(
+  id: 'd1',
+  genericName: 'Paracetamol',
+  brandNames: ['Panadol'],
+  form: 'tablet',
+  requiresPrescription: false,
+);
+
+const _catalog = [
+  _paracetamol,
+  Drug(
+    id: 'd2',
+    genericName: 'Amoxicillin',
+    brandNames: ['Amoxil'],
+    form: 'capsule',
+    requiresPrescription: true,
+  ),
+  Drug(
+    id: 'd3',
+    genericName: 'Cough syrup',
+    brandNames: [],
+    form: 'syrup',
+    requiresPrescription: false,
+  ),
+];
+
+/// Last prescription the fake repository was asked to send.
+List<PrescriptionItem>? sentItems;
+
+final _prescription = Prescription(
+  id: 'rx-123456789',
+  consultationId: 'c1',
+  patientId: 'p1',
+  doctorId: _uid,
+  source: PrescriptionSource.app,
+  issuedAt: _now,
+  validUntil: _now.add(const Duration(days: 30)),
+  items: const [
+    PrescriptionItem(
+      prescriptionId: 'rx-123456789',
+      drugId: 'd1',
+      drug: _paracetamol,
+      drugName: 'Paracetamol',
+      dosage: '1 tablet three times daily',
+      quantity: 15,
+      instructions: 'After food',
+    ),
+    PrescriptionItem(
+      prescriptionId: 'rx-123456789',
+      freeTextName: 'Saline gargle',
+      quantity: 1,
+    ),
+  ],
+);
+
+class _Prescriptions extends PrescriptionRepository {
+  @override
+  Stream<List<Prescription>> watchForConsultation(String consultationId) =>
+      Stream.value([_prescription]);
+  @override
+  Future<Prescription?> fetchById(String id) async => _prescription;
+  @override
+  Future<String> issueForConsultation({
+    required String consultationId,
+    required List<PrescriptionItem> items,
+    int validDays = 30,
+  }) async {
+    sentItems = items;
+    return 'rx-new';
+  }
+}
+
+class _Directory extends DoctorDirectoryRepository {
+  @override
+  Future<PublicDoctor?> getDoctor(String doctorId) async => const PublicDoctor(
+    userId: _uid,
+    name: 'Dr Jane Wanjiru',
+    specialties: ['General Practice'],
+  );
+  @override
+  String? avatarUrl(String? path) => null;
+}
+
 class _Drugs extends DrugRepository {
+  @override
+  Future<List<Drug>> fetchCatalog() async => _catalog;
+  @override
+  Future<List<ChemistInventoryItem>> findStockForDrug(String drugId) async =>
+      fetchChemistInventory(_uid);
+  @override
+  String? imageUrl(String? path) => null;
   @override
   Future<List<ChemistInventoryItem>> fetchChemistInventory(
     String chemistId,
@@ -243,8 +337,10 @@ class _Orders extends OrderRepository {
             quantity: 2,
             unitPrice: 50,
             drugName: 'Paracetamol',
+            drug: _paracetamol,
           ),
         ],
+        prescriptionId: status == OrderStatus.placed ? 'rx-123456789' : null,
       ),
   ]);
 }
@@ -287,6 +383,8 @@ Future<void> _render(
         doctorScheduleRepositoryProvider.overrideWithValue(_Schedule()),
         drugRepositoryProvider.overrideWithValue(_Drugs()),
         orderRepositoryProvider.overrideWithValue(_Orders()),
+        prescriptionRepositoryProvider.overrideWithValue(_Prescriptions()),
+        doctorDirectoryRepositoryProvider.overrideWithValue(_Directory()),
       ],
       child: MaterialApp(
         theme: AppTheme.patientTheme,
@@ -303,6 +401,7 @@ Future<void> _render(
 
 void main() {
   dialogTests();
+  callTests();
   final screens = <String, Widget>{
     'doctor dashboard': const DoctorDashboardScreen(),
     'doctor onboarding': const DoctorOnboardingScreen(),
@@ -314,6 +413,7 @@ void main() {
     'doctor schedule': const DoctorScheduleScreen(),
     'doctor profile edit': const DoctorProfileEditScreen(),
     'doctor call': const DoctorCallScreen(consultationId: 'c1'),
+    'doctor medicines': const DoctorMedicinesScreen(),
     'chemist onboarding': const ChemistOnboardingScreen(),
     'chemist inventory': const ChemistInventoryScreen(),
     'chemist orders': const ChemistOrdersScreen(),
@@ -359,12 +459,16 @@ void dialogTests() {
     await tester.pump(const Duration(seconds: 1));
   }
 
-  testWidgets('chemist "Add drug" dialog lays out', (tester) async {
+  testWidgets('chemist stock "Edit" dialog lays out', (tester) async {
     await openAndCheck(
       tester,
       const ChemistInventoryScreen(),
-      find.text('Add drug'),
+      find.text('Edit'),
     );
+  });
+
+  testWidgets('chemist can open the prescription on an order', (tester) async {
+    await openAndCheck(tester, const ChemistOrdersScreen(), find.text('View'));
   });
 
   testWidgets('doctor "Add hours" dialog lays out', (tester) async {
@@ -373,5 +477,77 @@ void dialogTests() {
       const DoctorScheduleScreen(),
       find.text('Add hours'),
     );
+  });
+}
+
+Future<void> _settle(WidgetTester tester) async {
+  for (var i = 0; i < 6; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+void callTests() {
+  testWidgets('doctor prescribes during the call and sends it', (tester) async {
+    sentItems = null;
+    await _render(
+      tester,
+      const DoctorCallScreen(consultationId: 'c1'),
+      size: const Size(412, 915),
+    );
+
+    await tester.tap(find.text('Medicines'));
+    await _settle(tester);
+    expect(find.text('Paracetamol'), findsWidgets);
+
+    await tester.tap(find.text('Prescribe'));
+    await _settle(tester);
+    await tester.tap(find.text('1 tablet twice daily'));
+    await tester.pump();
+    await tester.ensureVisible(find.text('Add to prescription'));
+    await tester.tap(find.text('Add to prescription'));
+    await _settle(tester);
+
+    // The medicine is now marked on the showcase and counted on the tab.
+    expect(find.text('Edit dose'), findsOneWidget);
+    await tester.tap(find.text('Prescription (1)'));
+    await _settle(tester);
+    expect(find.text('1 tablet twice daily'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Send to Amina Hassan'));
+    await tester.tap(find.text('Send to Amina Hassan'));
+    await _settle(tester);
+    expect(sentItems?.single.drugId, 'd1');
+    expect(sentItems?.single.dosage, '1 tablet twice daily');
+    expect(
+      find.text('Prescription (1)'),
+      findsNothing,
+      reason: 'draft cleared',
+    );
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('doctor can shrink the video to a floating window', (
+    tester,
+  ) async {
+    await _render(
+      tester,
+      const DoctorCallScreen(consultationId: 'c1'),
+      size: const Size(412, 915),
+    );
+    await tester.tap(find.byTooltip('Shrink video'));
+    await _settle(tester);
+    expect(find.byTooltip('Enlarge video'), findsOneWidget);
+    await tester.drag(find.byTooltip('Enlarge video'), const Offset(-120, 80));
+    await _settle(tester);
+    await tester.tap(find.byTooltip('Enlarge video'));
+    await _settle(tester);
+    expect(find.byTooltip('Shrink video'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
   });
 }

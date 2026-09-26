@@ -167,6 +167,20 @@ class _PrescriptionCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (prescription.isValid &&
+                  prescription.items.any((i) => i.isStructured)) ...[
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => context.push(
+                      '/patient/prescription/${prescription.id}/order',
+                    ),
+                    icon: const Icon(LucideIcons.shoppingBag, size: 16),
+                    label: const Text('Order these medicines'),
+                  ),
+                ),
+              ],
             ],
           ],
         ),
