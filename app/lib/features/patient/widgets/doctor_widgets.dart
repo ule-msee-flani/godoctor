@@ -112,7 +112,7 @@ class VerifiedBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Tooltip(
     message: 'Licence verified',
-    child: Icon(LucideIcons.badgeCheck, size: size, color: AppColors.primary),
+    child: Icon(LucideIcons.badgeCheck, size: size, color: AppColors.ink),
   );
 }
 

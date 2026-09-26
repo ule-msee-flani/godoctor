@@ -26,10 +26,7 @@ class SuspendedScreen extends ConsumerWidget {
                   Container(
                     width: 72,
                     height: 72,
-                    decoration: const BoxDecoration(
-                      color: AppColors.dangerSoft,
-                      shape: BoxShape.circle,
-                    ),
+                    decoration: const BoxDecoration(shape: BoxShape.circle),
                     child: const Icon(
                       LucideIcons.ban,
                       size: 32,

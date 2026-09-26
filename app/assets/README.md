@@ -15,6 +15,7 @@ assets/
 └── images/
     ├── auth/         sign-in / role screen picture
     ├── banners/      the three home-screen carousel banners
+    ├── home/         the two big home tiles (See a Doctor, Order Medicine)
     ├── states/       waiting / status screens
     ├── specialties/  one picture per specialty (+ optional page header)
     └── medicine/
@@ -67,6 +68,19 @@ dart run flutter_launcher_icons
 | File | Size | What |
 |---|---|---|
 | `auth_hero` | about 1200x900 | Warm picture at the top of the role-select screen: a patient video-calling a doctor |
+
+## Home tiles: `assets/images/home/`
+
+The two big shortcuts under the greeting show a photo across the top.
+
+| File | Tile | Size |
+|---|---|---|
+| `see_doctor` | "See a Doctor" | about 600x900 or 900x600; the top of the photo is kept |
+| `order_medicine` | "Order Medicine" | about 900x600 |
+
+The current pictures are free placeholders (CC0 / public domain, listed in
+`assets/images/CREDITS.md`). Replace them any time by saving a file with the
+same name. The nine specialty tiles work the same way (`assets/images/specialties/`).
 
 ## Home carousel: `assets/images/banners/`
 

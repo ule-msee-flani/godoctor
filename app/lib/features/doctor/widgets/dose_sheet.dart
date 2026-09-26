@@ -147,12 +147,11 @@ class _DoseSheetState extends State<_DoseSheet> {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(
                       LucideIcons.pencilLine,
-                      color: AppColors.primary,
+                      color: AppColors.ink,
                     ),
                   ),
                 const SizedBox(width: 14),

@@ -76,11 +76,11 @@ class PackPhotoThumb extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final url = ref.watch(drugRepositoryProvider).inventoryPhotoUrl(path);
     Widget empty() => Container(
-      color: AppColors.primarySoft,
+      color: const Color(0xFFF3F4F7),
       child: Icon(
         LucideIcons.cameraOff,
         size: size * 0.4,
-        color: AppColors.primary,
+        color: AppColors.ink,
       ),
     );
 

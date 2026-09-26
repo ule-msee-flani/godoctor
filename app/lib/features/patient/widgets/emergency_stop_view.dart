@@ -25,14 +25,11 @@ class EmergencyStopView extends StatelessWidget {
               Container(
                 width: 96,
                 height: 96,
-                decoration: const BoxDecoration(
-                  color: AppColors.danger,
-                  shape: BoxShape.circle,
-                ),
+                decoration: const BoxDecoration(shape: BoxShape.circle),
                 child: const Center(
                   child: Icon(
                     LucideIcons.briefcaseMedical,
-                    color: Colors.white,
+                    color: AppColors.ink,
                     size: 44,
                   ),
                 ),

@@ -260,13 +260,12 @@ class _ItemRow extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   LucideIcons.pill,
                   size: 20,
-                  color: AppColors.primary,
+                  color: AppColors.ink,
                 ),
               ),
             const SizedBox(width: 12),

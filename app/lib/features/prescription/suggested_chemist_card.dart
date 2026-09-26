@@ -94,7 +94,7 @@ class SuggestedChemistCard extends ConsumerWidget {
                   const Icon(
                     LucideIcons.sparkles,
                     size: 16,
-                    color: AppColors.primary,
+                    color: AppColors.ink,
                   ),
                   const SizedBox(width: 6),
                   Text('Suggested chemist', style: theme.labelLarge),
@@ -107,12 +107,11 @@ class SuggestedChemistCard extends ConsumerWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       LucideIcons.store,
-                      color: AppColors.primary,
+                      color: AppColors.ink,
                       size: 20,
                     ),
                   ),

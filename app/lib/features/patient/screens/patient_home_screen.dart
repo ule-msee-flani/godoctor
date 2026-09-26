@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../../data/providers/appointment_providers.dart';
 import '../../../data/providers/auth_providers.dart';
@@ -79,9 +82,23 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                           _greeting(),
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
-                        Text(
-                          name.isNotEmpty ? name.split(' ').first : 'Welcome',
-                          style: Theme.of(context).textTheme.headlineMedium,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                name.isNotEmpty
+                                    ? name.split(' ').first
+                                    : 'Welcome',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineMedium,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const _Handshake(),
+                          ],
                         ),
                       ],
                     ),
@@ -157,20 +174,21 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                   children: [
                     Expanded(
                       child: _PrimaryTile(
-                        icon: LucideIcons.video,
+                        image: 'assets/images/home/see_doctor',
+                        fallbackIcon: LucideIcons.video,
+                        alignment: const Alignment(0, -0.6),
                         title: 'See a Doctor',
                         subtitle: 'Video consult now',
-                        color: AppColors.primary,
                         onTap: () => context.push('/patient/intake'),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _PrimaryTile(
-                        icon: LucideIcons.pill,
+                        image: 'assets/images/home/order_medicine',
+                        fallbackIcon: LucideIcons.pill,
                         title: 'Order Medicine',
                         subtitle: 'From chemists near you',
-                        color: AppColors.accentTeal,
                         onTap: () => context.push('/patient/medicine-search'),
                       ),
                     ),
@@ -210,60 +228,135 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 }
 
+/// Home shortcut: a photo on top, bold title and lighter subtitle below.
 class _PrimaryTile extends StatelessWidget {
   const _PrimaryTile({
-    required this.icon,
+    required this.image,
+    required this.fallbackIcon,
     required this.title,
     required this.subtitle,
-    required this.color,
     required this.onTap,
+    this.alignment = Alignment.center,
   });
 
-  final IconData icon;
+  /// Asset path without extension (see assets/README.md).
+  final String image;
+  final IconData fallbackIcon;
   final String title;
   final String subtitle;
-  final Color color;
   final VoidCallback onTap;
+  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
     return Material(
       color: AppColors.white,
-      borderRadius: BorderRadius.circular(22),
-      child: InkWell(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.35),
-                      blurRadius: 14,
-                      offset: const Offset(0, 7),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppImage(
+              assetPath: image,
+              height: 118,
+              borderRadius: 0,
+              alignment: alignment,
+              placeholderIcon: fallbackIcon,
+              placeholderLabel: title,
+              showPlaceholderContent: false,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 10, 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.bodySmall?.copyWith(
+                            color: AppColors.inkSoft,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Icon(icon, color: Colors.white, size: 23),
+                  ),
+                  const Icon(
+                    LucideIcons.chevronRight,
+                    size: 18,
+                    color: AppColors.ink,
+                  ),
+                ],
               ),
-              const SizedBox(height: 14),
-              Text(title, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 2),
-              Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The handshake beside the greeting: a friendly little shake when the home
+/// screen opens, then still.
+class _Handshake extends StatefulWidget {
+  const _Handshake();
+
+  @override
+  State<_Handshake> createState() => _HandshakeState();
+}
+
+class _HandshakeState extends State<_Handshake>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..forward();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Hello',
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, child) {
+          // Three quick shakes that die away.
+          final t = _c.value;
+          final swing = math.sin(t * 3 * 2 * math.pi) * (1 - t);
+          final dy = -3 * swing.abs();
+          final angle = 0.14 * swing;
+          return Transform.translate(
+            offset: Offset(0, dy),
+            child: Transform.rotate(angle: angle, child: child),
+          );
+        },
+        child: const Icon(
+          LucideIcons.handshake,
+          size: 26,
+          color: AppColors.ink,
         ),
       ),
     );
@@ -373,12 +466,11 @@ class _SearchResults extends StatelessWidget {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: AppColors.primarySoft,
                             borderRadius: BorderRadius.circular(13),
                           ),
                           child: Icon(
                             specialtyMetaFor(s.specialty).icon,
-                            color: AppColors.primary,
+                            color: AppColors.ink,
                             size: 20,
                           ),
                         ),
@@ -447,12 +539,11 @@ class _UpcomingCard extends StatelessWidget {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
                   LucideIcons.calendarClock,
-                  color: Colors.white,
+                  color: AppColors.ink,
                   size: 22,
                 ),
               ),

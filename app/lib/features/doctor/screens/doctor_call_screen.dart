@@ -496,7 +496,8 @@ class _InfoBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
-    final color = danger ? AppColors.danger : AppColors.inkFaint;
+    // Allergies stay red: there the colour is a warning, not decoration.
+    final color = danger ? AppColors.danger : AppColors.ink;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(

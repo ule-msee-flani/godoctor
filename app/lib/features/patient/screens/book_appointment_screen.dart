@@ -524,7 +524,7 @@ class _Summary extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.primary),
+          Icon(icon, size: 16, color: AppColors.ink),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

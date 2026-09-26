@@ -70,7 +70,7 @@ class _UploadPrescriptionScreenState
                   children: [
                     const Icon(
                       LucideIcons.info,
-                      color: AppColors.primary,
+                      color: AppColors.ink,
                       size: 20,
                     ),
                     const SizedBox(width: 10),
@@ -99,13 +99,12 @@ class _UploadPrescriptionScreenState
                           width: 56,
                           height: 56,
                           decoration: const BoxDecoration(
-                            color: AppColors.primarySoft,
                             shape: BoxShape.circle,
                           ),
                           child: const Center(
                             child: Icon(
                               LucideIcons.camera,
-                              color: AppColors.primary,
+                              color: AppColors.ink,
                               size: 26,
                             ),
                           ),

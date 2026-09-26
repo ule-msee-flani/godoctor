@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../theme/app_colors.dart';
+import 'heartbeat_loader.dart';
 
+/// Full-area loading state: the heartbeat. (Galleries and lists use
+/// skeleton placeholders instead.)
 class LoadingView extends StatelessWidget {
   const LoadingView({super.key, this.message});
 
@@ -11,19 +14,12 @@ class LoadingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(
-            width: 32,
-            height: 32,
-            child: CircularProgressIndicator(strokeWidth: 3),
-          ),
-          if (message != null) ...[
-            const SizedBox(height: 16),
-            Text(message!, style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ],
+      child: LayoutBuilder(
+        builder: (context, c) => HeartbeatLoader(
+          // Smaller in tight spaces (cards, sheets).
+          size: c.maxHeight < 160 ? 30 : 48,
+          message: message,
+        ),
       ),
     );
   }

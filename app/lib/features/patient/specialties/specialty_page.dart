@@ -192,7 +192,7 @@ class _BulletCard extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
-                    child: Icon(icon, size: 17, color: color),
+                    child: Icon(icon, size: 17, color: AppColors.ink),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

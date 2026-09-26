@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../widgets/heartbeat_loader.dart';
 import 'app_colors.dart';
 
 /// Two distinct themes per the spec:
@@ -19,62 +20,89 @@ class AppTheme {
     final base = Typography.material2021(
       platform: TargetPlatform.android,
     ).black.merge(Typography.englishLike2021);
-    return GoogleFonts.plusJakartaSansTextTheme(base).copyWith(
-      displayLarge: GoogleFonts.plusJakartaSans(
+    return GoogleFonts.interTextTheme(base).copyWith(
+      displayLarge: GoogleFonts.inter(
         fontSize: 40,
         fontWeight: FontWeight.w700,
         color: ink,
-        letterSpacing: -0.5,
+        letterSpacing: -1.0,
       ),
-      headlineMedium: GoogleFonts.plusJakartaSans(
+      headlineMedium: GoogleFonts.inter(
         fontSize: 26,
+        fontWeight: FontWeight.w700,
+        color: ink,
+        letterSpacing: -0.6,
+      ),
+      headlineSmall: GoogleFonts.inter(
+        fontSize: 21,
+        fontWeight: FontWeight.w700,
+        color: ink,
+        letterSpacing: -0.4,
+      ),
+      titleLarge: GoogleFonts.inter(
+        fontSize: 19,
         fontWeight: FontWeight.w700,
         color: ink,
         letterSpacing: -0.3,
       ),
-      headlineSmall: GoogleFonts.plusJakartaSans(
-        fontSize: 21,
-        fontWeight: FontWeight.w700,
-        color: ink,
-      ),
-      titleLarge: GoogleFonts.plusJakartaSans(
-        fontSize: 19,
-        fontWeight: FontWeight.w700,
-        color: ink,
-      ),
-      titleMedium: GoogleFonts.plusJakartaSans(
+      titleMedium: GoogleFonts.inter(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: ink,
+        letterSpacing: -0.2,
       ),
-      titleSmall: GoogleFonts.plusJakartaSans(
-        fontSize: 14,
+      titleSmall: GoogleFonts.inter(
+        fontSize: 14.5,
         fontWeight: FontWeight.w600,
         color: ink,
+        letterSpacing: -0.1,
       ),
-      bodyLarge: GoogleFonts.plusJakartaSans(
+      bodyLarge: GoogleFonts.inter(
         fontSize: 16,
         fontWeight: FontWeight.w400,
         color: inkSoft,
         height: 1.4,
       ),
-      bodyMedium: GoogleFonts.plusJakartaSans(
+      bodyMedium: GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w400,
         color: inkSoft,
         height: 1.4,
       ),
-      bodySmall: GoogleFonts.plusJakartaSans(
+      bodySmall: GoogleFonts.inter(
         fontSize: 12.5,
         fontWeight: FontWeight.w400,
         color: AppColors.inkFaint,
       ),
-      labelLarge: GoogleFonts.plusJakartaSans(
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-      ),
+      labelLarge: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
     );
   }
+
+  /// A short heartbeat between screens (see HeartbeatPageTransitionsBuilder).
+  static const _heartbeatTransitions = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: HeartbeatPageTransitionsBuilder(),
+      TargetPlatform.iOS: HeartbeatPageTransitionsBuilder(),
+      TargetPlatform.macOS: HeartbeatPageTransitionsBuilder(),
+      TargetPlatform.windows: HeartbeatPageTransitionsBuilder(),
+      TargetPlatform.linux: HeartbeatPageTransitionsBuilder(),
+      TargetPlatform.fuchsia: HeartbeatPageTransitionsBuilder(),
+    },
+  );
+
+  /// List rows: bold title, lighter secondary line, black icons.
+  static ListTileThemeData _listTiles(TextTheme t) => ListTileThemeData(
+    iconColor: AppColors.ink,
+    titleTextStyle: t.titleSmall?.copyWith(
+      fontWeight: FontWeight.w600,
+      color: AppColors.ink,
+    ),
+    subtitleTextStyle: t.bodySmall?.copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w400,
+      color: AppColors.inkSoft,
+    ),
+  );
 
   static ThemeData get patientTheme {
     const scheme = ColorScheme.light(
@@ -105,10 +133,11 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.primarySofter,
       visualDensity: VisualDensity.comfortable,
       textTheme: textTheme,
-      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+      fontFamily: GoogleFonts.inter().fontFamily,
     );
 
     return base.copyWith(
+      pageTransitionsTheme: _heartbeatTransitions,
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.primarySofter,
         surfaceTintColor: Colors.transparent,
@@ -219,7 +248,8 @@ class AppTheme {
         linearTrackColor: AppColors.primarySoft,
         circularTrackColor: AppColors.primarySoft,
       ),
-      iconTheme: const IconThemeData(color: AppColors.inkSoft, size: 22),
+      iconTheme: const IconThemeData(color: AppColors.ink, size: 22),
+      listTileTheme: _listTiles(textTheme),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.ink,
         contentTextStyle: textTheme.bodyMedium?.copyWith(
@@ -243,14 +273,24 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: AppColors.primarySoft,
+        indicatorColor: Colors.transparent,
         height: 68,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            size: 24,
+            color: states.contains(WidgetState.selected)
+                ? AppColors.ink
+                : AppColors.inkFaint,
+          ),
+        ),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w600,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
             color: states.contains(WidgetState.selected)
-                ? AppColors.primary
-                : AppColors.inkSoft,
+                ? AppColors.ink
+                : AppColors.inkFaint,
           ),
         ),
       ),
@@ -294,9 +334,48 @@ class AppTheme {
       ),
       visualDensity: VisualDensity.compact,
       textTheme: textTheme,
-      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+      fontFamily: GoogleFonts.inter().fontFamily,
     );
     return base.copyWith(
+      pageTransitionsTheme: _heartbeatTransitions,
+      iconTheme: const IconThemeData(color: AppColors.ink, size: 20),
+      listTileTheme: _listTiles(textTheme),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: Colors.transparent,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            size: 22,
+            color: states.contains(WidgetState.selected)
+                ? AppColors.ink
+                : AppColors.inkFaint,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => textTheme.bodySmall?.copyWith(
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? AppColors.ink
+                : AppColors.inkFaint,
+          ),
+        ),
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: AppColors.white,
+        indicatorColor: Colors.transparent,
+        selectedIconTheme: const IconThemeData(color: AppColors.ink),
+        unselectedIconTheme: const IconThemeData(color: AppColors.inkFaint),
+        selectedLabelTextStyle: textTheme.bodySmall?.copyWith(
+          color: AppColors.ink,
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelTextStyle: textTheme.bodySmall?.copyWith(
+          color: AppColors.inkFaint,
+        ),
+      ),
       dataTableTheme: DataTableThemeData(
         headingRowColor: WidgetStateProperty.all(AppColors.primarySoft),
         dataRowMinHeight: 40,

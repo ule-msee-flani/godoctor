@@ -76,7 +76,6 @@ class ConsultationHistoryList extends ConsumerWidget {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: AppColors.accentTealSoft,
                           borderRadius: BorderRadius.circular(13),
                         ),
                         child: Center(
@@ -84,7 +83,7 @@ class ConsultationHistoryList extends ConsumerWidget {
                             scheduled
                                 ? LucideIcons.calendarClock
                                 : LucideIcons.stethoscope,
-                            color: AppColors.accentTeal,
+                            color: AppColors.ink,
                             size: 20,
                           ),
                         ),

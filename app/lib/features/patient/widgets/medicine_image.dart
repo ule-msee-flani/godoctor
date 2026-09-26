@@ -42,22 +42,32 @@ class MedicineImage extends ConsumerWidget {
   const MedicineImage({
     super.key,
     required this.drug,
-    required this.size,
+    required double this.size,
     this.radius = 18,
-  });
+  }) : fill = false;
+
+  /// Fills its parent edge to edge (e.g. the gallery showcase).
+  const MedicineImage.fill({super.key, required this.drug, this.radius = 0})
+    : size = null,
+      fill = true;
 
   final Drug drug;
-  final double size;
+  final double? size;
   final double radius;
+  final bool fill;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final category = MedicineCategory.fromForm(drug.form);
 
     Widget illustration() => ColoredBox(
-      color: category.soft,
+      color: const Color(0xFFF3F4F7),
       child: Center(
-        child: Icon(category.icon, size: size * 0.44, color: category.accent),
+        child: Icon(
+          category.icon,
+          size: (size ?? 120) * 0.44,
+          color: AppColors.ink,
+        ),
       ),
     );
 
@@ -107,7 +117,9 @@ class MedicineImage extends ConsumerWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: SizedBox(width: size, height: size, child: picture),
+      child: fill
+          ? SizedBox.expand(child: picture)
+          : SizedBox(width: size, height: size, child: picture),
     );
   }
 }

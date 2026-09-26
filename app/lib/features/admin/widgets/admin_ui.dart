@@ -282,7 +282,7 @@ class StatTile extends StatelessWidget {
                 ? LucideIcons.trendingDown
                 : LucideIcons.minus,
             size: 14,
-            color: color,
+            color: AppColors.ink,
           ),
           const SizedBox(width: 4),
           Flexible(
@@ -416,7 +416,7 @@ class StatusChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
+          Icon(icon, size: 12, color: AppColors.ink),
           const SizedBox(width: 4),
           Flexible(
             child: Text(

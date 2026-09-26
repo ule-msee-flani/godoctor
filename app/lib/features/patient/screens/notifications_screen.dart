@@ -130,13 +130,6 @@ class _NotificationTile extends StatelessWidget {
     _ => LucideIcons.bell,
   };
 
-  Color get _color => switch (item.kind) {
-    'appointment_cancelled' => AppColors.danger,
-    'appointment_reminder' => AppColors.warning,
-    'prescription_issued' || 'patient_paid' => AppColors.success,
-    _ => AppColors.primary,
-  };
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
@@ -154,10 +147,9 @@ class _NotificationTile extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: _color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(13),
                 ),
-                child: Icon(_icon, size: 20, color: _color),
+                child: Icon(_icon, size: 20, color: AppColors.ink),
               ),
               const SizedBox(width: 14),
               Expanded(

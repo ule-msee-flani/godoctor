@@ -83,7 +83,7 @@ class FamilyScreen extends ConsumerWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(LucideIcons.headphones, color: AppColors.primary),
+                  const Icon(LucideIcons.headphones, color: AppColors.ink),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(

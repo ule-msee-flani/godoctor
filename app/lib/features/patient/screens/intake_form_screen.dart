@@ -124,7 +124,7 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
                         const Icon(
                           LucideIcons.notebookPen,
                           size: 16,
-                          color: AppColors.primary,
+                          color: AppColors.ink,
                         ),
                         const SizedBox(width: 6),
                         Expanded(

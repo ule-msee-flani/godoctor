@@ -94,13 +94,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: AppColors.accentTealSoft,
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: const Center(
                         child: Icon(
                           LucideIcons.pill,
-                          color: AppColors.accentTeal,
+                          color: AppColors.ink,
                           size: 22,
                         ),
                       ),
@@ -311,7 +310,7 @@ class _SectionCard extends StatelessWidget {
             Row(
               children: [
                 if (titleIcon case final icon?) ...[
-                  Icon(icon, size: 16, color: AppColors.primary),
+                  Icon(icon, size: 16, color: AppColors.ink),
                   const SizedBox(width: 6),
                 ],
                 Text(title, style: Theme.of(context).textTheme.titleSmall),

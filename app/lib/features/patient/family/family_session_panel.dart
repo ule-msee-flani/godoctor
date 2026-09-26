@@ -72,7 +72,7 @@ class _FamilySessionPanelState extends ConsumerState<FamilySessionPanel> {
               const Icon(
                 LucideIcons.headphones,
                 size: 18,
-                color: AppColors.primary,
+                color: AppColors.ink,
               ),
               const SizedBox(width: 8),
               Expanded(child: Text('Family session', style: theme.titleSmall)),

@@ -127,7 +127,7 @@ class _Action extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, color: color),
+              Icon(icon, color: AppColors.ink),
               Text(
                 label,
                 style: Theme.of(context).textTheme.titleSmall,

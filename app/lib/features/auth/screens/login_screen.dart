@@ -145,7 +145,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: brand.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Center(

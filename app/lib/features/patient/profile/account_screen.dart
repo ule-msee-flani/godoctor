@@ -274,7 +274,7 @@ class _Heading extends StatelessWidget {
       padding: const EdgeInsets.only(top: 24, bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.primary),
+          Icon(icon, size: 16, color: AppColors.ink),
           const SizedBox(width: 6),
           Text(text, style: Theme.of(context).textTheme.titleSmall),
         ],

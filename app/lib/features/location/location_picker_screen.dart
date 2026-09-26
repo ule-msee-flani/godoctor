@@ -248,7 +248,7 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
                       const Icon(
                         LucideIcons.mapPin,
                         size: 18,
-                        color: AppColors.primary,
+                        color: AppColors.ink,
                       ),
                       const SizedBox(width: 10),
                       Expanded(

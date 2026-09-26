@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../theme/app_colors.dart';
+import 'heartbeat_loader.dart';
 
 /// One tab in a [RoleShell].
 class ShellTab {
@@ -22,10 +23,14 @@ class RoleShell extends StatelessWidget {
     super.key,
     required this.navigationShell,
     required this.tabs,
+    this.quietTabs = const {},
   });
 
   final StatefulNavigationShell navigationShell;
   final List<ShellTab> tabs;
+
+  /// Tabs that open without the heartbeat (galleries and lists).
+  final Set<int> quietTabs;
 
   void _go(int i) => navigationShell.goBranch(
     i,
@@ -36,6 +41,12 @@ class RoleShell extends StatelessWidget {
     final icon = Icon(t.icon, color: selected ? AppColors.primary : null);
     return t.badge > 0 ? Badge(label: Text('${t.badge}'), child: icon) : icon;
   }
+
+  Widget get _body => HeartbeatTabSwitcher(
+    index: navigationShell.currentIndex,
+    quietTabs: quietTabs,
+    child: navigationShell,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -58,13 +69,13 @@ class RoleShell extends StatelessWidget {
               ],
             ),
             const VerticalDivider(width: 1),
-            Expanded(child: navigationShell),
+            Expanded(child: _body),
           ],
         ),
       );
     }
     return Scaffold(
-      body: navigationShell,
+      body: _body,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: _go,

@@ -170,13 +170,10 @@ class _NoPrescriptionYet extends StatelessWidget {
           Container(
             width: 44,
             height: 44,
-            decoration: const BoxDecoration(
-              color: AppColors.primarySoft,
-              shape: BoxShape.circle,
-            ),
+            decoration: const BoxDecoration(shape: BoxShape.circle),
             child: const Icon(
               LucideIcons.fileText,
-              color: AppColors.primary,
+              color: AppColors.ink,
               size: 20,
             ),
           ),

@@ -85,7 +85,7 @@ class _FamilySessionScreenState extends ConsumerState<FamilySessionScreen> {
                   const Icon(
                     LucideIcons.headphones,
                     size: 18,
-                    color: AppColors.primary,
+                    color: AppColors.ink,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -109,7 +109,7 @@ class _FamilySessionScreenState extends ConsumerState<FamilySessionScreen> {
                     const Icon(
                       LucideIcons.headphones,
                       size: 36,
-                      color: AppColors.primary,
+                      color: AppColors.ink,
                     ),
                     const SizedBox(height: 12),
                     Text(

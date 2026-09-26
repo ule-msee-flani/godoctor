@@ -197,9 +197,9 @@ class _ChemistPackThumb extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final url = ref.watch(drugRepositoryProvider).inventoryPhotoUrl(path);
     Widget shop() => Container(
-      color: AppColors.primarySoft,
+      color: const Color(0xFFF3F4F7),
       child: const Center(
-        child: Icon(LucideIcons.store, color: AppColors.primary, size: 22),
+        child: Icon(LucideIcons.store, color: AppColors.ink, size: 22),
       ),
     );
     return ClipRRect(

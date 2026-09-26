@@ -151,7 +151,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/patient/consult/doctors',
-        builder: (_, _) => const AvailableDoctorsScreen(),
+        pageBuilder: (_, state) =>
+            _quiet(state, const AvailableDoctorsScreen()),
       ),
       GoRoute(
         path: '/patient/consult/:id/pay',
@@ -213,7 +214,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/patient/notifications',
-        builder: (_, _) => const NotificationsScreen(),
+        pageBuilder: (_, state) => _quiet(state, const NotificationsScreen()),
       ),
       GoRoute(
         path: '/patient/waiting/:id',
@@ -228,7 +229,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/patient/prescriptions',
-        builder: (_, _) => const PrescriptionsScreen(),
+        pageBuilder: (_, state) => _quiet(state, const PrescriptionsScreen()),
       ),
       GoRoute(
         path: '/patient/prescription/:id/order',
@@ -243,12 +244,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/patient/medicine-search',
-        builder: (_, _) => const MedicineSearchScreen(),
+        pageBuilder: (_, state) => _quiet(state, const MedicineSearchScreen()),
       ),
       GoRoute(
         path: '/patient/chemist-select/:drugId',
-        builder: (context, state) =>
-            ChemistSelectScreen(drugId: state.pathParameters['drugId']!),
+        pageBuilder: (context, state) => _quiet(
+          state,
+          ChemistSelectScreen(drugId: state.pathParameters['drugId']!),
+        ),
       ),
       GoRoute(
         path: '/patient/checkout',
@@ -262,11 +265,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/patient/order-history',
-        builder: (_, _) => const OrderHistoryScreen(),
+        pageBuilder: (_, state) => _quiet(state, const OrderHistoryScreen()),
       ),
       GoRoute(
         path: '/patient/consultation-history',
-        builder: (_, _) => const ConsultationHistoryScreen(),
+        pageBuilder: (_, state) =>
+            _quiet(state, const ConsultationHistoryScreen()),
       ),
 
       // --- Doctor ---
@@ -296,6 +300,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ShellTab(LucideIcons.history, 'History'),
               ShellTab(LucideIcons.circleUserRound, 'Profile'),
             ],
+            quietTabs: const {2, 3}, // Medicines, History
           ),
         ),
         branches: [
@@ -313,8 +318,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/doctor/notifications',
-        builder: (_, _) =>
-            _pro(const NotificationsScreen(appointmentRoute: null)),
+        pageBuilder: (_, state) => _quiet(
+          state,
+          _pro(const NotificationsScreen(appointmentRoute: null)),
+        ),
       ),
 
       // --- Chemist ---
@@ -347,6 +354,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 const ShellTab(LucideIcons.boxes, 'Stock'),
                 const ShellTab(LucideIcons.circleUserRound, 'Account'),
               ],
+              quietTabs: const {0, 1}, // Orders, Stock
             ),
           ),
         ),
@@ -395,7 +403,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // --- Shared by every role (support, map picker) ---
       GoRoute(
         path: '/account/support',
-        builder: (_, _) => const SupportScreen(),
+        pageBuilder: (_, state) => _quiet(state, const SupportScreen()),
       ),
       GoRoute(
         path: '/account/support/new',
@@ -416,6 +424,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Galleries and lists show their own skeleton while loading, so they open
+/// with a quick fade instead of the heartbeat used everywhere else.
+Page<void> _quiet(GoRouterState state, Widget child) => CustomTransitionPage(
+  key: state.pageKey,
+  child: child,
+  transitionDuration: const Duration(milliseconds: 240),
+  reverseTransitionDuration: const Duration(milliseconds: 200),
+  transitionsBuilder: (context, animation, _, child) => FadeTransition(
+    opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+    child: child,
+  ),
+);
 
 /// One admin console page (no transition: the sidebar stays put).
 GoRoute _admin(String path, Widget Function(GoRouterState) page) => GoRoute(

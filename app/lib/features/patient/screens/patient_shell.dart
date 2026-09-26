@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/heartbeat_loader.dart';
 import '../family/family_providers.dart';
 
 /// Bottom-navigation frame for the patient's three top-level tabs. Every
@@ -19,7 +20,13 @@ class PatientShell extends ConsumerWidget {
     // Keep "online" fresh so family can invite me into their consultations.
     ref.watch(presenceHeartbeatProvider);
     return Scaffold(
-      body: navigationShell,
+      // Heartbeat between tabs, except Doctors and Activity (lists with
+      // their own loading placeholders).
+      body: HeartbeatTabSwitcher(
+        index: navigationShell.currentIndex,
+        quietTabs: const {1, 2},
+        child: navigationShell,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: (i) => navigationShell.goBranch(
@@ -29,28 +36,22 @@ class PatientShell extends ConsumerWidget {
         destinations: const [
           NavigationDestination(
             icon: Icon(LucideIcons.house),
-            selectedIcon: Icon(LucideIcons.house, color: AppColors.primary),
+            selectedIcon: Icon(LucideIcons.house, color: AppColors.ink),
             label: 'Home',
           ),
           NavigationDestination(
             icon: Icon(LucideIcons.stethoscope),
-            selectedIcon: Icon(
-              LucideIcons.stethoscope,
-              color: AppColors.primary,
-            ),
+            selectedIcon: Icon(LucideIcons.stethoscope, color: AppColors.ink),
             label: 'Doctors',
           ),
           NavigationDestination(
             icon: Icon(LucideIcons.layoutList),
-            selectedIcon: Icon(
-              LucideIcons.layoutList,
-              color: AppColors.primary,
-            ),
+            selectedIcon: Icon(LucideIcons.layoutList, color: AppColors.ink),
             label: 'Activity',
           ),
           NavigationDestination(
             icon: Icon(LucideIcons.user),
-            selectedIcon: Icon(LucideIcons.user, color: AppColors.primary),
+            selectedIcon: Icon(LucideIcons.user, color: AppColors.ink),
             label: 'Profile',
           ),
         ],

@@ -81,14 +81,13 @@ class _OrderDetail extends StatelessWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.primarySoft,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Center(
                         child: Icon(
                           LucideIcons.store,
                           size: 20,
-                          color: AppColors.primary,
+                          color: AppColors.ink,
                         ),
                       ),
                     ),

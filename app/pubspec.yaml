@@ -110,6 +110,7 @@ flutter:
     - assets/logo/
     - assets/images/auth/
     - assets/images/banners/
+    - assets/images/home/
     - assets/images/states/
     - assets/images/specialties/
     - assets/images/medicine/categories/

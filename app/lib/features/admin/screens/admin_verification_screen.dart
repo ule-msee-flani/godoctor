@@ -197,10 +197,9 @@ class _Applicant extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 18, color: AppColors.primary),
+                child: Icon(icon, size: 18, color: AppColors.ink),
               ),
               const SizedBox(width: 12),
               Expanded(

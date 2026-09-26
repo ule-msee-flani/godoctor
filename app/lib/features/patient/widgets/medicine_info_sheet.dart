@@ -192,10 +192,9 @@ class _Section extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: Icon(icon, size: 16, color: color),
+                child: Icon(icon, size: 16, color: AppColors.ink),
               ),
               const SizedBox(width: 10),
               Text(title, style: theme.titleMedium),
@@ -233,7 +232,7 @@ class _Notice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: color),
+          Icon(icon, size: 18, color: AppColors.ink),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

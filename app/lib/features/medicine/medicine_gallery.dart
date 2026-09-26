@@ -152,8 +152,8 @@ class _MedicineGalleryState extends State<MedicineGallery> {
   }
 }
 
-/// The featured medicine: category and prescription pills, a large picture,
-/// name with an "About" button, forms/brands, then [footer].
+/// The featured medicine: its photo fills the whole card edge to edge,
+/// fading to white at the bottom where the name, details and [footer] sit.
 class MedicineShowcase extends StatelessWidget {
   const MedicineShowcase({
     super.key,
@@ -170,31 +170,33 @@ class MedicineShowcase extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
     final category = MedicineCategory.fromForm(drug.form);
-    final imageSize = (height * 0.42).clamp(72.0, 150.0);
 
     return Container(
       height: height,
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [category.soft, AppColors.white],
-        ),
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: AppColors.border),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          Positioned(
-            right: -30,
-            top: -30,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: category.accent.withValues(alpha: 0.08),
+          MedicineImage.fill(drug: drug),
+          // White fade so the text below stays readable over any photo.
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: [0.0, 0.30, 0.62, 1.0],
+                colors: [
+                  Color(0x00FFFFFF),
+                  Color(0x00FFFFFF),
+                  Color(0xF2FFFFFF),
+                  Color(0xFFFFFFFF),
+                ],
               ),
             ),
           ),
@@ -207,45 +209,19 @@ class MedicineShowcase extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 6,
                   children: [
-                    MedicinePill(
-                      icon: category.icon,
-                      label: category.label,
-                      color: category.accent,
-                    ),
+                    MedicinePill(icon: category.icon, label: category.label),
                     drug.requiresPrescription
                         ? const MedicinePill(
                             icon: LucideIcons.fileText,
                             label: 'Prescription needed',
-                            color: AppColors.warning,
                           )
                         : const MedicinePill(
                             icon: LucideIcons.badgeCheck,
                             label: 'No prescription needed',
-                            color: AppColors.success,
                           ),
                   ],
                 ),
-                Expanded(
-                  child: Center(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(26),
-                        boxShadow: [
-                          BoxShadow(
-                            color: category.accent.withValues(alpha: 0.22),
-                            blurRadius: 24,
-                            offset: const Offset(0, 12),
-                          ),
-                        ],
-                      ),
-                      child: MedicineImage(
-                        drug: drug,
-                        size: imageSize,
-                        radius: 26,
-                      ),
-                    ),
-                  ),
-                ),
+                const Spacer(),
                 Row(
                   children: [
                     Expanded(
@@ -261,6 +237,7 @@ class MedicineShowcase extends StatelessWidget {
                         minimumSize: const Size(0, 36),
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         visualDensity: VisualDensity.compact,
+                        foregroundColor: AppColors.ink,
                       ),
                       onPressed: () => showMedicineInfoSheet(context, drug),
                       icon: const Icon(LucideIcons.info, size: 16),
@@ -277,7 +254,7 @@ class MedicineShowcase extends StatelessWidget {
                   ].join('  ·  '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.bodySmall,
+                  style: theme.bodySmall?.copyWith(color: AppColors.inkSoft),
                 ),
                 const SizedBox(height: 10),
                 footer,
@@ -290,37 +267,39 @@ class MedicineShowcase extends StatelessWidget {
   }
 }
 
+/// A small white label over the showcase photo: black icon and text.
 class MedicinePill extends StatelessWidget {
-  const MedicinePill({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
+  const MedicinePill({super.key, required this.icon, required this.label});
 
   final IconData icon;
   final String label;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color),
+          Icon(icon, size: 13, color: AppColors.ink),
           const SizedBox(width: 5),
           Flexible(
             child: Text(
               label,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: color,
+              style: const TextStyle(
+                color: AppColors.ink,
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
               ),
@@ -410,13 +389,12 @@ class _Shelves extends StatelessWidget {
                       width: 30,
                       height: 30,
                       decoration: BoxDecoration(
-                        color: category.soft,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         category.icon,
                         size: 16,
-                        color: category.accent,
+                        color: AppColors.ink,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -612,14 +590,23 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // White dot with a black icon; the thin ring keeps the meaning
+    // (amber = prescription needed, green/blue = in stock / prescribed).
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: color,
+        color: Colors.white,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
+        border: Border.all(color: color, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
-      child: Icon(icon, size: 10, color: Colors.white),
+      child: Icon(icon, size: 10, color: AppColors.ink),
     );
   }
 }

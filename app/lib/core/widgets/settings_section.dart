@@ -67,21 +67,32 @@ class SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    // Plain black icon, bold title, lighter secondary line.
     return ListTile(
       onTap: onTap,
-      leading: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: AppColors.primarySoft,
-          borderRadius: BorderRadius.circular(12),
+      minLeadingWidth: 26,
+      leading: Icon(icon, size: 22, color: AppColors.ink),
+      title: Text(
+        title,
+        style: theme.titleSmall?.copyWith(
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          color: AppColors.ink,
         ),
-        child: Icon(icon, size: 19, color: AppColors.primary),
       ),
-      title: Text(title),
       subtitle: subtitle == null
           ? null
-          : Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis),
+          : Text(
+              subtitle!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.bodySmall?.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                color: AppColors.inkSoft,
+              ),
+            ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

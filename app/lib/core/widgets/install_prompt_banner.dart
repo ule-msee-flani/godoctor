@@ -66,14 +66,11 @@ class _InstallPromptBannerState extends State<InstallPromptBanner> {
                 Container(
                   width: 40,
                   height: 40,
-                  decoration: const BoxDecoration(
-                    color: AppColors.accentTeal,
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: const BoxDecoration(shape: BoxShape.circle),
                   child: const Center(
                     child: Icon(
                       LucideIcons.download,
-                      color: Colors.white,
+                      color: AppColors.ink,
                       size: 18,
                     ),
                   ),

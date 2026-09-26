@@ -151,7 +151,7 @@ class _HealthFormState extends ConsumerState<_HealthForm> {
               const Icon(
                 LucideIcons.shieldCheck,
                 size: 18,
-                color: AppColors.primary,
+                color: AppColors.ink,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -279,7 +279,7 @@ class _Block extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: color),
+              Icon(icon, size: 16, color: AppColors.ink),
               const SizedBox(width: 6),
               Text(title, style: theme.titleSmall),
             ],

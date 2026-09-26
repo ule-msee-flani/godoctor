@@ -253,7 +253,7 @@ class _Stat extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, size: 18, color: AppColors.primary),
+          Icon(icon, size: 18, color: AppColors.ink),
           const SizedBox(height: 6),
           Text(value, style: theme.titleMedium),
           Text(label, style: theme.bodySmall),
@@ -368,7 +368,7 @@ class _ReviewCard extends StatelessWidget {
                 const Icon(
                   LucideIcons.badgeCheck,
                   size: 13,
-                  color: AppColors.primary,
+                  color: AppColors.ink,
                 ),
                 const SizedBox(width: 4),
                 Text('Verified patient', style: theme.bodySmall),

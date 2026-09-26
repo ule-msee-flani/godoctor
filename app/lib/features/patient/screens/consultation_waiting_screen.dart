@@ -122,10 +122,7 @@ class _MatchedBody extends StatelessWidget {
             Container(
               width: 88,
               height: 88,
-              decoration: const BoxDecoration(
-                color: AppColors.successSoft,
-                shape: BoxShape.circle,
-              ),
+              decoration: const BoxDecoration(shape: BoxShape.circle),
               child: const Center(
                 child: Icon(
                   LucideIcons.circleCheckBig,
@@ -182,10 +179,7 @@ class _CompletedBody extends ConsumerWidget {
             Container(
               width: 88,
               height: 88,
-              decoration: const BoxDecoration(
-                color: AppColors.successSoft,
-                shape: BoxShape.circle,
-              ),
+              decoration: const BoxDecoration(shape: BoxShape.circle),
               child: const Center(
                 child: Icon(
                   LucideIcons.badgeCheck,
@@ -236,10 +230,7 @@ class _UnmatchedBody extends StatelessWidget {
             Container(
               width: 88,
               height: 88,
-              decoration: const BoxDecoration(
-                color: AppColors.warningSoft,
-                shape: BoxShape.circle,
-              ),
+              decoration: const BoxDecoration(shape: BoxShape.circle),
               child: const Center(
                 child: Icon(
                   LucideIcons.hourglass,
@@ -286,10 +277,7 @@ class _CancelledBody extends StatelessWidget {
             Container(
               width: 88,
               height: 88,
-              decoration: const BoxDecoration(
-                color: AppColors.primarySoft,
-                shape: BoxShape.circle,
-              ),
+              decoration: const BoxDecoration(shape: BoxShape.circle),
               child: const Center(
                 child: Icon(
                   LucideIcons.circleX,
@@ -333,7 +321,7 @@ class _ScheduledBody extends StatelessWidget {
             const Icon(
               LucideIcons.calendarCheck,
               size: 48,
-              color: AppColors.primary,
+              color: AppColors.ink,
             ),
             const SizedBox(height: 16),
             Text(
@@ -367,7 +355,7 @@ class _AwaitingPaymentBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(LucideIcons.wallet, size: 48, color: AppColors.primary),
+            const Icon(LucideIcons.wallet, size: 48, color: AppColors.ink),
             const SizedBox(height: 16),
             Text(
               'Your doctor is waiting for payment',

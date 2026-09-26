@@ -71,8 +71,8 @@ SpecialtyMeta? specialtyMetaForSlug(String slug) {
   return null;
 }
 
-/// The specialty's picture (rounded square), or a tinted icon tile when no
-/// picture has been supplied yet.
+/// The specialty's picture (rounded square), or a plain black icon on a
+/// neutral tile when no picture has been supplied yet.
 class SpecialtyImage extends StatelessWidget {
   const SpecialtyImage({
     super.key,
@@ -89,9 +89,6 @@ class SpecialtyImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final teal = index.isOdd;
-    final tint = teal ? AppColors.accentTealSoft : AppColors.primarySoft;
-    final accent = teal ? AppColors.accentTeal : AppColors.primary;
     final found = AppAssets.find(meta.imageBase);
 
     return ClipRRect(
@@ -103,17 +100,20 @@ class SpecialtyImage extends StatelessWidget {
             ? Image.asset(
                 found,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _fallback(tint, accent),
+                errorBuilder: (_, _, _) => _fallback(),
               )
-            : _fallback(tint, accent),
+            : _fallback(),
       ),
     );
   }
 
-  Widget _fallback(Color tint, Color accent) => ColoredBox(
-    color: tint,
+  Widget _fallback() => DecoratedBox(
+    decoration: BoxDecoration(
+      border: Border.all(color: AppColors.border),
+      borderRadius: BorderRadius.circular(radius),
+    ),
     child: Center(
-      child: Icon(meta.icon, size: size * 0.42, color: accent),
+      child: Icon(meta.icon, size: size * 0.4, color: AppColors.ink),
     ),
   );
 }
@@ -137,7 +137,7 @@ class SpecialtyTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = index.isOdd ? AppColors.accentTeal : AppColors.primary;
+    const accent = AppColors.ink;
     final imageSize = width - 8;
 
     return Semantics(

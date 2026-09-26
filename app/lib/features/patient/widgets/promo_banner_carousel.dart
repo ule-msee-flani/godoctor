@@ -223,7 +223,7 @@ class _BannerCard extends StatelessWidget {
                             const Icon(
                               LucideIcons.arrowRight,
                               size: 14,
-                              color: AppColors.primaryDark,
+                              color: AppColors.ink,
                             ),
                           ],
                         ),

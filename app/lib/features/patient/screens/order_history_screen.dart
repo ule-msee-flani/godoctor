@@ -73,13 +73,12 @@ class OrderHistoryList extends ConsumerWidget {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
                           borderRadius: BorderRadius.circular(13),
                         ),
                         child: const Center(
                           child: Icon(
                             LucideIcons.store,
-                            color: AppColors.primary,
+                            color: AppColors.ink,
                             size: 20,
                           ),
                         ),

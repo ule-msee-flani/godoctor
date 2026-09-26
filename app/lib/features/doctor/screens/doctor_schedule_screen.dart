@@ -65,7 +65,7 @@ class DoctorScheduleScreen extends ConsumerWidget {
                     const Icon(
                       LucideIcons.info,
                       size: 18,
-                      color: AppColors.primary,
+                      color: AppColors.ink,
                     ),
                     const SizedBox(width: 10),
                     Expanded(

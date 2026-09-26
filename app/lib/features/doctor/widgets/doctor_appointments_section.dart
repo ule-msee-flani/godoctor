@@ -154,7 +154,6 @@ class _AppointmentCardState extends ConsumerState<_AppointmentCard> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: ready ? AppColors.successSoft : AppColors.primarySoft,
                 borderRadius: BorderRadius.circular(13),
               ),
               child: Icon(
