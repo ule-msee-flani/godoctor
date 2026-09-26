@@ -10,3 +10,9 @@ app/.idea/
 # OS
 .DS_Store
 Thumbs.db
+
+# Signing keys and other secrets: never commit
+secrets/
+app/android/key.properties
+*.jks
+*.keystore

@@ -1,0 +1,107 @@
+# Builds the signed Android APK on GitHub's machines and publishes it as a
+# GitHub Release. The download page (docs/, GitHub Pages) always offers the
+# latest release's .apk, so publishing here is all a new version needs.
+#
+# Release a version either way:
+#   git tag v1.0.1 && git push origin v1.0.1
+#   or: GitHub > Actions > "Release Android APK" > Run workflow (enter 1.0.1)
+#
+# Repository secrets used:
+#   APP_ENV                    contents of app/.env (Supabase URL + anon key)
+#   ANDROID_KEYSTORE_BASE64    secrets/godoctor-release.jks, base64
+#   ANDROID_KEYSTORE_PASSWORD  its password (store and key)
+name: Release Android APK
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish, e.g. 1.0.1'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+          cache: true
+
+      - name: Work out the version
+        id: v
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then V="$INPUT_VERSION"; else V="${GITHUB_REF_NAME#v}"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Building GoDoctor $V (build ${{ github.run_number }})"
+
+      - name: App configuration (.env)
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          test -n "$APP_ENV" || { echo "APP_ENV secret is missing"; exit 1; }
+          printf '%s\n' "$APP_ENV" > .env
+
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64" || { echo "ANDROID_KEYSTORE_BASE64 secret is missing"; exit 1; }
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
+          {
+            echo "storeFile=release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=godoctor"
+            echo "keyPassword=$KEYSTORE_PASSWORD"
+          } > android/key.properties
+
+      - name: Give Gradle more memory (the repo is tuned for a 4 GB laptop)
+        run: echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError" >> android/gradle.properties
+
+      - run: flutter pub get
+
+      - name: Build APK
+        run: >
+          flutter build apk --release
+          --build-name=${{ steps.v.outputs.version }}
+          --build-number=${{ github.run_number }}
+
+      - name: Name the file
+        run: cp build/app/outputs/flutter-apk/app-release.apk "GoDoctor-${{ steps.v.outputs.version }}.apk"
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.v.outputs.version }}
+          name: GoDoctor ${{ steps.v.outputs.version }}
+          files: app/GoDoctor-${{ steps.v.outputs.version }}.apk
+          generate_release_notes: true
+          make_latest: true
+
+      - name: Remove the signing key from the runner
+        if: always()
+        run: rm -f android/app/release.jks android/key.properties .env

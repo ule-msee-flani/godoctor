@@ -69,10 +69,32 @@ Add-to-Home-Screen / browser-install support.
 The same codebase builds a native Android app (recommended for reliable push
 on the 20-30s doctor-offer window):
 
+#### Publishing a new version (no build on your machine)
+
+GitHub builds the signed APK and publishes it as a Release; the
+[download page](https://ule-msee-flani.github.io/godoctor/) picks it up
+automatically. Either:
+
+```
+git tag v1.0.1 && git push origin v1.0.1
+```
+
+or GitHub → **Actions → Release Android APK → Run workflow** and type the
+version. The workflow is `.github/workflows/release-apk.yml`; it needs the
+repository secrets `APP_ENV`, `ANDROID_KEYSTORE_BASE64` and
+`ANDROID_KEYSTORE_PASSWORD` (already set). Each run gets a higher build
+number, so phones install it as an update.
+
+**Signing key:** `secrets/godoctor-release.jks` (git-ignored; password in
+`secrets/KEYSTORE-README.txt`). Back it up somewhere safe: without it you
+can never ship an update to installed apps (or the Play Store listing).
+
+#### Building locally
+
 ```
 cd app
 flutter build apk --debug --target-platform android-arm64   # quick test build
-flutter build apk --release                                 # needs a signing key (not set up yet)
+flutter build apk --release   # signed with secrets/godoctor-release.jks via android/key.properties
 ```
 
 Things that will bite on a fresh machine:
