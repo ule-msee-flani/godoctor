@@ -104,13 +104,15 @@ class _NotificationTile extends StatelessWidget {
     'consultation_completed' || 'review_new' => LucideIcons.star,
     'prescription_issued' => LucideIcons.fileCheck,
     'order_new' => LucideIcons.shoppingBag,
-    'order_confirmed' || 'order_ready' || 'order_completed' =>
-      LucideIcons.packageCheck,
+    'order_confirmed' ||
+    'order_ready' ||
+    'order_completed' => LucideIcons.packageCheck,
     'order_disputed' || 'order_refunded' => LucideIcons.packageX,
     'family_invite' || 'family_accepted' => LucideIcons.users,
     'family_session_invite' || 'family_joined' => LucideIcons.headphones,
-    'support_reply' || 'support_new' || 'support_user_reply' =>
-      LucideIcons.headset,
+    'support_reply' ||
+    'support_new' ||
+    'support_user_reply' => LucideIcons.headset,
     'verification_approved' ||
     'verification_removed' ||
     'verification_submitted' => LucideIcons.shieldCheck,

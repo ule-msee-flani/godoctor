@@ -122,6 +122,12 @@ class _AvailableDoctorsScreenState
                 ),
               ],
             ),
+            const SizedBox(height: 14),
+            _CameraPreference(
+              doctorVideo: draft.doctorVideo,
+              onChanged: (v) => ref.read(consultDraftProvider.notifier).state =
+                  draft.copyWith(doctorVideo: v),
+            ),
             const SizedBox(height: 16),
             doctors.when(
               loading: () => const SizedBox(
@@ -229,6 +235,62 @@ class _NoneOnline extends StatelessWidget {
             onPressed: onBookLater,
             icon: const Icon(LucideIcons.calendarPlus, size: 18),
             label: const Text('Book an appointment for later'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Doctor's camera: On / Off". Every consultation is a video consultation
+/// at the same price; turning the doctor's camera off saves the patient's
+/// data. The patient can also switch their own camera during the call.
+class _CameraPreference extends StatelessWidget {
+  const _CameraPreference({required this.doctorVideo, required this.onChanged});
+
+  final bool doctorVideo;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(LucideIcons.video, size: 18, color: AppColors.ink),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Doctor\x27s camera', style: theme.titleSmall),
+              ),
+              SegmentedButton<bool>(
+                showSelectedIcon: false,
+                style: SegmentedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+                segments: const [
+                  ButtonSegment(value: true, label: Text('On')),
+                  ButtonSegment(value: false, label: Text('Off')),
+                ],
+                selected: {doctorVideo},
+                onSelectionChanged: (s) => onChanged(s.first),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            doctorVideo
+                ? 'You\x27ll see your doctor. You can turn your own camera off during the call.'
+                : 'The doctor keeps their camera off to save your data. You\x27ll still talk face to face if you both switch it on.',
+            style: theme.bodySmall,
           ),
         ],
       ),

@@ -101,6 +101,28 @@ class PrescriptionRepository {
 
   static const _withItems = '*, prescription_items(*, drugs(*))';
 
+  /// The signed-in doctor's most-used medicines with their usual dose, for
+  /// one-tap prescribing ("your usual").
+  Future<List<PrescriptionItem>> usualPrescriptions({int limit = 6}) async {
+    final rows =
+        await _client.rpc(
+              'doctor_usual_prescriptions',
+              params: {'p_limit': limit},
+            )
+            as List;
+    return [
+      for (final r in rows.cast<Map<String, dynamic>>())
+        PrescriptionItem(
+          prescriptionId: '',
+          drugId: r['drug_id'] as String?,
+          drugName: r['drug_name'] as String?,
+          dosage: r['dosage'] as String?,
+          quantity: (r['quantity'] as num?)?.toInt() ?? 1,
+          instructions: r['instructions'] as String?,
+        ),
+    ];
+  }
+
   /// Patient uploads a photo of an external (non-app) prescription. Chemist
   /// manually verifies the photo before allowing the order to proceed.
   Future<String> uploadExternalPrescription({

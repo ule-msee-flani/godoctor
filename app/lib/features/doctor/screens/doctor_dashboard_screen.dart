@@ -10,6 +10,7 @@ import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/notification_providers.dart';
 import '../widgets/active_patient_section.dart';
 import '../widgets/doctor_appointments_section.dart';
+import '../widgets/today_card.dart';
 import '../../../data/providers/repository_providers.dart';
 
 class DoctorDashboardScreen extends ConsumerWidget {
@@ -64,56 +65,64 @@ class _DashboardBody extends ConsumerWidget {
     final isAvailable = profile.status == DoctorStatus.available;
     final isBusy = profile.status == DoctorStatus.busy;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(
-                  isAvailable ? Icons.wifi : Icons.wifi_off,
-                  color: isAvailable ? Colors.green : Colors.grey,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    isBusy
-                        ? 'In a consultation'
-                        : (isAvailable
-                              ? 'Available for consultations'
-                              : 'Offline'),
-                    style: Theme.of(context).textTheme.titleMedium,
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(doctorTodayProvider);
+        ref.invalidate(currentDoctorProfileProvider);
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(
+                    isAvailable ? Icons.wifi : Icons.wifi_off,
+                    color: isAvailable ? Colors.green : Colors.grey,
                   ),
-                ),
-                Switch(
-                  value: isAvailable,
-                  onChanged: isBusy
-                      ? null
-                      : (value) async {
-                          await ref
-                              .read(profileRepositoryProvider)
-                              .setDoctorAvailability(value);
-                          ref.invalidate(currentDoctorProfileProvider);
-                        },
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      isBusy
+                          ? 'In a consultation'
+                          : (isAvailable
+                                ? 'Available for consultations'
+                                : 'Offline'),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  Switch(
+                    value: isAvailable,
+                    onChanged: isBusy
+                        ? null
+                        : (value) async {
+                            await ref
+                                .read(profileRepositoryProvider)
+                                .setDoctorAvailability(value);
+                            ref.invalidate(currentDoctorProfileProvider);
+                          },
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 6,
-          children: profile.specialties
-              .map((s) => Chip(label: Text(s)))
-              .toList(),
-        ),
-        const SizedBox(height: 20),
-        ActivePatientSection(doctorId: doctorId),
-        const SizedBox(height: 20),
-        const DoctorAppointmentsSection(),
-      ],
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            children: profile.specialties
+                .map((s) => Chip(label: Text(s)))
+                .toList(),
+          ),
+          const SizedBox(height: 16),
+          const DoctorTodayCard(),
+          const SizedBox(height: 20),
+          ActivePatientSection(doctorId: doctorId),
+          const SizedBox(height: 20),
+          const DoctorAppointmentsSection(),
+        ],
+      ),
     );
   }
 }

@@ -39,6 +39,10 @@ const CATEGORY: Record<string, string> = {
   family_joined: 'consultations',
   review_new: 'consultations',
 
+  chat_message: 'chat',
+
+  dose_due: 'reminders',
+
   prescription_issued: 'orders',
   order_confirmed: 'orders',
   order_ready: 'orders',

@@ -195,10 +195,20 @@ class _CompletedBody extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
-              icon: const Icon(LucideIcons.fileText, size: 18),
-              label: const Text('View prescription'),
-              onPressed: () => context.push('/patient/prescriptions'),
+              icon: const Icon(LucideIcons.clipboardList, size: 18),
+              label: const Text('See your visit summary'),
+              onPressed: () =>
+                  context.push('/patient/visit/${consultation.id}'),
             ),
+            if (consultation.chatOpen) ...[
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                icon: const Icon(LucideIcons.messageCircle, size: 18),
+                label: const Text('Message your doctor (free for 24 h)'),
+                onPressed: () =>
+                    context.push('/patient/chat/${consultation.id}'),
+              ),
+            ],
             const SizedBox(height: 10),
             ReviewPrompt(
               consultationId: consultation.id,

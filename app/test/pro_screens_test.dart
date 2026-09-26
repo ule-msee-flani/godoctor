@@ -33,6 +33,7 @@ import 'package:godoctor_app/features/chemist/screens/chemist_inventory_screen.d
 import 'package:godoctor_app/features/chemist/screens/chemist_onboarding_screen.dart';
 import 'package:godoctor_app/features/chemist/screens/chemist_orders_screen.dart';
 import 'package:godoctor_app/features/doctor/screens/doctor_call_screen.dart';
+import 'package:godoctor_app/features/doctor/widgets/visit_summary_editor.dart';
 import 'package:godoctor_app/features/doctor/screens/doctor_dashboard_screen.dart';
 import 'package:godoctor_app/features/doctor/screens/doctor_history_screen.dart';
 import 'package:godoctor_app/features/doctor/screens/doctor_medicines_screen.dart';
@@ -135,7 +136,33 @@ class _Consultations extends ConsultationRepository {
         severity: 'Moderate',
         flaggedEmergency: false,
       );
+  @override
+  Future<void> markDoctorJoined(String consultationId) async {}
+  @override
+  Future<Map<String, dynamic>> doctorTodayStats() async => {
+    'patients': 3,
+    'earnings': 2400,
+    'rating': 4.8,
+    'ratings': 12,
+    'open_chats': 2,
+  };
+  @override
+  Future<void> saveVisitSummary(
+    String consultationId, {
+    String? summary,
+    String? redFlags,
+    DateTime? followUpOn,
+  }) async {
+    savedSummary = (
+      summary: summary,
+      redFlags: redFlags,
+      followUpOn: followUpOn,
+    );
+  }
 }
+
+/// What the doctor saved from the Summary tab.
+({String? summary, String? redFlags, DateTime? followUpOn})? savedSummary;
 
 class _Appointments extends AppointmentRepository {
   @override
@@ -259,6 +286,16 @@ class _Prescriptions extends PrescriptionRepository {
       Stream.value([_prescription]);
   @override
   Future<Prescription?> fetchById(String id) async => _prescription;
+  @override
+  Future<List<PrescriptionItem>> usualPrescriptions({int limit = 6}) async => [
+    const PrescriptionItem(
+      prescriptionId: '',
+      drugId: 'd1',
+      drugName: 'Paracetamol',
+      dosage: '2 tablets three times daily',
+      quantity: 18,
+    ),
+  ];
   @override
   Future<String> issueForConsultation({
     required String consultationId,
@@ -475,7 +512,11 @@ void dialogTests() {
   });
 
   testWidgets('chemist can open the prescription on an order', (tester) async {
-    await openAndCheck(tester, const ChemistOrdersScreen(), find.text('View'));
+    await openAndCheck(
+      tester,
+      const ChemistOrdersScreen(),
+      find.text('Check the prescription'),
+    );
   });
 
   testWidgets('doctor "Add hours" dialog lays out', (tester) async {
@@ -530,6 +571,91 @@ void callTests() {
       findsNothing,
       reason: 'draft cleared',
     );
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('doctor prescribes one of their usual medicines', (tester) async {
+    sentItems = null;
+    await _render(
+      tester,
+      const DoctorCallScreen(consultationId: 'c1'),
+      size: const Size(412, 915),
+    );
+    await tester.tap(find.text('Medicines'));
+    await _settle(tester);
+    expect(find.text('Your usual'), findsOneWidget);
+    final usual = find.text('Paracetamol · 2 tablets three times daily');
+    await tester.ensureVisible(usual);
+    await tester.pump();
+    await tester.tap(usual);
+    await _settle(tester);
+    // The dose sheet opens already filled in with the usual dose.
+    await tester.ensureVisible(find.text('Add to prescription'));
+    await tester.tap(find.text('Add to prescription'));
+    await _settle(tester);
+    await tester.tap(find.text('Prescription (1)'));
+    await _settle(tester);
+    expect(find.text('2 tablets three times daily'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('doctor writes the visit summary for the patient', (
+    tester,
+  ) async {
+    savedSummary = null;
+    await _render(
+      tester,
+      const DoctorCallScreen(consultationId: 'c1'),
+      size: const Size(412, 915),
+    );
+    // Four tabs scroll on a phone.
+    await tester.ensureVisible(find.text('Summary'));
+    await tester.pump();
+    await tester.tap(find.text('Summary'));
+    await _settle(tester);
+    final summaryList = find
+        .descendant(
+          of: find.byType(VisitSummaryEditor),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.tap(find.text('Viral infection'));
+    await tester.pump();
+    await tester.dragUntilVisible(
+      find.text('Difficulty breathing or chest pain').hitTestable(),
+      summaryList,
+      const Offset(0, -150),
+    );
+    await tester.pump();
+    await tester.tap(find.text('Difficulty breathing or chest pain'));
+    await tester.pump();
+    await tester.dragUntilVisible(
+      find.text('In 1 week').hitTestable(),
+      summaryList,
+      const Offset(0, -150),
+    );
+    await tester.pump();
+    await tester.tap(find.text('In 1 week'));
+    await tester.pump();
+    await tester.dragUntilVisible(
+      find.text('Save summary').hitTestable(),
+      summaryList,
+      const Offset(0, -150),
+    );
+    await tester.pump();
+    await tester.tap(find.text('Save summary'));
+    await _settle(tester);
+
+    expect(savedSummary?.summary, contains('viral infection'));
+    expect(savedSummary?.redFlags, 'Difficulty breathing or chest pain');
+    expect(savedSummary?.followUpOn, isNotNull);
+    expect(find.text('Saved'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.pumpWidget(const SizedBox());

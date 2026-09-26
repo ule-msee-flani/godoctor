@@ -3,6 +3,8 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Android 13+: ask before showing notifications. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Voice note describing symptoms (optional). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!-- Patient location, to sort nearby chemists by distance. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>

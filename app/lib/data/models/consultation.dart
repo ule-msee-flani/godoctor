@@ -17,6 +17,12 @@ class Consultation {
     this.scheduledEnd,
     this.feeAmount,
     this.paymentDueAt,
+    this.doctorVideoPreferred = true,
+    this.doctorJoinedAt,
+    this.summaryForPatient,
+    this.redFlags,
+    this.followUpOn,
+    this.chatClosesAt,
   });
 
   final String id;
@@ -36,6 +42,28 @@ class Consultation {
 
   /// While awaiting payment: when the doctor reservation lapses.
   final DateTime? paymentDueAt;
+
+  /// The patient's wish for the doctor's camera (they can change it).
+  final bool doctorVideoPreferred;
+
+  /// When the doctor opened the call (ends the patient's waiting room).
+  final DateTime? doctorJoinedAt;
+
+  /// Written by the doctor for the patient's visit summary.
+  final String? summaryForPatient;
+
+  /// "Come back urgently if..."
+  final String? redFlags;
+  final DateTime? followUpOn;
+
+  /// End of the free 24-hour chat after the consultation.
+  final DateTime? chatClosesAt;
+
+  bool get chatOpen =>
+      chatClosesAt != null && chatClosesAt!.isAfter(DateTime.now());
+
+  bool get hasSummary =>
+      (summaryForPatient ?? '').isNotEmpty || (redFlags ?? '').isNotEmpty;
 
   bool get isScheduled => mode == ConsultationMode.scheduled;
 
@@ -84,7 +112,18 @@ class Consultation {
     paymentDueAt: map['payment_due_at'] != null
         ? DateTime.tryParse(map['payment_due_at'] as String)?.toLocal()
         : null,
+    doctorVideoPreferred: (map['doctor_video_preferred'] as bool?) ?? true,
+    doctorJoinedAt: _time(map['doctor_joined_at']),
+    summaryForPatient: map['summary_for_patient'] as String?,
+    redFlags: map['red_flags'] as String?,
+    followUpOn: map['follow_up_on'] != null
+        ? DateTime.tryParse(map['follow_up_on'] as String)
+        : null,
+    chatClosesAt: _time(map['chat_closes_at']),
   );
+
+  static DateTime? _time(Object? v) =>
+      v is String ? DateTime.tryParse(v)?.toLocal() : null;
 }
 
 class IntakeForm {
@@ -94,6 +133,7 @@ class IntakeForm {
     this.duration,
     this.severity,
     required this.flaggedEmergency,
+    this.voiceNotePath,
   });
 
   final String consultationId;
@@ -102,12 +142,16 @@ class IntakeForm {
   final String? severity;
   final bool flaggedEmergency;
 
+  /// The patient's recorded description (private `voice-notes` bucket).
+  final String? voiceNotePath;
+
   factory IntakeForm.fromMap(Map<String, dynamic> map) => IntakeForm(
     consultationId: map['consultation_id'] as String,
     symptoms: (map['symptoms'] as String?) ?? '',
     duration: map['duration'] as String?,
     severity: map['severity'] as String?,
     flaggedEmergency: (map['flagged_emergency'] as bool?) ?? false,
+    voiceNotePath: map['voice_note_path'] as String?,
   );
 }
 

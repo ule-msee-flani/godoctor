@@ -6,10 +6,15 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../data/models/drug.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/support.dart';
+import '../../features/chat/chat_prescribe_screen.dart';
+import '../../features/chat/chat_providers.dart';
+import '../../features/chat/chat_screen.dart';
+import '../../features/chat/chats_screen.dart';
 import '../../features/chemist/screens/chemist_account_screen.dart';
 import '../../features/location/location_picker_screen.dart';
 import '../../features/notifications/notification_settings_screen.dart';
 import '../../features/patient/family/family_session_screen.dart';
+import '../../features/patient/health/health_story_screen.dart';
 import '../../features/patient/profile/account_screen.dart';
 import '../../features/patient/profile/billing_screen.dart';
 import '../../features/patient/profile/family_screen.dart';
@@ -53,7 +58,6 @@ import '../../features/patient/screens/order_tracking_screen.dart';
 import '../../features/patient/screens/patient_call_screen.dart';
 import '../../features/patient/consult/available_doctors_screen.dart';
 import '../../features/patient/consult/consult_pay_screen.dart';
-import '../../features/patient/screens/activity_screen.dart';
 import '../../features/patient/screens/appointment_detail_screen.dart';
 import '../../features/patient/screens/book_appointment_screen.dart';
 import '../../features/patient/screens/doctor_profile_screen.dart';
@@ -65,6 +69,7 @@ import '../../features/patient/screens/profile_screen.dart';
 import '../../features/patient/screens/prescriptions_screen.dart';
 import '../../features/patient/screens/upload_prescription_screen.dart';
 import '../../features/patient/specialties/specialty_registry.dart';
+import '../../features/patient/visit/visit_summary_screen.dart';
 import '../../features/prescription/prescription_order_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/pending_verification_view.dart';
@@ -128,8 +133,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/patient/activity',
-                builder: (_, _) => const ActivityScreen(),
+                path: '/patient/chats',
+                builder: (_, _) => const ChatsScreen(doctor: false),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/patient/health',
+                builder: (_, _) => const HealthStoryScreen(),
               ),
             ],
           ),
@@ -142,6 +155,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      // Old links (notifications sent before the Health tab existed).
+      GoRoute(path: '/patient/activity', redirect: (_, _) => '/patient/health'),
+      GoRoute(
+        path: '/patient/chat/:id',
+        builder: (context, state) => ChatScreen(
+          consultationId: state.pathParameters['id']!,
+          doctor: false,
+        ),
+      ),
+      GoRoute(
+        path: '/patient/visit/:id',
+        builder: (context, state) =>
+            VisitSummaryScreen(consultationId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/patient/intake',
@@ -292,25 +319,47 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => _pro(
-          RoleShell(
-            navigationShell: navigationShell,
-            tabs: const [
-              ShellTab(LucideIcons.house, 'Home'),
-              ShellTab(LucideIcons.calendarDays, 'Schedule'),
-              ShellTab(LucideIcons.pill, 'Medicines'),
-              ShellTab(LucideIcons.history, 'History'),
-              ShellTab(LucideIcons.circleUserRound, 'Profile'),
-            ],
-            quietTabs: const {2, 3}, // Medicines, History
+          Consumer(
+            builder: (context, ref, _) => RoleShell(
+              navigationShell: navigationShell,
+              tabs: [
+                const ShellTab(LucideIcons.house, 'Home'),
+                ShellTab(
+                  LucideIcons.messagesSquare,
+                  'Chats',
+                  badge: ref.watch(unreadChatsProvider),
+                ),
+                const ShellTab(LucideIcons.calendarDays, 'Schedule'),
+                const ShellTab(LucideIcons.pill, 'Medicines'),
+                const ShellTab(LucideIcons.circleUserRound, 'Profile'),
+              ],
+            ),
           ),
         ),
         branches: [
           _branch('/doctor', const DoctorDashboardScreen()),
+          _branch('/doctor/chats', const ChatsScreen(doctor: true)),
           _branch('/doctor/schedule', const DoctorScheduleScreen()),
           _branch('/doctor/medicines', const DoctorMedicinesScreen()),
-          _branch('/doctor/history', const DoctorHistoryScreen()),
           _branch('/doctor/profile', const DoctorProfileEditScreen()),
         ],
+      ),
+      GoRoute(
+        path: '/doctor/history',
+        pageBuilder: (_, state) =>
+            _quiet(state, _pro(const DoctorHistoryScreen())),
+      ),
+      GoRoute(
+        path: '/doctor/chat/:id',
+        builder: (context, state) => _pro(
+          ChatScreen(consultationId: state.pathParameters['id']!, doctor: true),
+        ),
+      ),
+      GoRoute(
+        path: '/doctor/chat/:id/prescribe',
+        builder: (context, state) => _pro(
+          ChatPrescribeScreen(consultationId: state.pathParameters['id']!),
+        ),
       ),
       GoRoute(
         path: '/doctor/call/:id',
@@ -319,10 +368,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/doctor/notifications',
-        pageBuilder: (_, state) => _quiet(
-          state,
-          _pro(const NotificationsScreen()),
-        ),
+        pageBuilder: (_, state) =>
+            _quiet(state, _pro(const NotificationsScreen())),
       ),
 
       // --- Chemist ---
@@ -355,7 +402,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 const ShellTab(LucideIcons.boxes, 'Stock'),
                 const ShellTab(LucideIcons.circleUserRound, 'Account'),
               ],
-              quietTabs: const {0, 1}, // Orders, Stock
             ),
           ),
         ),

@@ -54,7 +54,9 @@ class ConsultationHistoryList extends ConsumerWidget {
           itemBuilder: (context, i) {
             final c = list[i];
             final scheduled = c.isScheduled && c.scheduledFor != null;
-            final route = c.isScheduled
+            final route = c.status == ConsultationStatus.completed
+                ? '/patient/visit/${c.id}'
+                : c.isScheduled
                 ? '/patient/appointment/${c.id}'
                 : c.status == ConsultationStatus.awaitingPayment
                 ? '/patient/consult/${c.id}/pay'

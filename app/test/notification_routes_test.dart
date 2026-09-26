@@ -4,8 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:godoctor_app/data/models/enums.dart';
 import 'package:godoctor_app/services/notification_routes.dart';
 
-String? go(String kind, UserRole role, [Map<String, dynamic> data = const {}]) =>
-    routeForNotification(kind: kind, data: data, role: role);
+String? go(
+  String kind,
+  UserRole role, [
+  Map<String, dynamic> data = const {},
+]) => routeForNotification(kind: kind, data: data, role: role);
 
 void main() {
   const c = {'consultation_id': 'c1'};
@@ -23,11 +26,14 @@ void main() {
     expect(go('order_ready', p, {'order_id': 'o1'}), '/patient/order/o1');
     expect(go('payment_receipt', p, {'order_id': 'o1'}), '/patient/order/o1');
     expect(go('payment_receipt', p, c), '/patient/profile/billing');
-    expect(go('consultation_completed', p, c), '/patient/waiting/c1');
+    // A finished consultation opens the visit summary (either mode).
+    expect(go('consultation_completed', p, c), '/patient/visit/c1');
     expect(
       go('consultation_completed', p, {...c, 'mode': 'scheduled'}),
-      '/patient/appointment/c1',
+      '/patient/visit/c1',
     );
+    expect(go('chat_message', p, c), '/patient/chat/c1');
+    expect(go('dose_due', p, {'schedule_id': 's1'}), '/patient/health');
     expect(go('announcement', p), isNull, reason: 'stays in the inbox');
   });
 
@@ -37,6 +43,7 @@ void main() {
     expect(go('patient_waiting', d, c), '/doctor/call/c1');
     expect(go('patient_selected', d, c), '/doctor');
     expect(go('review_new', d, c), '/doctor/history');
+    expect(go('chat_message', d, c), '/doctor/chat/c1');
     expect(go('verification_approved', d), '/doctor/profile');
   });
 

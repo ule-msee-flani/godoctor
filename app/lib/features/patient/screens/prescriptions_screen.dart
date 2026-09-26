@@ -9,6 +9,7 @@ import '../../../core/widgets/skeleton.dart';
 import '../../../data/models/prescription.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../../medications/dose_reminder_sheet.dart';
 
 final _patientPrescriptionsProvider = FutureProvider<List<Prescription>>((
   ref,
@@ -170,15 +171,26 @@ class _PrescriptionCard extends StatelessWidget {
               if (prescription.isValid &&
                   prescription.items.any((i) => i.isStructured)) ...[
                 const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () => context.push(
-                      '/patient/prescription/${prescription.id}/order',
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.tonalIcon(
+                      onPressed: () => context.push(
+                        '/patient/prescription/${prescription.id}/order',
+                      ),
+                      icon: const Icon(LucideIcons.shoppingBag, size: 16),
+                      label: const Text('Order these medicines'),
                     ),
-                    icon: const Icon(LucideIcons.shoppingBag, size: 16),
-                    label: const Text('Order these medicines'),
-                  ),
+                    TextButton.icon(
+                      onPressed: () => showDoseReminderSheet(
+                        context,
+                        items: prescription.items,
+                      ),
+                      icon: const Icon(LucideIcons.alarmClock, size: 16),
+                      label: const Text('Remind me'),
+                    ),
+                  ],
                 ),
               ],
             ],

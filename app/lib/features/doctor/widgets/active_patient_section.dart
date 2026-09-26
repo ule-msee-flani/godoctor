@@ -116,6 +116,25 @@ class _PatientCard extends ConsumerWidget {
               '${c.specialtyRequested}: "${c.symptomSummary}"',
               style: theme.bodyMedium,
             ),
+            if (!c.doctorVideoPreferred) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Icon(
+                    LucideIcons.videoOff,
+                    size: 14,
+                    color: AppColors.inkSoft,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Asked for your camera off, to save data',
+                      style: theme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if ((patient?.allergies ?? '').isNotEmpty) ...[
               const SizedBox(height: 6),
               Row(

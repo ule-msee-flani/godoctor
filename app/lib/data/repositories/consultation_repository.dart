@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_client.dart';
@@ -103,6 +105,30 @@ class ConsultationRepository {
         );
   }
 
+  /// The patient's on-demand consultation that is still under way (being
+  /// matched, waiting for payment, or on the call), live; null when none.
+  Stream<Consultation?> watchActiveForPatient(String patientId) {
+    return _client
+        .from('consultations')
+        .stream(primaryKey: ['id'])
+        .eq('patient_id', patientId)
+        .order('created_at')
+        .limit(10)
+        .map(
+          (rows) => rows
+              .map((r) => Consultation.fromMap(r))
+              .where(
+                (c) =>
+                    !c.isScheduled &&
+                    (c.status == ConsultationStatus.requested ||
+                        c.status == ConsultationStatus.matched ||
+                        c.status == ConsultationStatus.awaitingPayment ||
+                        c.status == ConsultationStatus.inProgress),
+              )
+              .firstOrNull,
+        );
+  }
+
   /// A patient watching their own consultation for status changes
   /// (requested -> matched/unmatched -> in_progress -> completed).
   Stream<Consultation?> watchConsultation(String consultationId) {
@@ -172,4 +198,74 @@ class ConsultationRepository {
       params: {'p_consultation_id': consultationId},
     );
   }
+
+  /// The patient's wish for the doctor's camera during the call.
+  Future<void> setVideoPreference(
+    String consultationId, {
+    required bool doctorVideo,
+  }) => _client.rpc(
+    'set_video_preference',
+    params: {
+      'p_consultation_id': consultationId,
+      'p_doctor_video': doctorVideo,
+    },
+  );
+
+  /// Doctor opened the call: the patient's waiting room turns into the call.
+  Future<void> markDoctorJoined(String consultationId) => _client.rpc(
+    'mark_doctor_joined',
+    params: {'p_consultation_id': consultationId},
+  );
+
+  /// The doctor's plain-language summary for the patient's visit card.
+  Future<void> saveVisitSummary(
+    String consultationId, {
+    String? summary,
+    String? redFlags,
+    DateTime? followUpOn,
+  }) => _client.rpc(
+    'save_visit_summary',
+    params: {
+      'p_consultation_id': consultationId,
+      'p_summary': summary,
+      'p_red_flags': redFlags,
+      'p_follow_up_on': followUpOn?.toIso8601String().split('T').first,
+    },
+  );
+
+  // --- Voice notes (private bucket) ---
+
+  /// Uploads the patient's recorded description; returns the storage path.
+  Future<String> uploadVoiceNote({
+    required String patientId,
+    required Uint8List bytes,
+    required String fileExt,
+    required String contentType,
+  }) async {
+    final path = '$patientId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+    await _client.storage
+        .from('voice-notes')
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: contentType),
+        );
+    return path;
+  }
+
+  Future<void> attachVoiceNote(String consultationId, String path) =>
+      _client.rpc(
+        'attach_voice_note',
+        params: {'p_consultation_id': consultationId, 'p_path': path},
+      );
+
+  /// Short-lived link to play a voice note (patient or their doctor only).
+  Future<String> voiceNoteUrl(String path) =>
+      _client.storage.from('voice-notes').createSignedUrl(path, 60 * 30);
+
+  // --- Doctor cockpit ---
+
+  /// Today (Nairobi): patients seen, earnings, rating, open chats.
+  Future<Map<String, dynamic>> doctorTodayStats() async =>
+      (await _client.rpc('doctor_today_stats')) as Map<String, dynamic>;
 }

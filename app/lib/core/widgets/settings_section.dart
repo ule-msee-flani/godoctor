@@ -57,6 +57,7 @@ class SettingsTile extends StatelessWidget {
     required this.onTap,
     this.subtitle,
     this.badge = 0,
+    this.trailing,
   });
 
   final IconData icon;
@@ -64,6 +65,9 @@ class SettingsTile extends StatelessWidget {
   final String? subtitle;
   final VoidCallback onTap;
   final int badge;
+
+  /// Replaces the chevron (e.g. a switch).
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -93,19 +97,21 @@ class SettingsTile extends StatelessWidget {
                 color: AppColors.inkSoft,
               ),
             ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (badge > 0)
-            Badge(label: Text('$badge'), backgroundColor: AppColors.danger),
-          const SizedBox(width: 6),
-          const Icon(
-            LucideIcons.chevronRight,
-            size: 18,
-            color: AppColors.inkFaint,
+      trailing:
+          trailing ??
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (badge > 0)
+                Badge(label: Text('$badge'), backgroundColor: AppColors.danger),
+              const SizedBox(width: 6),
+              const Icon(
+                LucideIcons.chevronRight,
+                size: 18,
+                color: AppColors.inkFaint,
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }

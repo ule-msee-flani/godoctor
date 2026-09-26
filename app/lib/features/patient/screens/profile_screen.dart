@@ -11,6 +11,7 @@ import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../support/rate_app_sheet.dart';
 import '../family/family_providers.dart';
+import '../../../services/data_saver.dart';
 
 /// The patient's Profile tab: photo, name and email on top, then
 /// Profile · Family · Billing information · Support & feedback.
@@ -137,6 +138,18 @@ class ProfileScreen extends ConsumerWidget {
                 title: 'Notifications',
                 subtitle: 'What GoDoctor alerts you about',
                 onTap: () => context.push('/account/notifications'),
+              ),
+              SettingsTile(
+                icon: LucideIcons.gauge,
+                title: 'Data saver',
+                subtitle: 'Cameras start off in consultations',
+                onTap: () => ref
+                    .read(dataSaverProvider.notifier)
+                    .set(!ref.read(dataSaverProvider)),
+                trailing: Switch(
+                  value: ref.watch(dataSaverProvider),
+                  onChanged: (v) => ref.read(dataSaverProvider.notifier).set(v),
+                ),
               ),
             ],
           ),

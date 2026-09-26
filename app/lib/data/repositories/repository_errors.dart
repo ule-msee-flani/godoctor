@@ -52,7 +52,10 @@ String friendlyError(Object error) {
     return 'Those payment details are not valid.';
   }
   if (text.contains('consultation_not_active')) {
-    return 'This consultation has ended, so a prescription can no longer be sent from it.';
+    return 'More than 24 hours have passed since this consultation, so a prescription can no longer be sent from it.';
+  }
+  if (text.contains('chat_closed')) {
+    return 'This chat closed 24 hours after the consultation. Book another consultation to talk to the doctor again.';
   }
   if (text.contains('prescription_empty')) {
     return 'Add at least one medicine to the prescription.';

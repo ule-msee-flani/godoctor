@@ -1,6 +1,6 @@
-// The visual pass: heartbeat between screens (without ever rebuilding the
-// page underneath), quiet tabs for lists, black icons, and the pictures
-// the home and specialty tiles rely on.
+// The visual pass: calm screen changes (without ever rebuilding the page
+// underneath), the heartbeat only for waits you'd notice, black icons, and
+// the pictures the home and specialty tiles rely on.
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -34,7 +34,7 @@ class _ProbeState extends State<_Probe> {
 }
 
 void main() {
-  testWidgets('screen change: heartbeat first, then the page, built once', (
+  testWidgets('screen change: a calm slide, no heartbeat, page built once', (
     tester,
   ) async {
     _Probe.created = 0;
@@ -49,64 +49,30 @@ void main() {
     nav.currentState!.push(MaterialPageRoute(builder: (_) => const _Probe()));
 
     await tester.pump(); // route added
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(find.byType(HeartbeatLoader), findsOneWidget);
-    // Still clearly showing after most of a second, so people see it.
-    await tester.pump(const Duration(milliseconds: 600));
-    expect(find.byType(HeartbeatLoader), findsOneWidget);
-
-    await tester.pump(kHeartbeatScreenDuration); // transition done
-    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 120));
     expect(find.byType(HeartbeatLoader), findsNothing);
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('next screen'), findsOneWidget);
     expect(_Probe.created, 1, reason: 'the page must not be rebuilt');
 
-    // Going back: a quick fade, no heartbeat.
     nav.currentState!.pop();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byType(HeartbeatLoader), findsNothing);
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
     expect(find.text('first'), findsOneWidget);
   });
 
-  testWidgets('tabs: heartbeat on normal tabs, quiet on list tabs', (
+  testWidgets('loading: the heartbeat only shows when the wait is noticeable', (
     tester,
   ) async {
-    Widget shell(int index) => MaterialApp(
-      theme: AppTheme.patientTheme,
-      home: Scaffold(
-        body: HeartbeatTabSwitcher(
-          index: index,
-          quietTabs: const {1},
-          child: Text('tab $index'),
-        ),
-      ),
-    );
-    await tester.pumpWidget(shell(0));
-    expect(find.byType(HeartbeatLoader), findsNothing);
-
-    await tester.pumpWidget(shell(1)); // list tab
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byType(HeartbeatLoader), findsNothing);
-
-    await tester.pumpWidget(shell(2)); // normal tab
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byType(HeartbeatLoader), findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 600));
-    expect(find.byType(HeartbeatLoader), findsOneWidget);
-    await tester.pump(kHeartbeatTabDuration);
-    expect(find.byType(HeartbeatLoader), findsNothing);
-    expect(find.text('tab 2'), findsOneWidget);
-  });
-
-  testWidgets('loading placeholder is the heartbeat', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.patientTheme,
         home: const Scaffold(body: LoadingView(message: 'Loading your data')),
       ),
     );
+    // A quick load never flashes the heartbeat.
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(HeartbeatLoader), findsNothing);
+    // A longer one does.
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(HeartbeatLoader), findsOneWidget);
     expect(find.text('Loading your data'), findsOneWidget);
@@ -121,7 +87,7 @@ void main() {
       expect(theme.navigationBarTheme.indicatorColor, Colors.transparent);
       expect(
         theme.pageTransitionsTheme.builders[TargetPlatform.android],
-        isA<HeartbeatPageTransitionsBuilder>(),
+        isA<CalmPageTransitionsBuilder>(),
       );
     }
   });

@@ -15,7 +15,7 @@ class LoadingView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: LayoutBuilder(
-        builder: (context, c) => HeartbeatLoader(
+        builder: (context, c) => DelayedHeartbeat(
           // Smaller in tight spaces (cards, sheets).
           size: c.maxHeight < 160 ? 30 : 48,
           message: message,

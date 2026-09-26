@@ -455,6 +455,16 @@ class _SeeNowBarState extends ConsumerState<_SeeNowBar> {
             specialty: draft.specialty,
             symptoms: draft.symptoms,
           );
+      // The extras never block the booking.
+      final repo = ref.read(consultationRepositoryProvider);
+      if (!draft.doctorVideo) {
+        await repo
+            .setVideoPreference(id, doctorVideo: false)
+            .catchError((_) {});
+      }
+      if (draft.voiceNotePath != null) {
+        await repo.attachVoiceNote(id, draft.voiceNotePath!).catchError((_) {});
+      }
       if (mounted) context.push('/patient/consult/$id/pay');
     } catch (e) {
       if (!mounted) return;

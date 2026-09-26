@@ -1,20 +1,14 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// How long a screen change takes. The heartbeat is fully visible for about
-/// 0.8 s of it (one clear "lub-dub"), then the new screen fades in. Long
-/// enough to notice, short enough not to feel slow.
-const kHeartbeatScreenDuration = Duration(milliseconds: 1250);
-
-/// How long switching bottom-nav tabs shows the heartbeat.
-const kHeartbeatTabDuration = Duration(milliseconds: 1100);
-
-/// A beating heart ("lub-dub") over a moving ECG trace. Used while a screen
-/// loads, between screens, and between tabs. Galleries and lists keep their
-/// own skeleton placeholders instead.
+/// A beating heart ("lub-dub") over a moving ECG trace: GoDoctor's sign for
+/// "one moment". Shown when something really takes time (see
+/// [DelayedHeartbeat]) and at big moments (paying, the doctor joining).
+/// Galleries and lists use skeleton placeholders instead.
 class HeartbeatLoader extends StatefulWidget {
   const HeartbeatLoader({super.key, this.size = 56, this.message});
 
@@ -181,32 +175,20 @@ class _TracePainter extends CustomPainter {
 }
 
 // ---------------------------------------------------------------------------
-// Screen changes
+// Screen changes and waits
 // ---------------------------------------------------------------------------
 
-/// Full-screen cover shown while the next screen appears.
-class _HeartbeatCover extends StatelessWidget {
-  const _HeartbeatCover();
+/// App-wide page transition (set in the theme): the new screen fades up
+/// quickly, so fast screens feel fast. The heartbeat is kept for real waits
+/// and big moments.
+class CalmPageTransitionsBuilder extends PageTransitionsBuilder {
+  const CalmPageTransitionsBuilder();
 
   @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: const Center(child: HeartbeatLoader()),
-    );
-  }
-}
-
-/// Page transition used app-wide (set in the theme): a short heartbeat, then
-/// the new screen fades up. Going back is a quick fade with no heartbeat.
-class HeartbeatPageTransitionsBuilder extends PageTransitionsBuilder {
-  const HeartbeatPageTransitionsBuilder();
+  Duration get transitionDuration => const Duration(milliseconds: 280);
 
   @override
-  Duration get transitionDuration => kHeartbeatScreenDuration;
-
-  @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 220);
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 200);
 
   @override
   Widget buildTransitions<T>(
@@ -215,126 +197,67 @@ class HeartbeatPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> animation,
     Animation<double> secondaryAnimation,
     Widget child,
-  ) => HeartbeatTransition(animation: animation, child: child);
-}
-
-/// The heartbeat-then-reveal animation for one incoming screen.
-class HeartbeatTransition extends StatelessWidget {
-  const HeartbeatTransition({
-    super.key,
-    required this.animation,
-    required this.child,
-  });
-
-  final Animation<double> animation;
-  final Widget child;
-
-  static final _cover = TweenSequence<double>([
-    TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 6),
-    TweenSequenceItem(tween: ConstantTween(1.0), weight: 62),
-    TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 12),
-    TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
-  ]);
-
-  static const _reveal = Interval(0.70, 1.0, curve: Curves.easeOutCubic);
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      child: child,
-      builder: (context, child) {
-        final t = animation.value;
-        // Leaving (back): quick fade, no heartbeat. The widget structure is
-        // the same in every state so the page is never rebuilt from scratch.
-        final leaving = animation.status == AnimationStatus.reverse;
-        final cover = leaving ? 0.0 : _cover.transform(t);
-        final reveal = leaving
-            ? Curves.easeIn.transform(t)
-            : _reveal.transform(t);
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            Opacity(
-              opacity: reveal,
-              child: Transform.translate(
-                offset: Offset(0, leaving ? 0 : 14 * (1 - reveal)),
-                child: child,
-              ),
-            ),
-            if (cover > 0)
-              IgnorePointer(
-                child: Opacity(opacity: cover, child: const _HeartbeatCover()),
-              ),
-          ],
-        );
-      },
+  ) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeIn,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween(
+          begin: const Offset(0, 0.03),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
     );
   }
 }
 
-/// Plays the heartbeat when switching bottom-nav tabs, except on tabs in
-/// [quietTabs] (galleries and lists, which show their own skeletons).
-class HeartbeatTabSwitcher extends StatefulWidget {
-  const HeartbeatTabSwitcher({
+/// The heartbeat, but only if the wait lasts longer than [delay]: quick
+/// loads never flash it, slow ones get the calm "one moment" sign.
+class DelayedHeartbeat extends StatefulWidget {
+  const DelayedHeartbeat({
     super.key,
-    required this.index,
-    required this.child,
-    this.quietTabs = const {},
+    this.size = 48,
+    this.message,
+    this.delay = const Duration(milliseconds: 250),
   });
 
-  final int index;
-  final Widget child;
-  final Set<int> quietTabs;
+  final double size;
+  final String? message;
+  final Duration delay;
 
   @override
-  State<HeartbeatTabSwitcher> createState() => _HeartbeatTabSwitcherState();
+  State<DelayedHeartbeat> createState() => _DelayedHeartbeatState();
 }
 
-class _HeartbeatTabSwitcherState extends State<HeartbeatTabSwitcher>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: kHeartbeatTabDuration,
-    value: 1,
-  );
-
-  static final _cover = TweenSequence<double>([
-    TweenSequenceItem(tween: ConstantTween(1.0), weight: 72),
-    TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 28),
-  ]);
+class _DelayedHeartbeatState extends State<DelayedHeartbeat> {
+  Timer? _timer;
+  bool _show = false;
 
   @override
-  void didUpdateWidget(HeartbeatTabSwitcher old) {
-    super.didUpdateWidget(old);
-    if (old.index != widget.index && !widget.quietTabs.contains(widget.index)) {
-      _c.forward(from: 0);
-    }
+  void initState() {
+    super.initState();
+    _timer = Timer(widget.delay, () {
+      if (mounted) setState(() => _show = true);
+    });
   }
 
   @override
   void dispose() {
-    _c.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        widget.child,
-        AnimatedBuilder(
-          animation: _c,
-          builder: (context, _) {
-            final cover = _c.isAnimating ? _cover.transform(_c.value) : 0.0;
-            if (cover <= 0) return const SizedBox.shrink();
-            return IgnorePointer(
-              child: Opacity(opacity: cover, child: const _HeartbeatCover()),
-            );
-          },
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => AnimatedOpacity(
+    opacity: _show ? 1 : 0,
+    duration: const Duration(milliseconds: 200),
+    child: _show
+        ? HeartbeatLoader(size: widget.size, message: widget.message)
+        : SizedBox(height: widget.size * 1.6),
+  );
 }

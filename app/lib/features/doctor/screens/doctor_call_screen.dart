@@ -7,16 +7,15 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../core/widgets/video_call_panel.dart';
 import '../../../data/models/consultation.dart';
-import '../../../data/models/drug.dart';
 import '../../../data/models/patient_profile.dart';
 import '../../../data/models/prescription.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
-import '../../medicine/medicine_gallery.dart';
 import '../../patient/family/family_providers.dart';
-import '../../prescription/digital_prescription.dart';
-import '../widgets/dose_sheet.dart';
+import '../widgets/prescribing.dart';
+import '../widgets/visit_summary_editor.dart';
+import '../widgets/voice_note_player.dart';
 
 final _consultationDetailProvider = FutureProvider.autoDispose
     .family<
@@ -38,18 +37,11 @@ final _consultationDetailProvider = FutureProvider.autoDispose
       return (consultation: consultation, intake: intake, patient: patient);
     });
 
-/// Prescriptions already sent from this consultation (live).
-final _sentProvider = StreamProvider.autoDispose
-    .family<List<Prescription>, String>(
-      (ref, consultationId) => ref
-          .watch(prescriptionRepositoryProvider)
-          .watchForConsultation(consultationId),
-    );
-
 /// The doctor's side of a consultation: the (mock) video call on top -- it
 /// can shrink into a floating window -- and underneath, the patient's
-/// details, the medicine gallery to prescribe from, and the digital
-/// prescription, which is sent to the patient while the call continues.
+/// details, the medicine gallery to prescribe from, the digital
+/// prescription (sent while the call continues), and the visit summary the
+/// patient keeps afterwards.
 class DoctorCallScreen extends ConsumerStatefulWidget {
   const DoctorCallScreen({super.key, required this.consultationId});
 
@@ -60,49 +52,42 @@ class DoctorCallScreen extends ConsumerStatefulWidget {
 }
 
 class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
-    with SingleTickerProviderStateMixin {
+    with
+        SingleTickerProviderStateMixin,
+        PrescriptionDrafting<DoctorCallScreen> {
   final _searchCtrl = TextEditingController();
-  late final _tabs = TabController(length: 3, vsync: this);
-
-  /// Medicines chosen but not yet sent.
-  final List<PrescriptionItem> _draft = [];
-  bool _sending = false;
+  late final _tabs = TabController(length: 4, vsync: this);
+  final _summary = VisitSummaryDraft();
+  bool _summaryLoaded = false;
   bool _finishing = false;
   bool _videoMinimized = false;
   Offset? _pip;
 
   @override
+  String get draftConsultationId => widget.consultationId;
+
+  @override
+  void initState() {
+    super.initState();
+    // Tell the patient's waiting room that the doctor is here.
+    final repo = ref.read(consultationRepositoryProvider);
+    Future.sync(
+      () => repo.markDoctorJoined(widget.consultationId),
+    ).catchError((_) {});
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     _tabs.dispose();
+    _summary.dispose();
     super.dispose();
   }
 
-  void _toast(String m, {SnackBarAction? action}) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(m), action: action));
-  }
-
-  int _draftIndexOf(Drug drug) => _draft.indexWhere((i) => i.drugId == drug.id);
-
-  Future<void> _prescribe(Drug? drug, {int? editIndex}) async {
-    final index = editIndex ?? (drug == null ? -1 : _draftIndexOf(drug));
-    final item = await showDoseSheet(
-      context,
-      drug: drug ?? (index >= 0 ? _draft[index].drug : null),
-      existing: index >= 0 ? _draft[index] : null,
-    );
-    if (item == null || !mounted) return;
-    setState(() {
-      if (index >= 0) {
-        _draft[index] = item;
-      } else {
-        _draft.add(item);
-      }
-    });
-    _toast(
-      index >= 0
+  @override
+  void onDraftChanged(PrescriptionItem item, {required bool updated}) {
+    toast(
+      updated
           ? 'Updated ${item.displayName}'
           : 'Added ${item.displayName} to the prescription',
       action: _tabs.index == 2
@@ -111,36 +96,44 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
     );
   }
 
-  Future<void> _send(String patientName) async {
-    setState(() => _sending = true);
+  Future<bool> _saveSummary({bool quiet = false}) async {
+    if (!_summary.hasContent) return true;
     try {
       await ref
-          .read(prescriptionRepositoryProvider)
-          .issueForConsultation(
-            consultationId: widget.consultationId,
-            items: List.of(_draft),
+          .read(consultationRepositoryProvider)
+          .saveVisitSummary(
+            widget.consultationId,
+            summary: _summary.summaryText,
+            redFlags: _summary.redFlagsText,
+            followUpOn: _summary.followUpOn,
           );
-      if (!mounted) return;
-      setState(_draft.clear);
-      _toast('Prescription sent to $patientName');
+      _summary.markSaved();
+      if (!quiet && mounted) toast('Summary saved. The patient will see it.');
+      return true;
     } catch (e) {
-      if (mounted) _toast(friendlyError(e));
-    } finally {
-      if (mounted) setState(() => _sending = false);
+      if (mounted) toast('Could not save the summary: ${friendlyError(e)}');
+      return false;
     }
   }
 
   Future<void> _endConsultation() async {
-    final unsent = _draft.length;
+    final unsent = draft.length;
+    final noSummary = !_summary.hasContent;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('End this consultation?'),
         content: Text(
-          unsent == 0
-              ? 'The call ends for both of you. Prescriptions you sent stay with the patient.'
-              : 'You have $unsent medicine${unsent == 1 ? '' : 's'} on the prescription that '
-                    '${unsent == 1 ? 'has' : 'have'} not been sent. They will be discarded.',
+          [
+            if (unsent == 0)
+              'The call ends for both of you. Prescriptions you sent stay with the patient.'
+            else
+              'You have $unsent medicine${unsent == 1 ? '' : 's'} on the prescription that '
+                  '${unsent == 1 ? 'has' : 'have'} not been sent. They will be discarded.',
+            if (noSummary)
+              'Tip: a short visit summary (Summary tab) helps the patient remember what you said.',
+            'The patient can message you free for 24 hours after this.',
+          ].join('\n\n'),
         ),
         actions: [
           TextButton(
@@ -158,6 +151,7 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
     if (ok != true || !mounted) return;
     setState(() => _finishing = true);
     try {
+      if (_summary.dirty) await _saveSummary(quiet: true);
       await ref
           .read(consultationRepositoryProvider)
           .completeConsultation(widget.consultationId);
@@ -165,7 +159,7 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
       if (mounted) context.go('/doctor');
     } catch (e) {
       if (mounted) {
-        _toast('Could not end the consultation: ${friendlyError(e)}');
+        toast('Could not end the consultation: ${friendlyError(e)}');
       }
     } finally {
       if (mounted) setState(() => _finishing = false);
@@ -206,6 +200,10 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
           if (consultation == null) {
             return const ErrorView(message: 'Consultation not found');
           }
+          if (!_summaryLoaded) {
+            _summaryLoaded = true;
+            _summary.load(consultation);
+          }
           final patientName = (detail.patient?.name.isNotEmpty ?? false)
               ? detail.patient!.name
               : 'Patient';
@@ -223,29 +221,37 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
                     ? doctor.name
                     : 'Dr ${doctor.name}')
               : 'Your doctor';
+          // The patient asked for the doctor's camera to stay off (data).
+          final myCameraOff = !consultation.doctorVideoPreferred;
 
           final patientTab = _PatientTab(
             patient: detail.patient,
             intake: detail.intake,
             consultation: consultation,
           );
-          final medicinesTab = _MedicinesTab(
+          final medicinesTab = PrescribeMedicinesPanel(
             searchCtrl: _searchCtrl,
             onSearch: (_) => setState(() {}),
-            draft: _draft,
-            onPrescribe: _prescribe,
+            draft: draft,
+            onPrescribe: (drug, {template}) =>
+                prescribe(drug, template: template),
           );
-          final prescriptionTab = _PrescriptionTab(
+          final prescriptionTab = PrescriptionDraftPanel(
             consultationId: widget.consultationId,
             doctorName: doctorName,
             doctorDetail: doctor?.specialties.firstOrNull,
             patientName: patientName,
-            draft: _draft,
-            sending: _sending,
-            onEdit: (i) => _prescribe(null, editIndex: i),
-            onRemove: (i) => setState(() => _draft.removeAt(i)),
-            onSend: () => _send(patientName),
+            draft: draft,
+            sending: sending,
+            onEdit: (i) => prescribe(null, editIndex: i),
+            onRemove: (i) => setState(() => draft.removeAt(i)),
+            onSend: () => sendDraft(patientName),
             onBrowse: () => _tabs.animateTo(1),
+          );
+          final summaryTab = VisitSummaryEditor(
+            draft: _summary,
+            patientName: patientName,
+            onSave: _saveSummary,
           );
 
           return LayoutBuilder(
@@ -253,19 +259,27 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
               final wide = c.maxWidth >= 1000;
               final tabBar = TabBar(
                 controller: _tabs,
+                isScrollable: c.maxWidth < 420,
+                tabAlignment: c.maxWidth < 420 ? TabAlignment.start : null,
                 tabs: [
                   const Tab(text: 'Patient'),
                   const Tab(text: 'Medicines'),
                   Tab(
-                    text: _draft.isEmpty
+                    text: draft.isEmpty
                         ? 'Prescription'
-                        : 'Prescription (${_draft.length})',
+                        : 'Prescription (${draft.length})',
                   ),
+                  const Tab(text: 'Summary'),
                 ],
               );
               final tabViews = TabBarView(
                 controller: _tabs,
-                children: [patientTab, medicinesTab, prescriptionTab],
+                children: [
+                  patientTab,
+                  medicinesTab,
+                  prescriptionTab,
+                  summaryTab,
+                ],
               );
 
               if (wide) {
@@ -283,6 +297,7 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
                             otherPartyRole: 'Patient',
                             listeners: listeners,
                             startedAt: consultation.startedAt,
+                            startWithCameraOff: myCameraOff,
                             onEndCall: _endConsultation,
                           ),
                           const SizedBox(height: 16),
@@ -326,6 +341,7 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
                             listeners: listeners,
                             startedAt: consultation.startedAt,
                             height: videoHeight,
+                            startWithCameraOff: myCameraOff,
                             onEndCall: _endConsultation,
                             onMinimize: () =>
                                 setState(() => _videoMinimized = true),
@@ -432,12 +448,44 @@ class _PatientSummary extends StatelessWidget {
                 '${_age(p!.dateOfBirth!)} years old',
                 style: theme.bodySmall,
               ),
+            if (!consultation.doctorVideoPreferred) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySofter,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      LucideIcons.videoOff,
+                      size: 16,
+                      color: AppColors.ink,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'The patient asked for your camera to be off to save '
+                        'their data. Switch it on if you need to show something.',
+                        style: theme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             _InfoBlock(
               icon: LucideIcons.messageSquareText,
               label: '${consultation.specialtyRequested} · reason for visit',
               value: consultation.symptomSummary,
             ),
+            if (intake?.voiceNotePath != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: VoiceNotePlayer(path: intake!.voiceNotePath!),
+              ),
             if (intake?.duration != null || intake?.severity != null)
               _InfoBlock(
                 icon: LucideIcons.clock3,
@@ -525,239 +573,6 @@ class _InfoBlock extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Medicines tab
-// ---------------------------------------------------------------------------
-
-class _MedicinesTab extends ConsumerWidget {
-  const _MedicinesTab({
-    required this.searchCtrl,
-    required this.onSearch,
-    required this.draft,
-    required this.onPrescribe,
-  });
-
-  final TextEditingController searchCtrl;
-  final ValueChanged<String> onSearch;
-  final List<PrescriptionItem> draft;
-  final Future<void> Function(Drug? drug) onPrescribe;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final catalog = ref.watch(medicineCatalogProvider);
-    final prescribedIds = {
-      for (final i in draft)
-        if (i.drugId != null) i.drugId!,
-    };
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-          child: Row(
-            children: [
-              Expanded(
-                child: MedicineSearchField(
-                  controller: searchCtrl,
-                  onChanged: onSearch,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Tooltip(
-                message: 'Prescribe a medicine that is not in the list',
-                child: OutlinedButton.icon(
-                  onPressed: () => onPrescribe(null),
-                  icon: const Icon(LucideIcons.pencilLine, size: 16),
-                  label: const Text('By name'),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: catalog.when(
-            loading: () => const MedicineGallerySkeleton(showcaseHeight: 220),
-            error: (e, _) => ErrorView(
-              message: friendlyError(e),
-              onRetry: () => ref.invalidate(medicineCatalogProvider),
-            ),
-            data: (drugs) => LayoutBuilder(
-              builder: (context, c) => MedicineGallery(
-                drugs: drugs,
-                query: searchCtrl.text,
-                markedIds: prescribedIds,
-                markIcon: LucideIcons.clipboardCheck,
-                markColor: AppColors.primary,
-                showcaseHeight: (c.maxHeight * 0.5).clamp(200.0, 290.0),
-                emptyMessage: 'The medicine catalogue is empty.',
-                footerBuilder: (context, drug) {
-                  final line = draft
-                      .where((i) => i.drugId == drug.id)
-                      .firstOrNull;
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          line == null
-                              ? 'Tap Prescribe to choose the dose.'
-                              : 'On prescription: ${line.dosage ?? ''} · Qty ${line.quantity}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: line == null
-                                    ? AppColors.inkSoft
-                                    : AppColors.primaryDark,
-                                fontWeight: line == null
-                                    ? null
-                                    : FontWeight.w600,
-                              ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 44),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                        ),
-                        onPressed: () => onPrescribe(drug),
-                        icon: Icon(
-                          line == null
-                              ? LucideIcons.clipboardPlus
-                              : LucideIcons.pencil,
-                          size: 17,
-                        ),
-                        label: Text(line == null ? 'Prescribe' : 'Edit dose'),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Prescription tab
-// ---------------------------------------------------------------------------
-
-class _PrescriptionTab extends ConsumerWidget {
-  const _PrescriptionTab({
-    required this.consultationId,
-    required this.doctorName,
-    required this.doctorDetail,
-    required this.patientName,
-    required this.draft,
-    required this.sending,
-    required this.onEdit,
-    required this.onRemove,
-    required this.onSend,
-    required this.onBrowse,
-  });
-
-  final String consultationId;
-  final String doctorName;
-  final String? doctorDetail;
-  final String patientName;
-  final List<PrescriptionItem> draft;
-  final bool sending;
-  final ValueChanged<int> onEdit;
-  final ValueChanged<int> onRemove;
-  final VoidCallback onSend;
-  final VoidCallback onBrowse;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context).textTheme;
-    final sent = ref.watch(_sentProvider(consultationId)).valueOrNull ?? [];
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      children: [
-        DigitalPrescription(
-          doctorName: doctorName,
-          doctorDetail: doctorDetail,
-          patientName: patientName,
-          items: draft,
-          onEditItem: onEdit,
-          onRemoveItem: onRemove,
-        ),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            OutlinedButton.icon(
-              onPressed: onBrowse,
-              icon: const Icon(LucideIcons.plus, size: 16),
-              label: const Text('Add medicine'),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: draft.isEmpty || sending ? null : onSend,
-                icon: sending
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(LucideIcons.send, size: 16),
-                label: Text(
-                  sending ? 'Sending…' : 'Send to $patientName',
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (sent.isNotEmpty) ...[
-          const SizedBox(height: 28),
-          Row(
-            children: [
-              const Icon(
-                LucideIcons.circleCheck,
-                size: 18,
-                color: AppColors.success,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Sent to the patient (${sent.length})',
-                  style: theme.titleSmall,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'They can see it now and order the medicines from a chemist.',
-            style: theme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          for (final p in sent.reversed) ...[
-            DigitalPrescription(
-              doctorName: doctorName,
-              doctorDetail: doctorDetail,
-              patientName: patientName,
-              items: p.items,
-              issuedAt: p.issuedAt.toLocal(),
-              validUntil: p.validUntil,
-              reference: p.id,
-            ),
-            const SizedBox(height: 14),
-          ],
-        ],
-      ],
     );
   }
 }

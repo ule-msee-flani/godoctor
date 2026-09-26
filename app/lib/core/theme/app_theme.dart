@@ -78,15 +78,15 @@ class AppTheme {
     );
   }
 
-  /// A short heartbeat between screens (see HeartbeatPageTransitionsBuilder).
+  /// Quick fade-up between screens (see CalmPageTransitionsBuilder).
   static const _heartbeatTransitions = PageTransitionsTheme(
     builders: {
-      TargetPlatform.android: HeartbeatPageTransitionsBuilder(),
-      TargetPlatform.iOS: HeartbeatPageTransitionsBuilder(),
-      TargetPlatform.macOS: HeartbeatPageTransitionsBuilder(),
-      TargetPlatform.windows: HeartbeatPageTransitionsBuilder(),
-      TargetPlatform.linux: HeartbeatPageTransitionsBuilder(),
-      TargetPlatform.fuchsia: HeartbeatPageTransitionsBuilder(),
+      TargetPlatform.android: CalmPageTransitionsBuilder(),
+      TargetPlatform.iOS: CalmPageTransitionsBuilder(),
+      TargetPlatform.macOS: CalmPageTransitionsBuilder(),
+      TargetPlatform.windows: CalmPageTransitionsBuilder(),
+      TargetPlatform.linux: CalmPageTransitionsBuilder(),
+      TargetPlatform.fuchsia: CalmPageTransitionsBuilder(),
     },
   );
 

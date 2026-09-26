@@ -26,6 +26,8 @@ class VideoCallPanel extends StatefulWidget {
     this.onMinimize,
     this.onExpand,
     this.listeners = const [],
+    this.remoteCameraOff = false,
+    this.startWithCameraOff = false,
   });
 
   final String otherPartyName;
@@ -48,6 +50,13 @@ class VideoCallPanel extends StatefulWidget {
   /// Family members listening in (family session), shown under the name.
   final List<String> listeners;
 
+  /// The other person keeps their camera off (e.g. the patient asked the
+  /// doctor to, to save data): their tile shows their initials only.
+  final bool remoteCameraOff;
+
+  /// Start with my own camera off (data saver). Still switchable.
+  final bool startWithCameraOff;
+
   @override
   State<VideoCallPanel> createState() => _VideoCallPanelState();
 }
@@ -61,7 +70,7 @@ class _VideoCallPanelState extends State<VideoCallPanel>
   )..repeat(reverse: true);
   Timer? _ticker;
   bool _muted = false;
-  bool _cameraOff = false;
+  late bool _cameraOff = widget.startWithCameraOff;
 
   @override
   void initState() {
@@ -112,28 +121,49 @@ class _VideoCallPanelState extends State<VideoCallPanel>
         ),
       ),
       child: Center(
-        child: AnimatedBuilder(
-          animation: _pulse,
-          builder: (context, child) => Container(
-            padding: EdgeInsets.all(4 + 6 * _pulse.value),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.05 + 0.05 * _pulse.value),
-            ),
-            child: child,
-          ),
-          child: CircleAvatar(
-            radius: avatar,
-            backgroundColor: AppColors.primary,
-            child: Text(
-              _initials,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: avatar * 0.7,
-                fontWeight: FontWeight.w700,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedBuilder(
+              animation: _pulse,
+              builder: (context, child) => Container(
+                padding: EdgeInsets.all(4 + 6 * _pulse.value),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(
+                    alpha: 0.05 + 0.05 * _pulse.value,
+                  ),
+                ),
+                child: child,
+              ),
+              child: CircleAvatar(
+                radius: avatar,
+                backgroundColor: AppColors.primary,
+                child: Text(
+                  _initials,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: avatar * 0.7,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
-          ),
+            if (widget.remoteCameraOff && avatar > 26) ...[
+              const SizedBox(height: 6),
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(LucideIcons.videoOff, size: 12, color: Colors.white70),
+                  SizedBox(width: 4),
+                  Text(
+                    'Camera off',
+                    style: TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+                ],
+              ),
+            ],
+          ],
         ),
       ),
     );

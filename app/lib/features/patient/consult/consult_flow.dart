@@ -5,10 +5,28 @@ import '../../../core/theme/app_colors.dart';
 
 /// What the patient told us in step 1, carried into steps 2 and 3.
 class ConsultDraft {
-  const ConsultDraft({required this.specialty, required this.symptoms});
+  const ConsultDraft({
+    required this.specialty,
+    required this.symptoms,
+    this.voiceNotePath,
+    this.doctorVideo = true,
+  });
 
   final String specialty;
   final String symptoms;
+
+  /// Recorded description, already uploaded (private voice-notes bucket).
+  final String? voiceNotePath;
+
+  /// Whether the patient would like the doctor's camera on.
+  final bool doctorVideo;
+
+  ConsultDraft copyWith({bool? doctorVideo}) => ConsultDraft(
+    specialty: specialty,
+    symptoms: symptoms,
+    voiceNotePath: voiceNotePath,
+    doctorVideo: doctorVideo ?? this.doctorVideo,
+  );
 }
 
 /// The in-progress "See a doctor" request (null until step 1 is done).

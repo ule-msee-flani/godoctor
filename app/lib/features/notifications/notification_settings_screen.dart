@@ -98,8 +98,7 @@ class _NotificationSettingsScreenState
                           category: kPushCategories[i],
                           on: !muted.contains(kPushCategories[i].id),
                           locked: kPushCategories[i].id == 'urgent',
-                          onChanged: (v) =>
-                              _toggle(kPushCategories[i].id, v),
+                          onChanged: (v) => _toggle(kPushCategories[i].id, v),
                         ),
                       ],
                     ],

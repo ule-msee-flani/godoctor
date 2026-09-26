@@ -10,17 +10,22 @@ import '../../patient/widgets/medicine_image.dart';
 /// Asks the doctor for dose, quantity and instructions for [drug] (or, when
 /// [drug] is null, for a medicine typed by name that is not in the
 /// catalogue). Returns the prescription line, or null if dismissed.
+///
+/// [existing] edits a line already on the prescription; [template] (one of
+/// the doctor's usual prescriptions) only pre-fills a new one.
 Future<PrescriptionItem?> showDoseSheet(
   BuildContext context, {
   Drug? drug,
   PrescriptionItem? existing,
+  PrescriptionItem? template,
 }) {
   return showModalBottomSheet<PrescriptionItem>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => _DoseSheet(drug: drug, existing: existing),
+    builder: (_) =>
+        _DoseSheet(drug: drug, existing: existing, template: template),
   );
 }
 
@@ -64,26 +69,26 @@ const _instructionChips = [
 ];
 
 class _DoseSheet extends StatefulWidget {
-  const _DoseSheet({this.drug, this.existing});
+  const _DoseSheet({this.drug, this.existing, this.template});
 
   final Drug? drug;
   final PrescriptionItem? existing;
+  final PrescriptionItem? template;
 
   @override
   State<_DoseSheet> createState() => _DoseSheetState();
 }
 
 class _DoseSheetState extends State<_DoseSheet> {
+  late final PrescriptionItem? _prefill = widget.existing ?? widget.template;
   late final _nameCtrl = TextEditingController(
-    text: widget.existing?.freeTextName ?? '',
+    text: _prefill?.freeTextName ?? _prefill?.drugName ?? '',
   );
-  late final _doseCtrl = TextEditingController(
-    text: widget.existing?.dosage ?? '',
-  );
+  late final _doseCtrl = TextEditingController(text: _prefill?.dosage ?? '');
   late final _instructionsCtrl = TextEditingController(
-    text: widget.existing?.instructions ?? '',
+    text: _prefill?.instructions ?? '',
   );
-  late int _quantity = widget.existing?.quantity ?? 1;
+  late int _quantity = _prefill?.quantity ?? 1;
 
   bool get _freeText => widget.drug == null;
 

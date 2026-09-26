@@ -265,6 +265,12 @@ class _FormState extends ConsumerState<_Form> {
               title: 'Account',
               children: [
                 SettingsTile(
+                  icon: LucideIcons.history,
+                  title: 'Consultation history',
+                  subtitle: 'Past patients and their reviews',
+                  onTap: () => context.push('/doctor/history'),
+                ),
+                SettingsTile(
                   icon: LucideIcons.headset,
                   title: 'Support & feedback',
                   subtitle: 'Get help, report a problem, send feedback',

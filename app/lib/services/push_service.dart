@@ -43,6 +43,18 @@ const kPushCategories = <PushCategory>[
     Importance.high,
   ),
   PushCategory(
+    'chat',
+    'Messages from your doctor or patient',
+    'The free chat after a consultation',
+    Importance.high,
+  ),
+  PushCategory(
+    'reminders',
+    'Medicine reminders',
+    'Time to take your medicine',
+    Importance.high,
+  ),
+  PushCategory(
     'orders',
     'Prescriptions, orders and payments',
     'New prescriptions, order updates, receipts',
@@ -96,13 +108,9 @@ final pushServiceProvider = Provider<PushService>((ref) {
     router: () => ref.read(appRouterProvider),
     role: () async => (await ref.read(currentAppUserProvider.future))?.role,
   );
-  ref.listen<String?>(
-    currentUserIdProvider,
-    (_, userId) {
-      if (userId != null) service.registerDevice();
-    },
-    fireImmediately: true,
-  );
+  ref.listen<String?>(currentUserIdProvider, (_, userId) {
+    if (userId != null) service.registerDevice();
+  }, fireImmediately: true);
   ref.onDispose(service.dispose);
   service.start();
   return service;
@@ -264,9 +272,11 @@ class PushService {
 
   static const _tabRoots = {
     '/patient',
+    '/patient/chats',
+    '/patient/health',
     '/patient/profile',
     '/doctor',
-    '/doctor/history',
+    '/doctor/chats',
     '/doctor/profile',
     '/chemist',
     '/chemist/account',

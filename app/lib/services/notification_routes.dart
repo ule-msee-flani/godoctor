@@ -18,7 +18,6 @@ String? routeForNotification({
   final order = id('order_id');
   final ticket = id('ticket_id');
   final prescription = id('prescription_id');
-  final scheduled = id('mode') == 'scheduled';
 
   // Support replies look the same for everyone.
   if (kind == 'support_reply' && ticket != null) {
@@ -45,9 +44,10 @@ String? routeForNotification({
         'appointment_reminder' when consultation != null =>
           '/patient/appointment/$consultation',
         'consultation_completed' when consultation != null =>
-          scheduled
-              ? '/patient/appointment/$consultation'
-              : '/patient/waiting/$consultation',
+          '/patient/visit/$consultation',
+        'chat_message' when consultation != null =>
+          '/patient/chat/$consultation',
+        'dose_due' => '/patient/health',
         'request_expired' ||
         'consultation_cancelled' => '/patient/consultation-history',
         'order_confirmed' ||
@@ -60,9 +60,8 @@ String? routeForNotification({
 
     case UserRole.doctor:
       return switch (kind) {
-        'patient_paid' ||
-        'patient_waiting' ||
-        'family_joined' when consultation != null =>
+        'patient_paid' || 'patient_waiting' || 'family_joined'
+            when consultation != null =>
           '/doctor/call/$consultation',
         'patient_selected' ||
         'patient_cancelled' ||
@@ -72,6 +71,8 @@ String? routeForNotification({
         'appointment_cancelled' ||
         'appointment_rescheduled' ||
         'appointment_reminder' => '/doctor',
+        'chat_message' when consultation != null =>
+          '/doctor/chat/$consultation',
         'review_new' => '/doctor/history',
         'verification_approved' || 'verification_removed' => '/doctor/profile',
         _ => null,
@@ -83,16 +84,15 @@ String? routeForNotification({
         'order_completed' ||
         'order_disputed' ||
         'order_refunded' => '/chemist',
-        'verification_approved' ||
-        'verification_removed' => '/chemist/account',
+        'verification_approved' || 'verification_removed' => '/chemist/account',
         _ => null,
       };
 
     case UserRole.admin:
       return switch (kind) {
         'verification_submitted' => '/admin/verification',
-        'support_new' || 'support_user_reply' when ticket != null =>
-          '/admin/support/$ticket',
+        'support_new' ||
+        'support_user_reply' when ticket != null => '/admin/support/$ticket',
         'order_disputed' => '/admin/orders',
         'emergency_flagged' => '/admin/consultations',
         _ => null,

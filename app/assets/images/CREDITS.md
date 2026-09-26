@@ -7,10 +7,10 @@ Replace any of them by saving a new file with the same name (any of .jpg/.png/.w
 
 | File | Title | Creator | Licence | Source |
 |---|---|---|---|---|
-| `assets/images/home/see_doctor.jpg` | Female Doctor | Direct Media | CC0 | https://stocksnap.io/photo/female-doctor-WINC1QDMT4 |
+| `assets/images/home/see_doctor.jpg` | Health worker in Miritini Dispensary, Mombasa examining a baby | President's Malaria Initiative (US Government) | PUBLIC DOMAIN | https://commons.wikimedia.org/wiki/File:Health_worker_in_Miritini_Dispensary,_Mombasa_examining_a_baby_(14594385204).jpg |
 | `assets/images/home/order_medicine.jpg` | Pills Medicine | Freestocks.org | CC0 | https://stocksnap.io/photo/pills-medicine-1ZOMOXPNDS |
 | `assets/images/specialties/general.jpg` | Stethoscope Medical | Negative Space | CC0 | https://stocksnap.io/photo/stethoscope-medical-RAW1RLRTM7 |
-| `assets/images/specialties/children.jpg` | A Continuing Promise 2015 physician examines a child.jpg | Official U.S. Navy Page | PUBLIC DOMAIN | https://commons.wikimedia.org/wiki/File:A_Continuing_Promise_2015_physician_examines_a_child.jpg |
+| `assets/images/specialties/children.jpg` | A health worker performs rapid diagnostic test (RDT) on a mother and her children (Kenya) | President's Malaria Initiative (US Government) | PUBLIC DOMAIN | https://commons.wikimedia.org/wiki/File:A_health_worker_performs_rapid_diagnostic_test_(RDT)_on_a_mother_and_her_children_(14573272156).jpg |
 | `assets/images/specialties/obgyn.jpg` | Pregnant Woman | William Stitt | CC0 | https://stocksnap.io/photo/pregnant-woman-0MLHM34HE1 |
 | `assets/images/specialties/internal.webp` | Free blood pressure monitor image | unknown | CC0 | https://www.rawpixel.com/image/5924328/photo-image-public-domain-person-doctor |
 | `assets/images/specialties/skin.jpg` | Beauty Woman | Authentic Stock | CC0 | https://stocksnap.io/photo/beauty-woman-P1KLMCNBPU |

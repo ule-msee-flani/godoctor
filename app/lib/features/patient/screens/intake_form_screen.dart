@@ -5,9 +5,13 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/doctor_profile.dart';
+import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../../../services/data_saver.dart';
 import '../../../services/emergency_check.dart';
 import '../consult/consult_flow.dart';
+import '../consult/voice_note_recorder.dart';
+import '../home/emergency_strip.dart';
 import '../widgets/emergency_stop_view.dart';
 import '../widgets/specialty_tiles.dart';
 
@@ -34,6 +38,8 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
     text: widget.initialSymptoms,
   );
   EmergencyCheckResult? _emergencyResult;
+  VoiceRecording? _voice;
+  bool _uploading = false;
 
   @override
   void initState() {
@@ -75,9 +81,42 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
       return;
     }
 
+    // Upload the voice note now so the doctor can play it before the call.
+    String? voicePath;
+    final voice = _voice;
+    final userId = ref.read(currentUserIdProvider);
+    if (voice != null && userId != null) {
+      setState(() => _uploading = true);
+      try {
+        voicePath = await ref
+            .read(consultationRepositoryProvider)
+            .uploadVoiceNote(
+              patientId: userId,
+              bytes: voice.bytes,
+              fileExt: voice.fileExt,
+              contentType: voice.contentType,
+            );
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'The voice note couldn\'t be sent. Your written description will still reach the doctor.',
+              ),
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _uploading = false);
+      }
+    }
+    if (!mounted) return;
+
     ref.read(consultDraftProvider.notifier).state = ConsultDraft(
       specialty: _specialty!,
       symptoms: symptoms,
+      voiceNotePath: voicePath,
+      doctorVideo: !ref.read(dataSaverProvider),
     );
     context.push('/patient/consult/doctors');
   }
@@ -151,6 +190,12 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
                       'Your doctor reads this before the consultation starts.',
                       style: theme.bodySmall,
                     ),
+                    const SizedBox(height: 14),
+                    VoiceNoteRecorder(
+                      onChanged: (v) => setState(() => _voice = v),
+                    ),
+                    const SizedBox(height: 24),
+                    const EmergencyStrip(),
                   ],
                 ),
               ),
@@ -163,10 +208,12 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
               ),
               child: FilledButton.icon(
                 icon: const Icon(LucideIcons.search, size: 18),
-                onPressed: _canContinue ? _findDoctor : null,
+                onPressed: _canContinue && !_uploading ? _findDoctor : null,
                 label: Text(
                   _specialty == null
                       ? 'Choose a category first'
+                      : _uploading
+                      ? 'Sending voice note...'
                       : 'Find a doctor',
                 ),
               ),

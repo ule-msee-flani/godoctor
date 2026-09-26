@@ -6,26 +6,20 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/format.dart';
+import '../../../core/utils/local_touch.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/user_avatar.dart';
-import '../../../data/providers/appointment_providers.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/notification_providers.dart';
 import '../../../services/emergency_check.dart';
 import '../../../services/specialty_search.dart';
 import '../family/family_providers.dart';
 import '../family/family_session_screen.dart';
+import '../home/emergency_strip.dart';
+import '../home/smart_home_card.dart';
 import '../widgets/emergency_stop_view.dart' show launchDialer;
 import '../widgets/promo_banner_carousel.dart';
 import '../widgets/specialty_tiles.dart';
-
-String _greeting() {
-  final hour = DateTime.now().hour;
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
@@ -60,7 +54,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     final query = _searchCtrl.text.trim();
     final searching = query.isNotEmpty;
     final unread = ref.watch(unreadNotificationCountProvider);
-    final upcoming = ref.watch(upcomingAppointmentsProvider).valueOrNull;
     final familyInvites =
         ref.watch(myFamilySessionInvitesProvider).valueOrNull ?? const [];
     final avatarPath = ref.watch(currentAppUserProvider).valueOrNull?.avatarUrl;
@@ -79,7 +72,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _greeting(),
+                          LocalTouch.greeting(DateTime.now()),
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         Row(
@@ -88,7 +81,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                               child: Text(
                                 name.isNotEmpty
                                     ? name.split(' ').first
-                                    : 'Welcome',
+                                    : LocalTouch.welcome,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(
@@ -154,20 +147,14 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: FamilyInviteBanner(consultationIds: familyInvites),
                 ),
-              if (upcoming != null && upcoming.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _UpcomingCard(
-                    when: upcoming.first.scheduledFor,
-                    specialty: upcoming.first.specialtyRequested,
-                    live: upcoming.first.canStartNow,
-                    onTap: () => context.push(
-                      '/patient/appointment/${upcoming.first.id}',
-                    ),
-                  ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SmartHomeCard(
+                  onFeeling: (specialty, symptom) =>
+                      _startIntake(specialty, symptoms: symptom),
                 ),
-                const SizedBox(height: 16),
-              ],
+              ),
+              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -219,6 +206,11 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               SpecialtyRow(
                 onSelected: (meta) =>
                     context.push('/patient/specialty/${meta.slug}'),
+              ),
+              const SizedBox(height: 24),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: EmergencyStrip(),
               ),
             ],
           ],
@@ -503,78 +495,6 @@ class _SearchResults extends StatelessWidget {
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-/// "Next appointment" strip shown when the patient has something booked.
-class _UpcomingCard extends StatelessWidget {
-  const _UpcomingCard({
-    required this.when,
-    required this.specialty,
-    required this.live,
-    required this.onTap,
-  });
-
-  final DateTime? when;
-  final String specialty;
-  final bool live;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
-    return Material(
-      color: AppColors.primary,
-      borderRadius: BorderRadius.circular(22),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(22),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  LucideIcons.calendarClock,
-                  color: AppColors.ink,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      live ? 'Your appointment is ready' : 'Next appointment',
-                      style: theme.bodySmall?.copyWith(color: Colors.white70),
-                    ),
-                    Text(
-                      when == null ? specialty : formatRelativeSlot(when!),
-                      style: theme.titleMedium?.copyWith(color: Colors.white),
-                    ),
-                    Text(
-                      specialty,
-                      style: theme.bodySmall?.copyWith(color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                LucideIcons.chevronRight,
-                color: Colors.white70,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
