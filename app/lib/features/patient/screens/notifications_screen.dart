@@ -12,24 +12,20 @@ import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/notification_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
+import '../../../services/notification_routes.dart';
 
-/// Inbox for booking confirmations, reminders and cancellations. Shared by
-/// patients and doctors -- [appointmentRoute] says where tapping an
-/// appointment notification should go for the current role.
+/// The notification inbox, shared by patients, doctors, chemists and
+/// admins. Tapping an item opens the screen it is about (same map as push
+/// notifications: see notification_routes.dart).
 class NotificationsScreen extends ConsumerWidget {
-  const NotificationsScreen({
-    super.key,
-    this.appointmentRoute = '/patient/appointment',
-  });
-
-  /// Null = tapping only marks the notification read.
-  final String? appointmentRoute;
+  const NotificationsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(notificationsProvider);
     final userId = ref.watch(currentUserIdProvider);
     final hasUnread = ref.watch(unreadNotificationCountProvider) > 0;
+    final role = ref.watch(currentAppUserProvider).valueOrNull?.role;
 
     return Scaffold(
       appBar: AppBar(
@@ -41,7 +37,12 @@ class NotificationsScreen extends ConsumerWidget {
                   ref.read(notificationRepositoryProvider).markAllRead(userId),
               child: const Text('Mark all read'),
             ),
-          const SizedBox(width: 8),
+          IconButton(
+            tooltip: 'Notification settings',
+            icon: const Icon(LucideIcons.settings2),
+            onPressed: () => context.push('/account/notifications'),
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: async.when(
@@ -67,24 +68,12 @@ class NotificationsScreen extends ConsumerWidget {
                   await ref.read(notificationRepositoryProvider).markRead(n.id);
                 }
                 if (!context.mounted) return;
-                final route = _routeFor(n, isPatient: appointmentRoute != null);
-                if (route != null) {
-                  context.push(route);
-                  return;
-                }
-                // Prescriptions open straight on "order your medicines"
-                // (patients only; doctors pass a null appointmentRoute).
-                if (n.kind == 'prescription_issued' &&
-                    n.prescriptionId != null &&
-                    appointmentRoute != null) {
-                  context.push(
-                    '/patient/prescription/${n.prescriptionId}/order',
-                  );
-                  return;
-                }
-                if (appointmentRoute != null && n.consultationId != null) {
-                  context.push('$appointmentRoute/${n.consultationId}');
-                }
+                final route = routeForNotification(
+                  kind: n.kind,
+                  data: n.data,
+                  role: role,
+                );
+                if (route != null) context.push(route);
               },
             ),
           );
@@ -94,21 +83,6 @@ class NotificationsScreen extends ConsumerWidget {
   }
 }
 
-/// Where tapping a notification of the newer kinds should go.
-String? _routeFor(AppNotificationItem n, {required bool isPatient}) {
-  final ticket = n.data['ticket_id'] as String?;
-  return switch (n.kind) {
-    'support_reply' when ticket != null => '/account/support/$ticket',
-    'family_invite' ||
-    'family_accepted' when isPatient => '/patient/profile/family',
-    'family_session_invite' when isPatient && n.consultationId != null =>
-      '/patient/family-session/${n.consultationId}',
-    'family_joined' when isPatient && n.consultationId != null =>
-      '/patient/call/${n.consultationId}',
-    _ => null,
-  };
-}
-
 class _NotificationTile extends StatelessWidget {
   const _NotificationTile({required this.item, required this.onTap});
 
@@ -116,17 +90,32 @@ class _NotificationTile extends StatelessWidget {
   final VoidCallback onTap;
 
   IconData get _icon => switch (item.kind) {
+    'patient_selected' || 'patient_waiting' => LucideIcons.userRound,
+    'patient_paid' || 'payment_receipt' => LucideIcons.receipt,
+    'doctor_ready' => LucideIcons.video,
+    'payment_window_ending' => LucideIcons.timer,
     'appointment_booked' => LucideIcons.calendarCheck,
     'appointment_reminder' => LucideIcons.bellRing,
-    'appointment_cancelled' => LucideIcons.calendarX,
+    'appointment_cancelled' ||
+    'consultation_cancelled' ||
+    'request_expired' ||
+    'patient_cancelled' => LucideIcons.calendarX,
     'appointment_rescheduled' => LucideIcons.calendarClock,
+    'consultation_completed' || 'review_new' => LucideIcons.star,
     'prescription_issued' => LucideIcons.fileCheck,
+    'order_new' => LucideIcons.shoppingBag,
+    'order_confirmed' || 'order_ready' || 'order_completed' =>
+      LucideIcons.packageCheck,
+    'order_disputed' || 'order_refunded' => LucideIcons.packageX,
     'family_invite' || 'family_accepted' => LucideIcons.users,
     'family_session_invite' || 'family_joined' => LucideIcons.headphones,
-    'support_reply' => LucideIcons.headset,
+    'support_reply' || 'support_new' || 'support_user_reply' =>
+      LucideIcons.headset,
+    'verification_approved' ||
+    'verification_removed' ||
+    'verification_submitted' => LucideIcons.shieldCheck,
+    'emergency_flagged' => LucideIcons.siren,
     'announcement' => LucideIcons.megaphone,
-    'patient_selected' => LucideIcons.userRound,
-    'patient_paid' => LucideIcons.circleCheck,
     _ => LucideIcons.bell,
   };
 

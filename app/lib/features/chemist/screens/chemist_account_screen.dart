@@ -143,6 +143,12 @@ class ChemistAccountScreen extends ConsumerWidget {
                         context.push('/account/support/new?kind=complaint'),
                   ),
                   SettingsTile(
+                    icon: LucideIcons.bellRing,
+                    title: 'Notifications',
+                    subtitle: 'What GoDoctor alerts you about',
+                    onTap: () => context.push('/account/notifications'),
+                  ),
+                  SettingsTile(
                     icon: LucideIcons.star,
                     title: 'Rate GoDoctor',
                     onTap: () => showRateAppSheet(context),

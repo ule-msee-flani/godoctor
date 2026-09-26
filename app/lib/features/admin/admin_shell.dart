@@ -22,6 +22,7 @@ const _groups = <(String, List<_NavItem>)>[
       _NavItem('/admin', 'Overview', LucideIcons.layoutDashboard),
       _NavItem('/admin/activity', 'Live traffic', LucideIcons.activity),
       _NavItem('/admin/database', 'Database', LucideIcons.database),
+      _NavItem('/admin/notifications', 'Notifications', LucideIcons.bell),
     ],
   ),
   (

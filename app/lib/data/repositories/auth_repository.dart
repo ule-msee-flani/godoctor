@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_client.dart';
+import '../../services/push_service.dart';
 import '../models/enums.dart';
 
 /// Wraps Supabase Auth. Phone/OTP is the primary login method for the
@@ -58,7 +59,12 @@ class AuthRepository {
     await _client.auth.verifyOTP(phone: phone, token: otp, type: OtpType.sms);
   }
 
-  Future<void> signOut() => _client.auth.signOut();
+  Future<void> signOut() async {
+    // Stop this device receiving the account's notifications first (needs
+    // the session, so it must happen before signing out).
+    await PushService.current?.unregisterDevice();
+    await _client.auth.signOut();
+  }
 
   /// For email accounts (phone accounts sign in with a code instead).
   Future<void> changePassword(String newPassword) =>

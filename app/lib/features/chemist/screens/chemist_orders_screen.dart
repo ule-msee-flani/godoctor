@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -9,6 +10,7 @@ import '../../../data/models/enums.dart';
 import '../../../data/models/order.dart' as model;
 import '../../../data/models/prescription.dart';
 import '../../../data/providers/auth_providers.dart';
+import '../../../data/providers/notification_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../../patient/screens/doctor_profile_screen.dart'
@@ -52,6 +54,16 @@ class ChemistOrdersScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Orders'),
         actions: [
+          Badge(
+            isLabelVisible: ref.watch(unreadNotificationCountProvider) > 0,
+            label: Text('${ref.watch(unreadNotificationCountProvider)}'),
+            offset: const Offset(-4, 4),
+            child: IconButton(
+              tooltip: 'Notifications',
+              icon: const Icon(LucideIcons.bell),
+              onPressed: () => context.push('/chemist/notifications'),
+            ),
+          ),
           IconButton(
             tooltip: 'Sign out',
             icon: const Icon(LucideIcons.logOut),

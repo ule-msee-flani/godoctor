@@ -132,6 +132,12 @@ class ProfileScreen extends ConsumerWidget {
                 subtitle: profile?.locationName ?? 'Not set yet',
                 onTap: () => context.push('/patient/profile/location'),
               ),
+              SettingsTile(
+                icon: LucideIcons.bellRing,
+                title: 'Notifications',
+                subtitle: 'What GoDoctor alerts you about',
+                onTap: () => context.push('/account/notifications'),
+              ),
             ],
           ),
           SettingsSection(

@@ -8,6 +8,7 @@ import '../../data/models/enums.dart';
 import '../../data/models/support.dart';
 import '../../features/chemist/screens/chemist_account_screen.dart';
 import '../../features/location/location_picker_screen.dart';
+import '../../features/notifications/notification_settings_screen.dart';
 import '../../features/patient/family/family_session_screen.dart';
 import '../../features/patient/profile/account_screen.dart';
 import '../../features/patient/profile/billing_screen.dart';
@@ -320,7 +321,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/doctor/notifications',
         pageBuilder: (_, state) => _quiet(
           state,
-          _pro(const NotificationsScreen(appointmentRoute: null)),
+          _pro(const NotificationsScreen()),
         ),
       ),
 
@@ -396,6 +397,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 TicketScreen(ticketId: s.pathParameters['id']!, asStaff: true),
           ),
           _admin('/admin/broadcast', (_) => const AdminBroadcastScreen()),
+          _admin('/admin/notifications', (_) => const NotificationsScreen()),
         ],
       ),
       GoRoute(path: '/suspended', builder: (_, _) => const SuspendedScreen()),
@@ -415,6 +417,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/account/support/:id',
         builder: (context, state) =>
             TicketScreen(ticketId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/account/notifications',
+        builder: (_, _) => const NotificationSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/chemist/notifications',
+        pageBuilder: (_, state) =>
+            _quiet(state, _pro(const NotificationsScreen())),
       ),
       GoRoute(
         path: '/account/location',

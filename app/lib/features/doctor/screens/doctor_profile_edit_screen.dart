@@ -271,6 +271,12 @@ class _FormState extends ConsumerState<_Form> {
                   onTap: () => context.push('/account/support'),
                 ),
                 SettingsTile(
+                  icon: LucideIcons.bellRing,
+                  title: 'Notifications',
+                  subtitle: 'What GoDoctor alerts you about',
+                  onTap: () => context.push('/account/notifications'),
+                ),
+                SettingsTile(
                   icon: LucideIcons.star,
                   title: 'Rate GoDoctor',
                   onTap: () => showRateAppSheet(context),

@@ -8,12 +8,14 @@ import 'core/config/supabase_client.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/splash_gate.dart';
+import 'services/push_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
   await AppAssets.load();
   await SupabaseService.initialize();
+  await initFirebase();
   runApp(const ProviderScope(child: GoDoctorApp()));
 }
 
@@ -27,8 +29,11 @@ class GoDoctorApp extends ConsumerWidget {
     }
 
     final router = ref.watch(appRouterProvider);
+    // Push notifications for whoever is signed in.
+    ref.watch(pushServiceProvider);
     return MaterialApp.router(
       title: 'GoDoctor',
+      scaffoldMessengerKey: pushMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.patientTheme,
       routerConfig: router,
