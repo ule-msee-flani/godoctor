@@ -1,191 +1,242 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
-import '../../../data/models/support.dart';
+import '../../../data/models/chemist_profile.dart';
+import '../../../data/models/doctor_profile.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
-import '../../support/support_screen.dart' show TicketTile;
+import '../widgets/admin_ui.dart';
 
-final _pendingDoctorsProvider = FutureProvider(
+final _pendingDoctorsProvider = FutureProvider.autoDispose<List<DoctorProfile>>(
   (ref) => ref.watch(profileRepositoryProvider).fetchPendingDoctors(),
 );
-final _pendingChemistsProvider = FutureProvider(
-  (ref) => ref.watch(profileRepositoryProvider).fetchPendingChemists(),
-);
-final _allTicketsProvider = FutureProvider.autoDispose<List<SupportTicket>>(
-  (ref) => ref.watch(supportRepositoryProvider).allTickets(),
-);
-final _ratingSummaryProvider =
-    FutureProvider.autoDispose<({double average, int count})>(
-      (ref) => ref.watch(supportRepositoryProvider).ratingSummary(),
+final _pendingChemistsProvider =
+    FutureProvider.autoDispose<List<ChemistProfile>>(
+      (ref) => ref.watch(profileRepositoryProvider).fetchPendingChemists(),
     );
 
-/// Manual doctor/chemist verification queue. Per spec, doctor license
-/// verification is a human checking the public KMPDC register for v1 -- no
-/// automated integration. This screen is just the approve/reject UI on top
-/// of that manual check.
+/// Manual doctor/chemist verification. Per spec, a human checks the public
+/// KMPDC (doctors) or PPB (pharmacies) register -- this is the approve
+/// queue on top of that check.
 class AdminVerificationScreen extends ConsumerWidget {
   const AdminVerificationScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Admin'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
+    final doctors = ref.watch(_pendingDoctorsProvider);
+    final chemists = ref.watch(_pendingChemistsProvider);
+
+    Future<void> approve(Future<void> Function() call, String name) async {
+      try {
+        await call();
+        ref.invalidate(_pendingDoctorsProvider);
+        ref.invalidate(_pendingChemistsProvider);
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('$name verified')));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(friendlyError(e))));
+        }
+      }
+    }
+
+    final repo = ref.read(profileRepositoryProvider);
+    return AdminPage(
+      title: 'Verification',
+      subtitle:
+          'Check each licence on the official register, then approve. Unverified accounts cannot practise or sell.',
+      onRefresh: () async {
+        ref.invalidate(_pendingDoctorsProvider);
+        ref.invalidate(_pendingChemistsProvider);
+      },
+      children: [
+        _Queue(
+          title: 'Doctors',
+          register: 'Check on the KMPDC register',
+          async: doctors,
+          empty: 'No doctors waiting.',
+          itemsOf: (List<DoctorProfile> list) => [
+            for (final d in list)
+              _Applicant(
+                userId: d.userId,
+                name: d.name.isEmpty ? 'Unnamed doctor' : d.name,
+                icon: LucideIcons.stethoscope,
+                submitted: (d.licenseNumber ?? '').isNotEmpty,
+                facts: [
+                  'Licence ${d.licenseNumber ?? 'not given'}',
+                  if (d.specialties.isNotEmpty) d.specialties.join(', '),
+                  if (d.licenseExpiry != null)
+                    'expires ${stamp(d.licenseExpiry).split(',').first}',
+                  '${d.verificationDocuments.length} document(s)',
+                ],
+                onApprove: () => approve(
+                  () => repo.adminSetDoctorVerified(d.userId, true),
+                  d.name,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _Queue(
+          title: 'Chemists',
+          register: 'Check on the PPB premises register',
+          async: chemists,
+          empty: 'No chemists waiting.',
+          itemsOf: (List<ChemistProfile> list) => [
+            for (final c in list)
+              _Applicant(
+                userId: c.userId,
+                name: c.businessName.isEmpty
+                    ? 'Unnamed pharmacy'
+                    : c.businessName,
+                icon: LucideIcons.store,
+                submitted: (c.registrationNumber ?? '').isNotEmpty,
+                facts: [
+                  'Registration ${c.registrationNumber ?? 'not given'}',
+                  if (c.locationName != null) c.locationName!,
+                  '${c.verificationDocuments.length} document(s)',
+                ],
+                onApprove: () => approve(
+                  () => repo.adminSetChemistVerified(c.userId, true),
+                  c.businessName,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _Queue<T> extends StatelessWidget {
+  const _Queue({
+    required this.title,
+    required this.register,
+    required this.async,
+    required this.empty,
+    required this.itemsOf,
+  });
+
+  final String title;
+  final String register;
+  final AsyncValue<List<T>> async;
+  final String empty;
+  final List<_Applicant> Function(List<T>) itemsOf;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return AdminCard(
+      title: title,
+      subtitle: register,
+      trailing: async.valueOrNull == null
+          ? null
+          : StatusChip(
+              '${async.valueOrNull!.length} waiting',
+              tone: async.valueOrNull!.isEmpty ? Tone.good : Tone.warning,
             ),
-          ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Doctors'),
-              Tab(text: 'Chemists'),
-              Tab(text: 'Support'),
+      child: async.when(
+        loading: () => const SizedBox(height: 80, child: LoadingView()),
+        error: (e, _) => Text(friendlyError(e)),
+        data: (list) {
+          final items = itemsOf(list)
+            ..sort((a, b) => (b.submitted ? 1 : 0) - (a.submitted ? 1 : 0));
+          if (items.isEmpty) return Text(empty, style: theme.bodyMedium);
+          return Column(
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                if (i > 0) const Divider(height: 1),
+                items[i],
+              ],
             ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            _PendingDoctorsList(),
-            _PendingChemistsList(),
-            const _SupportInbox(),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
 
-class _PendingDoctorsList extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pending = ref.watch(_pendingDoctorsProvider);
-    return pending.when(
-      loading: () => const LoadingView(),
-      error: (e, _) => ErrorView(message: '$e'),
-      data: (list) {
-        if (list.isEmpty) {
-          return const EmptyView(message: 'No doctors awaiting verification.');
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: list.length,
-          itemBuilder: (context, i) {
-            final d = list[i];
-            return Card(
-              child: ListTile(
-                title: Text(d.name.isEmpty ? d.userId : d.name),
-                subtitle: Text(
-                  'License: ${d.licenseNumber ?? '—'} · ${d.specialties.join(', ')}\n'
-                  '${d.verificationDocuments.length} document(s) uploaded',
-                ),
-                isThreeLine: true,
-                trailing: FilledButton(
-                  onPressed: () async {
-                    await ref
-                        .read(profileRepositoryProvider)
-                        .adminSetDoctorVerified(d.userId, true);
-                    ref.invalidate(_pendingDoctorsProvider);
-                  },
-                  child: const Text('Approve'),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-}
+class _Applicant extends StatelessWidget {
+  const _Applicant({
+    required this.userId,
+    required this.name,
+    required this.icon,
+    required this.submitted,
+    required this.facts,
+    required this.onApprove,
+  });
 
-class _PendingChemistsList extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pending = ref.watch(_pendingChemistsProvider);
-    return pending.when(
-      loading: () => const LoadingView(),
-      error: (e, _) => ErrorView(message: '$e'),
-      data: (list) {
-        if (list.isEmpty) {
-          return const EmptyView(message: 'No chemists awaiting verification.');
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: list.length,
-          itemBuilder: (context, i) {
-            final c = list[i];
-            return Card(
-              child: ListTile(
-                title: Text(c.businessName.isEmpty ? c.userId : c.businessName),
-                subtitle: Text(
-                  'Registration: ${c.registrationNumber ?? '—'}\n'
-                  '${c.verificationDocuments.length} document(s) uploaded',
-                ),
-                isThreeLine: true,
-                trailing: FilledButton(
-                  onPressed: () async {
-                    await ref
-                        .read(profileRepositoryProvider)
-                        .adminSetChemistVerified(c.userId, true);
-                    ref.invalidate(_pendingChemistsProvider);
-                  },
-                  child: const Text('Approve'),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-/// Help requests, complaints, feedback and deletion requests from every
-/// user, newest activity first, plus how people rate the app.
-class _SupportInbox extends ConsumerWidget {
-  const _SupportInbox();
+  final String userId;
+  final String name;
+  final IconData icon;
+  final bool submitted;
+  final List<String> facts;
+  final VoidCallback onApprove;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
-    final tickets = ref.watch(_allTicketsProvider);
-    final rating = ref.watch(_ratingSummaryProvider).valueOrNull;
-    return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(_ratingSummaryProvider);
-        ref.invalidate(_allTicketsProvider);
-        await ref.read(_allTicketsProvider.future);
-      },
-      child: tickets.when(
-        loading: () => const LoadingView(),
-        error: (e, _) => ErrorView(message: friendlyError(e)),
-        data: (list) {
-          final open = list.where((t) => t.status == 'open').length;
-          return ListView(
-            padding: const EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                [
-                  '$open waiting for a reply',
-                  if (rating != null && rating.count > 0)
-                    'app rating ${rating.average.toStringAsFixed(1)} / 5 from ${rating.count}',
-                ].join(' · '),
-                style: theme.titleSmall,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: AppColors.primary),
               ),
-              const SizedBox(height: 12),
-              if (list.isEmpty)
-                const EmptyView(message: 'No support messages yet.')
-              else
-                for (final t in list)
-                  TicketTile(ticket: t, route: '/admin/support/${t.id}'),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: theme.titleSmall),
+                    const SizedBox(height: 2),
+                    submitted
+                        ? const StatusChip('Submitted', tone: Tone.warning)
+                        : const StatusChip('Not submitted yet'),
+                    const SizedBox(height: 4),
+                    Text(facts.join(' · '), style: theme.bodySmall),
+                  ],
+                ),
+              ),
             ],
-          );
-        },
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            children: [
+              TextButton(
+                style: TextButton.styleFrom(minimumSize: const Size(0, 40)),
+                onPressed: () => context.go('/admin/users/$userId'),
+                child: const Text('Open profile'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+                onPressed: submitted ? onApprove : null,
+                child: const Text('Approve'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

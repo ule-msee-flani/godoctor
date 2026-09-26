@@ -20,7 +20,15 @@ import '../../features/support/ticket_screen.dart';
 import '../../services/geocoding.dart';
 import '../../data/providers/auth_providers.dart';
 import '../../data/providers/repository_providers.dart';
+import '../../features/admin/admin_shell.dart';
+import '../../features/admin/screens/admin_activity_screen.dart';
+import '../../features/admin/screens/admin_database_screen.dart';
+import '../../features/admin/screens/admin_engage_screens.dart';
+import '../../features/admin/screens/admin_overview_screen.dart';
+import '../../features/admin/screens/admin_records_screens.dart';
+import '../../features/admin/screens/admin_users_screen.dart';
 import '../../features/admin/screens/admin_verification_screen.dart';
+import '../../features/auth/screens/suspended_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/role_select_screen.dart';
 import '../../features/chemist/screens/chemist_inventory_screen.dart';
@@ -350,16 +358,39 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // --- Admin ---
-      GoRoute(
-        path: '/admin',
-        builder: (_, _) => _pro(const AdminVerificationScreen()),
+      ShellRoute(
+        builder: (context, state, child) =>
+            _pro(AdminShell(location: state.uri.path, child: child)),
+        routes: [
+          _admin('/admin', (_) => const AdminOverviewScreen()),
+          _admin('/admin/activity', (_) => const AdminActivityScreen()),
+          _admin('/admin/database', (_) => const AdminDatabaseScreen()),
+          _admin(
+            '/admin/database/:table',
+            (s) => AdminTableBrowserScreen(table: s.pathParameters['table']!),
+          ),
+          _admin('/admin/users', (_) => const AdminUsersScreen()),
+          _admin(
+            '/admin/users/:id',
+            (s) => AdminUserDetailScreen(userId: s.pathParameters['id']!),
+          ),
+          _admin('/admin/verification', (_) => const AdminVerificationScreen()),
+          _admin(
+            '/admin/consultations',
+            (_) => const AdminConsultationsScreen(),
+          ),
+          _admin('/admin/orders', (_) => const AdminOrdersScreen()),
+          _admin('/admin/payments', (_) => const AdminPaymentsScreen()),
+          _admin('/admin/support', (_) => const AdminSupportScreen()),
+          _admin(
+            '/admin/support/:id',
+            (s) =>
+                TicketScreen(ticketId: s.pathParameters['id']!, asStaff: true),
+          ),
+          _admin('/admin/broadcast', (_) => const AdminBroadcastScreen()),
+        ],
       ),
-      GoRoute(
-        path: '/admin/support/:id',
-        builder: (context, state) => _pro(
-          TicketScreen(ticketId: state.pathParameters['id']!, asStaff: true),
-        ),
-      ),
+      GoRoute(path: '/suspended', builder: (_, _) => const SuspendedScreen()),
 
       // --- Shared by every role (support, map picker) ---
       GoRoute(
@@ -385,6 +416,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// One admin console page (no transition: the sidebar stays put).
+GoRoute _admin(String path, Widget Function(GoRouterState) page) => GoRoute(
+  path: path,
+  pageBuilder: (context, state) =>
+      NoTransitionPage(key: state.pageKey, child: page(state)),
+);
 
 /// One bottom-nav tab of a doctor/chemist shell.
 StatefulShellBranch _branch(String path, Widget screen) => StatefulShellBranch(
@@ -413,6 +451,11 @@ Future<String?> _redirect(Ref ref, GoRouterState state) async {
     // the next auth-state/profile refresh will re-run this redirect.
     return null;
   }
+
+  if (appUser.status == UserStatus.suspended) {
+    return state.matchedLocation == '/suspended' ? null : '/suspended';
+  }
+  if (state.matchedLocation == '/suspended') return '/';
 
   switch (appUser.role) {
     case UserRole.patient:

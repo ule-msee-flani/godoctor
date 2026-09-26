@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../repositories/admin_repository.dart';
 import '../repositories/appointment_repository.dart';
 import '../repositories/billing_repository.dart';
 import '../repositories/auth_repository.dart';
@@ -39,3 +40,4 @@ final notificationRepositoryProvider = Provider(
 final familyRepositoryProvider = Provider((ref) => FamilyRepository());
 final billingRepositoryProvider = Provider((ref) => BillingRepository());
 final supportRepositoryProvider = Provider((ref) => SupportRepository());
+final adminRepositoryProvider = Provider((ref) => AdminRepository());

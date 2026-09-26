@@ -124,6 +124,7 @@ class _NotificationTile extends StatelessWidget {
     'family_invite' || 'family_accepted' => LucideIcons.users,
     'family_session_invite' || 'family_joined' => LucideIcons.headphones,
     'support_reply' => LucideIcons.headset,
+    'announcement' => LucideIcons.megaphone,
     'patient_selected' => LucideIcons.userRound,
     'patient_paid' => LucideIcons.circleCheck,
     _ => LucideIcons.bell,
