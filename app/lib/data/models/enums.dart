@@ -17,6 +17,9 @@ enum ConsultationStatus {
   cancelled,
   unmatched,
   scheduled,
+
+  /// Patient chose a doctor and is paying; the doctor is reserved.
+  awaitingPayment,
 }
 
 enum ConsultationMode { onDemand, scheduled }

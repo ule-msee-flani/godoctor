@@ -73,6 +73,31 @@ final _consultation = Consultation(
 
 class _Consultations extends ConsultationRepository {
   @override
+  Stream<List<Consultation>> watchActiveForDoctor(String doctorId) =>
+      Stream.value([
+        Consultation(
+          id: 'c-pay',
+          patientId: 'p1',
+          doctorId: _uid,
+          specialtyRequested: 'ENT',
+          symptomSummary: 'Ear pain for 3 days',
+          status: ConsultationStatus.awaitingPayment,
+          createdAt: _now,
+          feeAmount: 800,
+          paymentDueAt: _now.add(const Duration(minutes: 9)),
+        ),
+        Consultation(
+          id: 'c-paid',
+          patientId: 'p1',
+          doctorId: _uid,
+          specialtyRequested: 'ENT',
+          symptomSummary: 'Sore throat',
+          status: ConsultationStatus.inProgress,
+          createdAt: _now,
+          feeAmount: 800,
+        ),
+      ]);
+  @override
   Stream<List<ConsultationOffer>> watchOffersForDoctor(String doctorId) =>
       Stream.value([
         ConsultationOffer(

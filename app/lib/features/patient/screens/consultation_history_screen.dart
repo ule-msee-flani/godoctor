@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/consultation.dart';
+import '../../../data/models/enums.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
@@ -55,10 +56,14 @@ class ConsultationHistoryList extends ConsumerWidget {
             final scheduled = c.isScheduled && c.scheduledFor != null;
             final route = c.isScheduled
                 ? '/patient/appointment/${c.id}'
+                : c.status == ConsultationStatus.awaitingPayment
+                ? '/patient/consult/${c.id}/pay'
                 : '/patient/waiting/${c.id}';
-            final statusLabel = c.status.name == 'inProgress'
-                ? 'in progress'
-                : c.status.name;
+            final statusLabel = switch (c.status) {
+              ConsultationStatus.inProgress => 'in progress',
+              ConsultationStatus.awaitingPayment => 'awaiting payment',
+              _ => c.status.name,
+            };
             return Card(
               child: InkWell(
                 borderRadius: BorderRadius.circular(20),

@@ -10,6 +10,7 @@ import '../../../core/widgets/skeleton.dart';
 import '../../../data/models/public_doctor.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
+import '../consult/consult_flow.dart';
 import '../widgets/doctor_widgets.dart';
 
 final publicDoctorProvider = FutureProvider.autoDispose
@@ -23,16 +24,24 @@ final doctorReviewsProvider = FutureProvider.autoDispose
     );
 
 class DoctorProfileScreen extends ConsumerWidget {
-  const DoctorProfileScreen({super.key, required this.doctorId});
+  const DoctorProfileScreen({
+    super.key,
+    required this.doctorId,
+    this.seeNow = false,
+  });
 
   final String doctorId;
+
+  /// Opened from "See a doctor" step 2: the button reserves this doctor and
+  /// moves to payment, instead of booking an appointment for later.
+  final bool seeNow;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final doctorAsync = ref.watch(publicDoctorProvider(doctorId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Doctor')),
+      appBar: AppBar(title: Text(seeNow ? 'Choose a doctor' : 'Doctor')),
       body: doctorAsync.when(
         loading: () => const SkeletonList(itemCount: 3),
         error: (e, _) => ErrorView(
@@ -51,6 +60,8 @@ class DoctorProfileScreen extends ConsumerWidget {
       ),
       bottomNavigationBar: doctorAsync.valueOrNull == null
           ? null
+          : seeNow
+          ? _SeeNowBar(doctor: doctorAsync.value!)
           : _BookBar(doctor: doctorAsync.value!),
     );
   }
@@ -105,9 +116,11 @@ class _ProfileBody extends ConsumerWidget {
           children: [
             Icon(LucideIcons.shieldCheck, size: 14, color: AppColors.success),
             SizedBox(width: 4),
-            Text(
-              'Licence verified by GoDoctor',
-              style: TextStyle(color: AppColors.success, fontSize: 12.5),
+            Flexible(
+              child: Text(
+                'Licence verified by GoDoctor',
+                style: TextStyle(color: AppColors.success, fontSize: 12.5),
+              ),
             ),
           ],
         ),
@@ -406,6 +419,116 @@ class _BookBar extends StatelessWidget {
                     ? () => context.push('/patient/book/${doctor.userId}')
                     : null,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Step 2 -> 3: reserve this doctor and go to payment.
+class _SeeNowBar extends ConsumerStatefulWidget {
+  const _SeeNowBar({required this.doctor});
+
+  final PublicDoctor doctor;
+
+  @override
+  ConsumerState<_SeeNowBar> createState() => _SeeNowBarState();
+}
+
+class _SeeNowBarState extends ConsumerState<_SeeNowBar> {
+  bool _busy = false;
+
+  Future<void> _seeNow() async {
+    final draft = ref.read(consultDraftProvider);
+    if (draft == null) {
+      context.go('/patient/intake');
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final id = await ref
+          .read(consultationRepositoryProvider)
+          .requestDoctor(
+            doctorId: widget.doctor.userId,
+            specialty: draft.specialty,
+            symptoms: draft.symptoms,
+          );
+      if (mounted) context.push('/patient/consult/$id/pay');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendlyError(e))));
+      // They may have just gone offline; refresh so the button reflects it.
+      ref.invalidate(publicDoctorProvider(widget.doctor.userId));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final doctor = widget.doctor;
+    final online = doctor.availableNow;
+    final firstName = doctor.name
+        .split(' ')
+        .where((p) => p.isNotEmpty)
+        .take(2)
+        .join(' ');
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  online ? LucideIcons.zap : LucideIcons.circleOff,
+                  size: 14,
+                  color: online ? AppColors.success : AppColors.inkFaint,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    online ? 'Online now' : 'No longer online',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                Text(
+                  formatKes(doctor.consultationFee),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              icon: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(LucideIcons.video, size: 18),
+              label: Text(
+                online ? 'See $firstName now' : 'Choose another doctor',
+              ),
+              onPressed: _busy
+                  ? null
+                  : online
+                  ? _seeNow
+                  : () => context.pop(),
             ),
           ],
         ),

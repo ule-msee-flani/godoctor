@@ -27,6 +27,8 @@ import '../../features/patient/screens/medicine_search_screen.dart';
 import '../../features/patient/screens/order_history_screen.dart';
 import '../../features/patient/screens/order_tracking_screen.dart';
 import '../../features/patient/screens/patient_call_screen.dart';
+import '../../features/patient/consult/available_doctors_screen.dart';
+import '../../features/patient/consult/consult_pay_screen.dart';
 import '../../features/patient/screens/activity_screen.dart';
 import '../../features/patient/screens/appointment_detail_screen.dart';
 import '../../features/patient/screens/book_appointment_screen.dart';
@@ -123,6 +125,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/patient/consult/doctors',
+        builder: (_, _) => const AvailableDoctorsScreen(),
+      ),
+      GoRoute(
+        path: '/patient/consult/:id/pay',
+        builder: (context, state) =>
+            ConsultPayScreen(consultationId: state.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/patient/specialty/:slug',
         builder: (context, state) =>
             buildSpecialtyPage(context, state.pathParameters['slug']!) ??
@@ -132,8 +143,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/patient/doctor/:id',
-        builder: (context, state) =>
-            DoctorProfileScreen(doctorId: state.pathParameters['id']!),
+        builder: (context, state) => DoctorProfileScreen(
+          doctorId: state.pathParameters['id']!,
+          seeNow: state.uri.queryParameters['see'] == 'now',
+        ),
       ),
       GoRoute(
         path: '/patient/book/:doctorId',

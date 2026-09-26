@@ -8,6 +8,18 @@ String friendlyError(Object error) {
   final raw = error is PostgrestException ? error.message : error.toString();
   final text = raw.toLowerCase();
 
+  if (text.contains('doctor_unavailable')) {
+    return 'That doctor was just taken or went offline. Please choose another doctor.';
+  }
+  if (text.contains('active_consultation_exists')) {
+    return 'You already have a consultation in progress. Finish or cancel it first.';
+  }
+  if (text.contains('payment_window_expired')) {
+    return 'The doctor reservation expired. Please choose a doctor again.';
+  }
+  if (text.contains('consultation_not_awaiting_payment')) {
+    return 'This consultation has already been paid for or was cancelled.';
+  }
   if (text.contains('slot_unavailable')) {
     return 'That time was just taken. Please pick another slot.';
   }

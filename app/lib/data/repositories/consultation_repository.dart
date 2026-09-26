@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_client.dart';
 import '../models/consultation.dart';
+import '../models/enums.dart';
 
 /// Consultation lifecycle: intake -> matching -> offer/accept -> in-progress.
 ///
@@ -48,6 +49,58 @@ class ConsultationRepository {
       'respond_to_offer',
       params: {'p_offer_id': offerId, 'p_accept': accept},
     );
+  }
+
+  /// Step 2 -> 3: the patient picks a doctor. The doctor is reserved for 10
+  /// minutes while the patient pays. With [flaggedEmergency] the request is
+  /// only recorded for audit (the caller shows the emergency screen).
+  Future<String> requestDoctor({
+    required String doctorId,
+    required String specialty,
+    required String symptoms,
+    bool flaggedEmergency = false,
+  }) async {
+    final id = await _client.rpc(
+      'request_doctor',
+      params: {
+        'p_doctor_id': doctorId,
+        'p_specialty': specialty,
+        'p_symptoms': symptoms,
+        'p_flagged_emergency': flaggedEmergency,
+      },
+    );
+    return id as String;
+  }
+
+  /// SIMULATED M-Pesa payment (real Daraja integration comes later). Starts
+  /// the consultation.
+  Future<void> payForConsultation(String consultationId) =>
+      _client.rpc('pay_for_consultation', params: {'p_id': consultationId});
+
+  /// Patient backs out before paying; the doctor is released.
+  Future<void> cancelRequest(String consultationId) => _client.rpc(
+    'cancel_consultation_request',
+    params: {'p_id': consultationId},
+  );
+
+  /// The doctor's current on-demand patient(s): being paid for, or in progress.
+  Stream<List<Consultation>> watchActiveForDoctor(String doctorId) {
+    return _client
+        .from('consultations')
+        .stream(primaryKey: ['id'])
+        .eq('doctor_id', doctorId)
+        .map(
+          (rows) => rows
+              .map((r) => Consultation.fromMap(r))
+              .where(
+                (c) =>
+                    !c.isScheduled &&
+                    (c.status == ConsultationStatus.awaitingPayment ||
+                        c.status == ConsultationStatus.matched ||
+                        c.status == ConsultationStatus.inProgress),
+              )
+              .toList(),
+        );
   }
 
   /// A patient watching their own consultation for status changes

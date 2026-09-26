@@ -118,9 +118,12 @@ class VerifiedBadge extends StatelessWidget {
 
 /// One directory row.
 class DoctorCard extends StatelessWidget {
-  const DoctorCard({super.key, required this.doctor});
+  const DoctorCard({super.key, required this.doctor, this.onTap});
 
   final PublicDoctor doctor;
+
+  /// Defaults to opening the doctor's public profile.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +134,7 @@ class DoctorCard extends StatelessWidget {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => context.push('/patient/doctor/${doctor.userId}'),
+        onTap: onTap ?? () => context.push('/patient/doctor/${doctor.userId}'),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(

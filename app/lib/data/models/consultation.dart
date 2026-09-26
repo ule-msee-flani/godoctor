@@ -16,6 +16,7 @@ class Consultation {
     this.scheduledFor,
     this.scheduledEnd,
     this.feeAmount,
+    this.paymentDueAt,
   });
 
   final String id;
@@ -32,6 +33,9 @@ class Consultation {
   final DateTime? scheduledFor;
   final DateTime? scheduledEnd;
   final double? feeAmount;
+
+  /// While awaiting payment: when the doctor reservation lapses.
+  final DateTime? paymentDueAt;
 
   bool get isScheduled => mode == ConsultationMode.scheduled;
 
@@ -77,6 +81,9 @@ class Consultation {
         ? DateTime.tryParse(map['scheduled_end'] as String)?.toLocal()
         : null,
     feeAmount: (map['fee_amount'] as num?)?.toDouble(),
+    paymentDueAt: map['payment_due_at'] != null
+        ? DateTime.tryParse(map['payment_due_at'] as String)?.toLocal()
+        : null,
   );
 }
 

@@ -49,6 +49,10 @@ class ConsultationWaitingScreen extends ConsumerWidget {
                 consultation: consultation,
               ),
               ConsultationStatus.cancelled => const _CancelledBody(),
+              // Chose a doctor but hasn't paid: send them back to payment.
+              ConsultationStatus.awaitingPayment => _AwaitingPaymentBody(
+                consultationId: consultation.id,
+              ),
               ConsultationStatus.scheduled => _ScheduledBody(
                 consultation: consultation,
               ),
@@ -342,6 +346,39 @@ class _ScheduledBody extends StatelessWidget {
                 '/patient/appointment/${consultation.id}',
               ),
               child: const Text('View appointment'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AwaitingPaymentBody extends StatelessWidget {
+  const _AwaitingPaymentBody({required this.consultationId});
+
+  final String consultationId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(LucideIcons.wallet, size: 48, color: AppColors.primary),
+            const SizedBox(height: 16),
+            Text(
+              'Your doctor is waiting for payment',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () => context.pushReplacement(
+                '/patient/consult/$consultationId/pay',
+              ),
+              child: const Text('Go to payment'),
             ),
           ],
         ),
