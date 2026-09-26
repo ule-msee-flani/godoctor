@@ -28,6 +28,7 @@ import 'package:godoctor_app/data/repositories/order_repository.dart';
 import 'package:godoctor_app/data/repositories/prescription_repository.dart';
 import 'package:godoctor_app/data/repositories/profile_repository.dart';
 import 'package:godoctor_app/features/admin/screens/admin_verification_screen.dart';
+import 'package:godoctor_app/features/chemist/screens/chemist_account_screen.dart';
 import 'package:godoctor_app/features/chemist/screens/chemist_inventory_screen.dart';
 import 'package:godoctor_app/features/chemist/screens/chemist_onboarding_screen.dart';
 import 'package:godoctor_app/features/chemist/screens/chemist_orders_screen.dart';
@@ -40,6 +41,8 @@ import 'package:godoctor_app/features/doctor/screens/doctor_profile_edit_screen.
 import 'package:godoctor_app/features/doctor/screens/doctor_schedule_screen.dart';
 import 'package:godoctor_app/features/patient/screens/consultation_history_screen.dart';
 import 'package:godoctor_app/features/patient/screens/order_history_screen.dart';
+
+import 'support/fakes.dart';
 
 const _uid = 'user-1';
 final _now = DateTime.now();
@@ -385,6 +388,9 @@ Future<void> _render(
         orderRepositoryProvider.overrideWithValue(_Orders()),
         prescriptionRepositoryProvider.overrideWithValue(_Prescriptions()),
         doctorDirectoryRepositoryProvider.overrideWithValue(_Directory()),
+        authRepositoryProvider.overrideWithValue(FakeAuth()),
+        familyRepositoryProvider.overrideWithValue(FakeFamily()),
+        supportRepositoryProvider.overrideWithValue(FakeSupport()),
       ],
       child: MaterialApp(
         theme: AppTheme.patientTheme,
@@ -417,6 +423,7 @@ void main() {
     'chemist onboarding': const ChemistOnboardingScreen(),
     'chemist inventory': const ChemistInventoryScreen(),
     'chemist orders': const ChemistOrdersScreen(),
+    'chemist account': const ChemistAccountScreen(),
     'admin verification': const AdminVerificationScreen(),
     // Same untyped-provider crash lived in these two patient screens.
     'patient consultation history': const ConsultationHistoryScreen(),

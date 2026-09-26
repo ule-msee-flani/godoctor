@@ -14,6 +14,7 @@ import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../../medicine/medicine_gallery.dart';
+import '../../patient/family/family_providers.dart';
 import '../../prescription/digital_prescription.dart';
 import '../widgets/dose_sheet.dart';
 
@@ -208,6 +209,15 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
           final patientName = (detail.patient?.name.isNotEmpty ?? false)
               ? detail.patient!.name
               : 'Patient';
+          // Family members the patient brought into the call.
+          final listeners = <String>[
+            for (final p
+                in ref
+                        .watch(sessionPeopleProvider(widget.consultationId))
+                        .valueOrNull ??
+                    const [])
+              if (p.isFamily && p.isJoined) p.name,
+          ];
           final doctorName = (doctor?.name.isNotEmpty ?? false)
               ? (doctor!.name.startsWith('Dr')
                     ? doctor.name
@@ -271,6 +281,7 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
                           VideoCallPanel(
                             otherPartyName: patientName,
                             otherPartyRole: 'Patient',
+                            listeners: listeners,
                             startedAt: consultation.startedAt,
                             onEndCall: _endConsultation,
                           ),
@@ -312,6 +323,7 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
                           child: VideoCallPanel(
                             otherPartyName: patientName,
                             otherPartyRole: 'Patient',
+                            listeners: listeners,
                             startedAt: consultation.startedAt,
                             height: videoHeight,
                             onEndCall: _endConsultation,

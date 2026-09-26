@@ -5,6 +5,19 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../data/models/drug.dart';
 import '../../data/models/enums.dart';
+import '../../data/models/support.dart';
+import '../../features/chemist/screens/chemist_account_screen.dart';
+import '../../features/location/location_picker_screen.dart';
+import '../../features/patient/family/family_session_screen.dart';
+import '../../features/patient/profile/account_screen.dart';
+import '../../features/patient/profile/billing_screen.dart';
+import '../../features/patient/profile/family_screen.dart';
+import '../../features/patient/profile/health_screen.dart';
+import '../../features/patient/profile/location_screen.dart';
+import '../../features/support/new_ticket_screen.dart';
+import '../../features/support/support_screen.dart';
+import '../../features/support/ticket_screen.dart';
+import '../../services/geocoding.dart';
 import '../../data/providers/auth_providers.dart';
 import '../../data/providers/repository_providers.dart';
 import '../../features/admin/screens/admin_verification_screen.dart';
@@ -166,6 +179,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/patient/profile/account',
+        builder: (_, _) => const AccountScreen(),
+      ),
+      GoRoute(
+        path: '/patient/profile/health',
+        builder: (_, _) => const HealthDetailsScreen(),
+      ),
+      GoRoute(
+        path: '/patient/profile/location',
+        builder: (_, _) => const PatientLocationScreen(),
+      ),
+      GoRoute(
+        path: '/patient/profile/family',
+        builder: (_, _) => const FamilyScreen(),
+      ),
+      GoRoute(
+        path: '/patient/profile/billing',
+        builder: (_, _) => const BillingScreen(),
+      ),
+      GoRoute(
+        path: '/patient/family-session/:id',
+        builder: (context, state) =>
+            FamilySessionScreen(consultationId: state.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/patient/notifications',
         builder: (_, _) => const NotificationsScreen(),
       ),
@@ -299,6 +337,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   badge: ref.watch(chemistNewOrderCountProvider),
                 ),
                 const ShellTab(LucideIcons.boxes, 'Stock'),
+                const ShellTab(LucideIcons.circleUserRound, 'Account'),
               ],
             ),
           ),
@@ -306,6 +345,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         branches: [
           _branch('/chemist', const ChemistOrdersScreen()),
           _branch('/chemist/stock', const ChemistInventoryScreen()),
+          _branch('/chemist/account', const ChemistAccountScreen()),
         ],
       ),
 
@@ -313,6 +353,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin',
         builder: (_, _) => _pro(const AdminVerificationScreen()),
+      ),
+      GoRoute(
+        path: '/admin/support/:id',
+        builder: (context, state) => _pro(
+          TicketScreen(ticketId: state.pathParameters['id']!, asStaff: true),
+        ),
+      ),
+
+      // --- Shared by every role (support, map picker) ---
+      GoRoute(
+        path: '/account/support',
+        builder: (_, _) => const SupportScreen(),
+      ),
+      GoRoute(
+        path: '/account/support/new',
+        builder: (context, state) => NewTicketScreen(
+          kind: SupportKind.fromDb(state.uri.queryParameters['kind']),
+        ),
+      ),
+      GoRoute(
+        path: '/account/support/:id',
+        builder: (context, state) =>
+            TicketScreen(ticketId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/account/location',
+        builder: (context, state) =>
+            LocationPickerScreen(initial: state.extra as Place?),
       ),
     ],
   );
@@ -335,6 +403,9 @@ Future<String?> _redirect(Ref ref, GoRouterState state) async {
   if (loggingIn || state.matchedLocation == '/') {
     // Fall through below to route by role once we know it.
   }
+
+  // Support and the map picker work the same for every signed-in role.
+  if (state.matchedLocation.startsWith('/account/')) return null;
 
   final appUser = await ref.read(currentAppUserProvider.future);
   if (appUser == null) {

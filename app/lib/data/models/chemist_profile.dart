@@ -7,6 +7,7 @@ class ChemistProfile {
     this.registrationNumber,
     required this.verified,
     required this.verificationDocuments,
+    this.locationName,
   });
 
   final String userId;
@@ -16,6 +17,9 @@ class ChemistProfile {
   final String? registrationNumber;
   final bool verified;
   final List<String> verificationDocuments;
+
+  /// Readable place, e.g. "Ruiru, Kiambu, Kenya".
+  final String? locationName;
 
   factory ChemistProfile.fromMap(Map<String, dynamic> map) => ChemistProfile(
     userId: map['user_id'] as String,
@@ -27,5 +31,6 @@ class ChemistProfile {
     verificationDocuments: List<String>.from(
       map['verification_documents'] as List? ?? const [],
     ),
+    locationName: map['location_name'] as String?,
   );
 }

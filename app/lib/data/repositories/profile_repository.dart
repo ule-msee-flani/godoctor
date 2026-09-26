@@ -117,6 +117,46 @@ class ProfileRepository {
     return path;
   }
 
+  /// Uploads a profile photo for any user (patient, doctor, chemist) and
+  /// makes it their current one. Returns the storage path.
+  Future<String> changeAvatar({
+    required String userId,
+    required Uint8List bytes,
+    required String fileExt,
+  }) async {
+    var ext = fileExt.toLowerCase().replaceAll('.', '');
+    if (ext == 'jpg') ext = 'jpeg';
+    final path = await uploadDoctorAvatar(
+      userId: userId,
+      bytes: bytes,
+      fileExt: ext,
+    );
+    // A trigger copies this to doctor_profiles for the doctor directory.
+    await _client.from('users').update({'avatar_url': path}).eq('id', userId);
+    return path;
+  }
+
+  /// Public URL of a photo in the `avatars` bucket.
+  String? avatarUrl(String? path) => (path == null || path.isEmpty)
+      ? null
+      : _client.storage.from('avatars').getPublicUrl(path);
+
+  Future<void> updateContactPhone(String userId, String? phone) =>
+      _client.from('users').update({'contact_phone': phone}).eq('id', userId);
+
+  /// "I'm here": lets family see who is online for a family session.
+  Future<void> touchPresence() => _client.rpc('touch_presence');
+
+  Future<void> updateChemistLocation({
+    required String userId,
+    required String name,
+    required double lat,
+    required double lng,
+  }) => _client
+      .from('chemist_profiles')
+      .update({'location_name': name, 'location_lat': lat, 'location_lng': lng})
+      .eq('user_id', userId);
+
   Future<void> updateChemistRegistration({
     required String userId,
     required String businessName,

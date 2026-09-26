@@ -15,6 +15,7 @@ import '../../../data/providers/appointment_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../screens/doctor_profile_screen.dart' show publicDoctorProvider;
+import '../family/family_session_panel.dart';
 import '../widgets/doctor_widgets.dart';
 import 'consult_flow.dart';
 
@@ -247,6 +248,8 @@ class _PayBody extends ConsumerWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+              FamilySessionPanel(consultationId: consultation.id),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(14),

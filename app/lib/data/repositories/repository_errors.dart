@@ -20,6 +20,37 @@ String friendlyError(Object error) {
   if (text.contains('consultation_not_awaiting_payment')) {
     return 'This consultation has already been paid for or was cancelled.';
   }
+  if (text.contains('family_member_not_found')) {
+    return 'No GoDoctor patient uses that email or phone. Ask them to sign up first, then invite them again.';
+  }
+  if (text.contains('family_member_is_self')) {
+    return 'That is your own account.';
+  }
+  if (text.contains('family_link_exists')) {
+    return 'You are already linked to this person (or an invitation is waiting).';
+  }
+  if (text.contains('family_limit_reached')) {
+    return 'You can invite up to 20 family members.';
+  }
+  if (text.contains('family_invite_answered')) {
+    return 'This invitation was already answered.';
+  }
+  if (text.contains('not_family')) {
+    return 'Only family members who accepted your invitation can join.';
+  }
+  if (text.contains('family_session_full')) {
+    return 'Up to 3 family members can join one consultation.';
+  }
+  if (text.contains('consultation_not_started')) {
+    return 'The consultation has not started yet. You can join once the doctor is on the call.';
+  }
+  if (text.contains('patients_only')) {
+    return 'Only patient accounts can do this.';
+  }
+  if (text.contains('payment_methods_shape') ||
+      text.contains('payment_methods_mpesa_phone_check')) {
+    return 'Those payment details are not valid.';
+  }
   if (text.contains('consultation_not_active')) {
     return 'This consultation has ended, so a prescription can no longer be sent from it.';
   }

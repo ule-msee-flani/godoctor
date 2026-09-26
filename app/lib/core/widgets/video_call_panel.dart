@@ -25,6 +25,7 @@ class VideoCallPanel extends StatefulWidget {
     this.compact = false,
     this.onMinimize,
     this.onExpand,
+    this.listeners = const [],
   });
 
   final String otherPartyName;
@@ -43,6 +44,9 @@ class VideoCallPanel extends StatefulWidget {
   final bool compact;
   final VoidCallback? onMinimize;
   final VoidCallback? onExpand;
+
+  /// Family members listening in (family session), shown under the name.
+  final List<String> listeners;
 
   @override
   State<VideoCallPanel> createState() => _VideoCallPanelState();
@@ -179,6 +183,41 @@ class _VideoCallPanelState extends State<VideoCallPanel>
                                 fontSize: 12,
                               ),
                             ),
+                          if (widget.listeners.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    LucideIcons.headphones,
+                                    size: 12,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(
+                                      'Listening: ${widget.listeners.join(', ')}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

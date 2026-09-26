@@ -153,6 +153,7 @@ class AppNotificationItem {
     this.prescriptionId,
     this.readAt,
     required this.createdAt,
+    this.data = const {},
   });
 
   final String id;
@@ -163,6 +164,9 @@ class AppNotificationItem {
   final String? prescriptionId;
   final DateTime? readAt;
   final DateTime createdAt;
+
+  /// Everything the server attached (ids of the related record).
+  final Map<String, dynamic> data;
 
   bool get isRead => readAt != null;
 
@@ -181,6 +185,7 @@ class AppNotificationItem {
         ? DateTime.tryParse(map['read_at'] as String)?.toLocal()
         : null,
     createdAt: DateTime.parse(map['created_at'] as String).toLocal(),
+    data: (map['data'] as Map<String, dynamic>?) ?? const {},
   );
 }
 

@@ -5,11 +5,14 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/widgets/user_avatar.dart';
 import '../../../data/providers/appointment_providers.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/notification_providers.dart';
 import '../../../services/emergency_check.dart';
 import '../../../services/specialty_search.dart';
+import '../family/family_providers.dart';
+import '../family/family_session_screen.dart';
 import '../widgets/emergency_stop_view.dart' show launchDialer;
 import '../widgets/promo_banner_carousel.dart';
 import '../widgets/specialty_tiles.dart';
@@ -19,12 +22,6 @@ String _greeting() {
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
-}
-
-String _initials(String name) {
-  final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
-  if (parts.isEmpty) return '?';
-  return parts.take(2).map((p) => p[0].toUpperCase()).join();
 }
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
@@ -61,6 +58,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     final searching = query.isNotEmpty;
     final unread = ref.watch(unreadNotificationCountProvider);
     final upcoming = ref.watch(upcomingAppointmentsProvider).valueOrNull;
+    final familyInvites =
+        ref.watch(myFamilySessionInvitesProvider).valueOrNull ?? const [];
+    final avatarPath = ref.watch(currentAppUserProvider).valueOrNull?.avatarUrl;
 
     return Scaffold(
       body: SafeArea(
@@ -100,16 +100,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                   InkWell(
                     borderRadius: BorderRadius.circular(24),
                     onTap: () => context.go('/patient/profile'),
-                    child: CircleAvatar(
+                    child: UserAvatar(
+                      name: name.isEmpty ? '?' : name,
+                      path: avatarPath,
                       radius: 24,
-                      backgroundColor: AppColors.primarySoft,
-                      child: Text(
-                        _initials(name),
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
                     ),
                   ),
                 ],
@@ -138,6 +132,11 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             if (searching)
               _SearchResults(query: query, onPick: _startIntake)
             else ...[
+              if (familyInvites.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: FamilyInviteBanner(consultationIds: familyInvites),
+                ),
               if (upcoming != null && upcoming.isNotEmpty) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),

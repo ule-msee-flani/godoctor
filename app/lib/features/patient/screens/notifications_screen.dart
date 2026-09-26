@@ -67,6 +67,11 @@ class NotificationsScreen extends ConsumerWidget {
                   await ref.read(notificationRepositoryProvider).markRead(n.id);
                 }
                 if (!context.mounted) return;
+                final route = _routeFor(n, isPatient: appointmentRoute != null);
+                if (route != null) {
+                  context.push(route);
+                  return;
+                }
                 // Prescriptions open straight on "order your medicines"
                 // (patients only; doctors pass a null appointmentRoute).
                 if (n.kind == 'prescription_issued' &&
@@ -89,6 +94,21 @@ class NotificationsScreen extends ConsumerWidget {
   }
 }
 
+/// Where tapping a notification of the newer kinds should go.
+String? _routeFor(AppNotificationItem n, {required bool isPatient}) {
+  final ticket = n.data['ticket_id'] as String?;
+  return switch (n.kind) {
+    'support_reply' when ticket != null => '/account/support/$ticket',
+    'family_invite' ||
+    'family_accepted' when isPatient => '/patient/profile/family',
+    'family_session_invite' when isPatient && n.consultationId != null =>
+      '/patient/family-session/${n.consultationId}',
+    'family_joined' when isPatient && n.consultationId != null =>
+      '/patient/call/${n.consultationId}',
+    _ => null,
+  };
+}
+
 class _NotificationTile extends StatelessWidget {
   const _NotificationTile({required this.item, required this.onTap});
 
@@ -101,6 +121,9 @@ class _NotificationTile extends StatelessWidget {
     'appointment_cancelled' => LucideIcons.calendarX,
     'appointment_rescheduled' => LucideIcons.calendarClock,
     'prescription_issued' => LucideIcons.fileCheck,
+    'family_invite' || 'family_accepted' => LucideIcons.users,
+    'family_session_invite' || 'family_joined' => LucideIcons.headphones,
+    'support_reply' => LucideIcons.headset,
     'patient_selected' => LucideIcons.userRound,
     'patient_paid' => LucideIcons.circleCheck,
     _ => LucideIcons.bell,

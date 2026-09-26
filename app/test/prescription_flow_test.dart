@@ -22,6 +22,8 @@ import 'package:godoctor_app/features/patient/screens/patient_call_screen.dart';
 import 'package:godoctor_app/features/prescription/chemist_match.dart';
 import 'package:godoctor_app/features/prescription/prescription_order_screen.dart';
 
+import 'support/fakes.dart';
+
 final _now = DateTime.now();
 
 const _para = Drug(
@@ -183,6 +185,7 @@ Future<void> _render(
         drugRepositoryProvider.overrideWithValue(_Drugs()),
         doctorDirectoryRepositoryProvider.overrideWithValue(_Directory()),
         consultationRepositoryProvider.overrideWithValue(_Consultations()),
+        familyRepositoryProvider.overrideWithValue(FakeFamily()),
         orderRepositoryProvider.overrideWithValue(orders ?? _Orders()),
       ],
       child: MaterialApp(theme: AppTheme.patientTheme, home: screen),

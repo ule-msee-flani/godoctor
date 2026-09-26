@@ -17,6 +17,8 @@ import 'package:godoctor_app/features/patient/consult/consult_pay_screen.dart';
 import 'package:godoctor_app/features/patient/screens/doctor_profile_screen.dart';
 import 'package:godoctor_app/features/patient/screens/intake_form_screen.dart';
 
+import 'support/fakes.dart';
+
 final _now = DateTime.now();
 
 const _doctor = PublicDoctor(
@@ -121,6 +123,7 @@ Future<void> _render(
         consultationRepositoryProvider.overrideWithValue(
           _Consultations(status),
         ),
+        familyRepositoryProvider.overrideWithValue(FakeFamily()),
       ],
       child: MaterialApp(theme: AppTheme.patientTheme, home: screen),
     ),

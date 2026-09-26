@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/settings_section.dart';
+import '../../../core/widgets/user_avatar.dart';
 import '../../../data/models/doctor_profile.dart';
 import '../../../data/models/public_doctor.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
-import '../../patient/widgets/doctor_widgets.dart';
+import '../../patient/profile/account_screen.dart'
+    show showChangePasswordDialog;
+import '../../support/rate_app_sheet.dart';
 
 /// What patients see in the certified-doctor directory: photo, bio, fee,
 /// languages, experience. Licence details and verification are separate.
@@ -61,10 +65,8 @@ class _FormState extends ConsumerState<_Form> {
   );
   late String? _gender = widget.profile.gender;
   late final Set<String> _languages = {...widget.profile.languages};
-  late String? _avatarPath = widget.profile.avatarPath;
 
   bool _saving = false;
-  bool _uploading = false;
 
   @override
   void dispose() {
@@ -76,32 +78,6 @@ class _FormState extends ConsumerState<_Form> {
 
   void _toast(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
-
-  Future<void> _pickPhoto() async {
-    final file = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 800,
-      imageQuality: 85,
-    );
-    if (file == null) return;
-    setState(() => _uploading = true);
-    try {
-      final bytes = await file.readAsBytes();
-      final ext = file.name.contains('.') ? file.name.split('.').last : 'jpg';
-      final path = await ref
-          .read(profileRepositoryProvider)
-          .uploadDoctorAvatar(
-            userId: widget.profile.userId,
-            bytes: bytes,
-            fileExt: ext,
-          );
-      if (mounted) setState(() => _avatarPath = path);
-    } catch (e) {
-      if (mounted) _toast(friendlyError(e));
-    } finally {
-      if (mounted) setState(() => _uploading = false);
-    }
-  }
 
   Future<void> _save() async {
     final fee = _fee.text.trim().isEmpty
@@ -131,7 +107,6 @@ class _FormState extends ConsumerState<_Form> {
             languages: _languages.toList(),
             gender: _gender,
             yearsExperience: years,
-            avatarPath: _avatarPath,
           );
       ref.invalidate(currentDoctorProfileProvider);
       if (mounted) _toast('Profile saved');
@@ -145,6 +120,8 @@ class _FormState extends ConsumerState<_Form> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
+    final email =
+        ref.watch(authRepositoryProvider).currentAuthUser?.email ?? '';
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),
@@ -178,35 +155,19 @@ class _FormState extends ConsumerState<_Form> {
               ),
             Row(
               children: [
-                DoctorAvatar(
-                  name: widget.profile.name,
-                  avatarPath: _avatarPath,
-                  radius: 44,
-                ),
+                EditableAvatar(name: widget.profile.name, radius: 44),
                 const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(widget.profile.name, style: theme.titleLarge),
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 44),
-                        ),
-                        onPressed: _uploading ? null : _pickPhoto,
-                        icon: _uploading
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(LucideIcons.camera, size: 18),
-                        label: Text(
-                          _avatarPath == null ? 'Add photo' : 'Change photo',
-                        ),
+                      if (email.isNotEmpty)
+                        Text(email, style: theme.bodyMedium),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Tap your photo to change it. Patients see it in the directory.',
+                        style: theme.bodySmall,
                       ),
                     ],
                   ),
@@ -299,6 +260,33 @@ class _FormState extends ConsumerState<_Form> {
                       ),
                     )
                   : const Text('Save profile'),
+            ),
+            SettingsSection(
+              title: 'Account',
+              children: [
+                SettingsTile(
+                  icon: LucideIcons.headset,
+                  title: 'Support & feedback',
+                  subtitle: 'Get help, report a problem, send feedback',
+                  onTap: () => context.push('/account/support'),
+                ),
+                SettingsTile(
+                  icon: LucideIcons.star,
+                  title: 'Rate GoDoctor',
+                  onTap: () => showRateAppSheet(context),
+                ),
+                if (email.isNotEmpty)
+                  SettingsTile(
+                    icon: LucideIcons.keyRound,
+                    title: 'Change password',
+                    onTap: () => showChangePasswordDialog(context, ref),
+                  ),
+                SettingsTile(
+                  icon: LucideIcons.logOut,
+                  title: 'Sign out',
+                  onTap: () => ref.read(authRepositoryProvider).signOut(),
+                ),
+              ],
             ),
           ],
         ),

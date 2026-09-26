@@ -59,4 +59,8 @@ class AuthRepository {
   }
 
   Future<void> signOut() => _client.auth.signOut();
+
+  /// For email accounts (phone accounts sign in with a code instead).
+  Future<void> changePassword(String newPassword) =>
+      _client.auth.updateUser(UserAttributes(password: newPassword));
 }

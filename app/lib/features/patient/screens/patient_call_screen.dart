@@ -12,6 +12,8 @@ import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../prescription/digital_prescription.dart';
 import '../../prescription/suggested_chemist_card.dart';
+import '../family/family_providers.dart';
+import '../family/family_session_panel.dart';
 import 'doctor_profile_screen.dart' show publicDoctorProvider;
 
 /// Prescriptions from this consultation, appearing live as the doctor
@@ -68,6 +70,12 @@ class PatientCallScreen extends ConsumerWidget {
     final patient = ref.watch(currentPatientProfileProvider).value;
 
     final ended = consultation?.status == ConsultationStatus.completed;
+    final listeners = <String>[
+      for (final p
+          in ref.watch(sessionPeopleProvider(consultationId)).valueOrNull ??
+              const [])
+        if (p.isFamily && p.isJoined) p.name,
+    ];
     final doctorName = doctor?.name ?? 'Your doctor';
     final patientName = (patient?.name.isNotEmpty ?? false)
         ? patient!.name
@@ -91,8 +99,13 @@ class PatientCallScreen extends ConsumerWidget {
                   otherPartyRole: consultation?.specialtyRequested,
                   startedAt: consultation?.startedAt,
                   height: videoHeight,
+                  listeners: listeners,
                   onEndCall: () => _leave(context),
                 ),
+              if (!ended) ...[
+                const SizedBox(height: 16),
+                FamilySessionPanel(consultationId: consultationId),
+              ],
               const SizedBox(height: 20),
               if (prescriptions.isEmpty)
                 _NoPrescriptionYet(ended: ended)

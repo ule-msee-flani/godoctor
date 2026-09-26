@@ -8,6 +8,8 @@ class AppUser {
     required this.role,
     required this.status,
     required this.createdAt,
+    this.avatarUrl,
+    this.contactPhone,
   });
 
   final String id;
@@ -16,6 +18,12 @@ class AppUser {
   final UserRole role;
   final UserStatus status;
   final DateTime createdAt;
+
+  /// Profile photo: path in the public `avatars` bucket.
+  final String? avatarUrl;
+
+  /// A number people can reach them on (separate from the login phone).
+  final String? contactPhone;
 
   factory AppUser.fromMap(Map<String, dynamic> map) => AppUser(
     id: map['id'] as String,
@@ -28,5 +36,7 @@ class AppUser {
       UserStatus.active,
     ),
     createdAt: DateTime.parse(map['created_at'] as String),
+    avatarUrl: map['avatar_url'] as String?,
+    contactPhone: map['contact_phone'] as String?,
   );
 }
