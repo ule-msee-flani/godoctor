@@ -55,6 +55,7 @@ class _HealthFormState extends ConsumerState<_HealthForm> {
     text: widget.profile.weightKg?.toStringAsFixed(0),
   );
   late String? _blood = widget.profile.bloodGroup;
+  late String? _gender = widget.profile.gender;
   bool _saving = false;
 
   @override
@@ -103,6 +104,7 @@ class _HealthFormState extends ConsumerState<_HealthForm> {
               userId: p.userId,
               name: p.name,
               dateOfBirth: p.dateOfBirth,
+              gender: _gender,
               locationLat: p.locationLat,
               locationLng: p.locationLng,
               locationName: p.locationName,
@@ -198,6 +200,25 @@ class _HealthFormState extends ConsumerState<_HealthForm> {
             'Epilepsy',
           ],
           onQuick: (v) => _addTo(_conditions, v),
+        ),
+        const SizedBox(height: 22),
+        Text('Gender', style: theme.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final (v, label) in const [
+              ('female', 'Female'),
+              ('male', 'Male'),
+              ('other', 'Other'),
+            ])
+              ChoiceChip(
+                label: Text(label),
+                selected: _gender == v,
+                onSelected: (sel) => setState(() => _gender = sel ? v : null),
+              ),
+          ],
         ),
         const SizedBox(height: 22),
         Text('Blood group', style: theme.titleSmall),

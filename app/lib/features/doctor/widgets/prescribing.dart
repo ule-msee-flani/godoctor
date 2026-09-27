@@ -248,6 +248,8 @@ class PrescriptionDraftPanel extends ConsumerWidget {
     required this.doctorName,
     required this.doctorDetail,
     required this.patientName,
+    this.patientAge,
+    this.patientGender,
     required this.draft,
     required this.sending,
     required this.onEdit,
@@ -260,6 +262,8 @@ class PrescriptionDraftPanel extends ConsumerWidget {
   final String doctorName;
   final String? doctorDetail;
   final String patientName;
+  final int? patientAge;
+  final String? patientGender;
   final List<PrescriptionItem> draft;
   final bool sending;
   final ValueChanged<int> onEdit;
@@ -283,6 +287,8 @@ class PrescriptionDraftPanel extends ConsumerWidget {
           doctorName: doctorName,
           doctorDetail: doctorDetail,
           patientName: patientName,
+          patientAge: patientAge,
+          patientGender: patientGender,
           items: draft,
           onEditItem: onEdit,
           onRemoveItem: onRemove,
@@ -346,6 +352,8 @@ class PrescriptionDraftPanel extends ConsumerWidget {
               doctorName: doctorName,
               doctorDetail: doctorDetail,
               patientName: patientName,
+              patientAge: patientAge,
+              patientGender: patientGender,
               items: p.items,
               issuedAt: p.issuedAt.toLocal(),
               validUntil: p.validUntil,

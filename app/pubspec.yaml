@@ -87,6 +87,7 @@ dependencies:
   flutter_svg: ^2.3.0
   ota_update: ^7.1.0
   package_info_plus: ^10.2.1
+  pdf: ^3.13.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

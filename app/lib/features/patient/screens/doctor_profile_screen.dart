@@ -443,7 +443,7 @@ class _SeeNowBarState extends ConsumerState<_SeeNowBar> {
   Future<void> _seeNow() async {
     final draft = ref.read(consultDraftProvider);
     if (draft == null) {
-      context.go('/patient/intake');
+      context.push('/patient/intake');
       return;
     }
     setState(() => _busy = true);

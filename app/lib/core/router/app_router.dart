@@ -70,9 +70,14 @@ import '../../features/patient/screens/upload_prescription_screen.dart';
 import '../../features/patient/specialties/specialty_registry.dart';
 import '../../features/patient/visit/visit_summary_screen.dart';
 import '../../features/prescription/prescription_order_screen.dart';
+import '../../features/prescription/prescription_view_screen.dart';
 import '../theme/app_theme.dart';
+import '../widgets/exit_guard.dart';
 import '../widgets/pending_verification_view.dart';
 import '../widgets/role_shell.dart';
+
+/// A screen with nothing to go back to: back asks before leaving the app.
+Widget _top(Widget child) => ExitGuard(child: child);
 
 /// Wraps professional (doctor/chemist/admin) screens in the denser desktop
 /// theme -- see PROJECT_SPEC.md "Notes on styling/UX". The rest of the app
@@ -267,6 +272,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => _quiet(state, const PrescriptionsScreen()),
       ),
       GoRoute(
+        path: '/patient/prescription/:id',
+        builder: (context, state) =>
+            PrescriptionViewScreen(prescriptionId: state.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/patient/prescription/:id/order',
         builder: (context, state) => PrescriptionOrderScreen(
           prescriptionId: state.pathParameters['id']!,
@@ -311,16 +321,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // --- Doctor ---
       GoRoute(
         path: '/doctor/onboarding',
-        builder: (_, _) => _pro(const DoctorOnboardingScreen()),
+        builder: (_, _) => _top(_pro(const DoctorOnboardingScreen())),
       ),
       GoRoute(
         path: '/doctor/pending',
-        builder: (_, _) => _pro(
-          const PendingVerificationView(
-            title: 'Your license is under review',
-            description:
-                'An admin manually checks the public KMPDC register before you can start '
-                'accepting consultations. This usually takes 1-2 business days.',
+        builder: (_, _) => _top(
+          _pro(
+            const PendingVerificationView(
+              title: 'Your license is under review',
+              description:
+                  'An admin manually checks the public KMPDC register before you can start '
+                  'accepting consultations. This usually takes 1-2 business days.',
+            ),
           ),
         ),
       ),
@@ -382,16 +394,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // --- Chemist ---
       GoRoute(
         path: '/chemist/onboarding',
-        builder: (_, _) => _pro(const ChemistOnboardingScreen()),
+        builder: (_, _) => _top(_pro(const ChemistOnboardingScreen())),
       ),
       GoRoute(
         path: '/chemist/pending',
-        builder: (_, _) => _pro(
-          const PendingVerificationView(
-            title: 'Your registration is under review',
-            description:
-                'An admin verifies your pharmacy registration before your inventory is '
-                'listed publicly. This usually takes 1-2 business days.',
+        builder: (_, _) => _top(
+          _pro(
+            const PendingVerificationView(
+              title: 'Your registration is under review',
+              description:
+                  'An admin verifies your pharmacy registration before your inventory is '
+                  'listed publicly. This usually takes 1-2 business days.',
+            ),
           ),
         ),
       ),
@@ -453,7 +467,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           _admin('/admin/notifications', (_) => const NotificationsScreen()),
         ],
       ),
-      GoRoute(path: '/suspended', builder: (_, _) => const SuspendedScreen()),
+      GoRoute(
+        path: '/suspended',
+        builder: (_, _) => _top(const SuspendedScreen()),
+      ),
 
       // --- Shared by every role (support, map picker) ---
       GoRoute(

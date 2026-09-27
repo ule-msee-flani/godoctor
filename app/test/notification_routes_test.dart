@@ -17,7 +17,7 @@ void main() {
     const p = UserRole.patient;
     expect(
       go('prescription_issued', p, {'prescription_id': 'rx1'}),
-      '/patient/prescription/rx1/order',
+      '/patient/prescription/rx1',
     );
     expect(go('payment_window_ending', p, c), '/patient/consult/c1/pay');
     expect(go('doctor_ready', p, c), '/patient/appointment/c1');

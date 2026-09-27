@@ -83,119 +83,132 @@ class _PrescriptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isExternal = prescription.source.name == 'externalUpload';
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: isExternal
-                        ? AppColors.warningSoft
-                        : AppColors.successSoft,
-                    borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        // The full prescription, to read or save as a PDF.
+        onTap: () => context.push('/patient/prescription/${prescription.id}'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isExternal
+                          ? AppColors.warningSoft
+                          : AppColors.successSoft,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        isExternal ? LucideIcons.image : LucideIcons.badgeCheck,
+                        size: 20,
+                        color: isExternal
+                            ? AppColors.warning
+                            : AppColors.success,
+                      ),
+                    ),
                   ),
-                  child: Center(
-                    child: Icon(
-                      isExternal ? LucideIcons.image : LucideIcons.badgeCheck,
-                      size: 20,
-                      color: isExternal ? AppColors.warning : AppColors.success,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      isExternal
+                          ? 'Uploaded prescription'
+                          : 'Issued via GoDoctor',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ),
+                  Text(
+                    prescription.issuedAt.toLocal().toString().split(' ').first,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    LucideIcons.chevronRight,
+                    size: 18,
+                    color: AppColors.inkFaint,
+                  ),
+                ],
+              ),
+              if (!prescription.isValid)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.dangerSoft,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'Expired',
+                      style: TextStyle(color: AppColors.danger, fontSize: 12),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    isExternal
-                        ? 'Uploaded prescription'
-                        : 'Issued via GoDoctor',
-                    style: Theme.of(context).textTheme.titleSmall,
+              if (prescription.items.isNotEmpty) ...[
+                const Divider(height: 24),
+                ...prescription.items.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 3),
+                          child: Icon(
+                            LucideIcons.pill,
+                            size: 15,
+                            color: AppColors.inkFaint,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${item.displayName}'
+                            '${item.dosage != null ? ' (${item.dosage})' : ''} '
+                            '· x${item.quantity}',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                Text(
-                  prescription.issuedAt.toLocal().toString().split(' ').first,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-            if (!prescription.isValid)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.dangerSoft,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Expired',
-                    style: TextStyle(color: AppColors.danger, fontSize: 12),
-                  ),
-                ),
-              ),
-            if (prescription.items.isNotEmpty) ...[
-              const Divider(height: 24),
-              ...prescription.items.map(
-                (item) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (prescription.isValid &&
+                    prescription.items.any((i) => i.isStructured)) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 3),
-                        child: Icon(
-                          LucideIcons.pill,
-                          size: 15,
-                          color: AppColors.inkFaint,
+                      FilledButton.tonalIcon(
+                        onPressed: () => context.push(
+                          '/patient/prescription/${prescription.id}/order',
                         ),
+                        icon: const Icon(LucideIcons.shoppingBag, size: 16),
+                        label: const Text('Order these medicines'),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${item.displayName}'
-                          '${item.dosage != null ? ' (${item.dosage})' : ''} '
-                          '· x${item.quantity}',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                      TextButton.icon(
+                        onPressed: () => showDoseReminderSheet(
+                          context,
+                          items: prescription.items,
                         ),
+                        icon: const Icon(LucideIcons.alarmClock, size: 16),
+                        label: const Text('Remind me'),
                       ),
                     ],
                   ),
-                ),
-              ),
-              if (prescription.isValid &&
-                  prescription.items.any((i) => i.isStructured)) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton.tonalIcon(
-                      onPressed: () => context.push(
-                        '/patient/prescription/${prescription.id}/order',
-                      ),
-                      icon: const Icon(LucideIcons.shoppingBag, size: 16),
-                      label: const Text('Order these medicines'),
-                    ),
-                    TextButton.icon(
-                      onPressed: () => showDoseReminderSheet(
-                        context,
-                        items: prescription.items,
-                      ),
-                      icon: const Icon(LucideIcons.alarmClock, size: 16),
-                      label: const Text('Remind me'),
-                    ),
-                  ],
-                ),
+                ],
               ],
             ],
-          ],
+          ),
         ),
       ),
     );

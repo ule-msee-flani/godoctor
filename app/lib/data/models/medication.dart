@@ -121,27 +121,62 @@ class DosePlan {
   int get perDay => times.length;
 }
 
+/// How many doses a day the doctor's text says, or null if it doesn't say
+/// ("once/twice/three/four times daily", "every 8 hours", tds, bd...).
+int? dosesPerDayIn(String? dosage, [String? instructions]) {
+  final text = '${dosage ?? ''} ${instructions ?? ''}'.toLowerCase();
+  if (RegExp(r'four times|4 times|\bqid\b|every 6 ?h').hasMatch(text)) {
+    return 4;
+  }
+  if (RegExp(
+    r'three times|3 times|thrice|\btds\b|\btid\b|every 8 ?h',
+  ).hasMatch(text)) {
+    return 3;
+  }
+  if (RegExp(
+    r'twice|two times|2 times|\bbd\b|\bbid\b|every 12 ?h',
+  ).hasMatch(text)) {
+    return 2;
+  }
+  if (RegExp(
+    r'once|one time|1 time|\bod\b|daily|a day|at night|bedtime|every 24 ?h',
+  ).hasMatch(text)) {
+    return 1;
+  }
+  return null;
+}
+
+/// How many days the course lasts: "for 5 days" / "x 7 days" / "for 2
+/// weeks", else worked out from the quantity. Null if it can't be told.
+int? courseDaysIn({
+  String? dosage,
+  String? instructions,
+  int? quantity,
+  int? perDay,
+}) {
+  final text = '${dosage ?? ''} ${instructions ?? ''}'.toLowerCase();
+  final dm = RegExp(r'(\d+)\s*(day|days|d)\b').firstMatch(text);
+  final wm = RegExp(r'(\d+)\s*(week|weeks)\b').firstMatch(text);
+  if (dm != null) return int.parse(dm.group(1)!).clamp(1, 90);
+  if (wm != null) return (int.parse(wm.group(1)!) * 7).clamp(1, 90);
+  if (quantity != null && quantity > 1 && perDay != null) {
+    final perDose =
+        int.tryParse(
+          RegExp(r'^\s*(\d+)').firstMatch(dosage ?? '')?.group(1) ?? '',
+        ) ??
+        1;
+    return (quantity / (perDay * perDose)).ceil().clamp(1, 90);
+  }
+  return null;
+}
+
 /// Reads a doctor's dose text (+ quantity) into reminder times and course
 /// length. Understands the phrasing used by the prescribing sheet
 /// ("once/twice/three times daily", "every 8 hours", "at night", "for 5
-/// days"); falls back to once a day. Pure, so it's easy to test.
+/// days"); falls back to once a day for 5 days. Pure, so it's easy to test.
 DosePlan planDoses({String? dosage, String? instructions, int? quantity}) {
   final text = '${dosage ?? ''} ${instructions ?? ''}'.toLowerCase();
-
-  int perDay;
-  if (RegExp(r'four times|4 times|\bqid\b|every 6 ?h').hasMatch(text)) {
-    perDay = 4;
-  } else if (RegExp(
-    r'three times|3 times|thrice|\btds\b|\btid\b|every 8 ?h',
-  ).hasMatch(text)) {
-    perDay = 3;
-  } else if (RegExp(
-    r'twice|two times|2 times|\bbd\b|\bbid\b|every 12 ?h',
-  ).hasMatch(text)) {
-    perDay = 2;
-  } else {
-    perDay = 1;
-  }
+  final perDay = dosesPerDayIn(dosage, instructions) ?? 1;
 
   final times = switch (perDay) {
     4 => ['07:00', '12:00', '17:00', '22:00'],
@@ -150,23 +185,13 @@ DosePlan planDoses({String? dosage, String? instructions, int? quantity}) {
     _ => [RegExp(r'night|bedtime|evening').hasMatch(text) ? '21:00' : '08:00'],
   };
 
-  // Course length: "for 5 days" / "x 7 days" / "for 2 weeks", else from the
-  // quantity (tablets per dose from the leading number), else 5 days.
-  int? days;
-  final dm = RegExp(r'(\d+)\s*(day|days|d)\b').firstMatch(text);
-  final wm = RegExp(r'(\d+)\s*(week|weeks)\b').firstMatch(text);
-  if (dm != null) {
-    days = int.parse(dm.group(1)!);
-  } else if (wm != null) {
-    days = int.parse(wm.group(1)!) * 7;
-  } else if (quantity != null && quantity > 1) {
-    final perDose =
-        int.tryParse(
-          RegExp(r'^\s*(\d+)').firstMatch(dosage ?? '')?.group(1) ?? '',
-        ) ??
-        1;
-    days = (quantity / (perDay * perDose)).ceil();
-  }
-  days = (days ?? 5).clamp(1, 90);
+  final days =
+      courseDaysIn(
+        dosage: dosage,
+        instructions: instructions,
+        quantity: quantity,
+        perDay: perDay,
+      ) ??
+      5;
   return DosePlan(times: times, days: days);
 }

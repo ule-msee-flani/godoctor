@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/providers/repository_providers.dart';
 import 'widgets/admin_ui.dart';
+import '../../core/widgets/exit_guard.dart';
 
 class _NavItem {
   const _NavItem(this.path, this.label, this.icon);
@@ -71,6 +72,17 @@ class AdminShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return ExitGuard(
+      onBack: () {
+        if (location == '/admin') return false;
+        context.go('/admin');
+        return true;
+      },
+      child: _build(context, ref),
+    );
+  }
+
+  Widget _build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.of(context).size.width >= 1000;
     final sidebar = _Sidebar(
       selected: _selected,

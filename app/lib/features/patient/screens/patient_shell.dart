@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../chat/chat_providers.dart';
 import '../family/family_providers.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/exit_guard.dart';
 
 /// Bottom-navigation frame for the patient's top-level tabs. Every other
 /// patient route (intake, call, checkout...) is pushed full-screen on top,
@@ -35,21 +36,28 @@ class PatientShell extends ConsumerWidget {
     ref.watch(presenceHeartbeatProvider);
     final unreadChats = ref.watch(unreadChatsProvider);
 
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (i) => navigationShell.goBranch(
-          i,
-          initialLocation: i == navigationShell.currentIndex,
+    return ExitGuard(
+      onBack: () {
+        if (navigationShell.currentIndex == 0) return false;
+        navigationShell.goBranch(0);
+        return true;
+      },
+      child: Scaffold(
+        body: navigationShell,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: navigationShell.currentIndex,
+          onDestinationSelected: (i) => navigationShell.goBranch(
+            i,
+            initialLocation: i == navigationShell.currentIndex,
+          ),
+          destinations: [
+            _tab(LucideIcons.house, 'Home'),
+            _tab(LucideIcons.stethoscope, 'Doctors'),
+            _tab(LucideIcons.messagesSquare, 'Chats', badge: unreadChats),
+            _tab(LucideIcons.heartPulse, 'Health'),
+            _tab(LucideIcons.user, 'Profile'),
+          ],
         ),
-        destinations: [
-          _tab(LucideIcons.house, 'Home'),
-          _tab(LucideIcons.stethoscope, 'Doctors'),
-          _tab(LucideIcons.messagesSquare, 'Chats', badge: unreadChats),
-          _tab(LucideIcons.heartPulse, 'Health'),
-          _tab(LucideIcons.user, 'Profile'),
-        ],
       ),
     );
   }

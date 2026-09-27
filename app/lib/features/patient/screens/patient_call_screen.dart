@@ -231,6 +231,8 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
                   doctorName: doctorName,
                   doctorDetail: consultation?.specialtyRequested,
                   patientName: patientName,
+                  patientAge: patient?.ageOn(p.issuedAt),
+                  patientGender: patient?.genderLabel,
                   items: p.items,
                   issuedAt: p.issuedAt.toLocal(),
                   validUntil: p.validUntil,

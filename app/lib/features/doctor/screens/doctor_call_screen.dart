@@ -241,6 +241,8 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
             doctorName: doctorName,
             doctorDetail: doctor?.specialties.firstOrNull,
             patientName: patientName,
+            patientAge: detail.patient?.ageOn(DateTime.now()),
+            patientGender: detail.patient?.genderLabel,
             draft: draft,
             sending: sending,
             onEdit: (i) => prescribe(null, editIndex: i),

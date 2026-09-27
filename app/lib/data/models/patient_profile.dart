@@ -3,6 +3,7 @@ class PatientProfile {
     required this.userId,
     required this.name,
     this.dateOfBirth,
+    this.gender,
     this.locationLat,
     this.locationLng,
     this.locationName,
@@ -20,6 +21,9 @@ class PatientProfile {
   final String userId;
   final String name;
   final DateTime? dateOfBirth;
+
+  /// female | male | other
+  final String? gender;
   final double? locationLat;
   final double? locationLng;
 
@@ -39,12 +43,32 @@ class PatientProfile {
 
   bool get hasLocation => locationLat != null && locationLng != null;
 
+  /// Whole years, or null without a date of birth.
+  int? ageOn(DateTime day) {
+    final dob = dateOfBirth;
+    if (dob == null) return null;
+    var age = day.year - dob.year;
+    if (day.month < dob.month ||
+        (day.month == dob.month && day.day < dob.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  String? get genderLabel => switch (gender) {
+    'female' => 'Female',
+    'male' => 'Male',
+    'other' => 'Other',
+    _ => null,
+  };
+
   factory PatientProfile.fromMap(Map<String, dynamic> map) => PatientProfile(
     userId: map['user_id'] as String,
     name: (map['name'] as String?) ?? '',
     dateOfBirth: map['date_of_birth'] != null
         ? DateTime.tryParse(map['date_of_birth'] as String)
         : null,
+    gender: map['gender'] as String?,
     locationLat: (map['location_lat'] as num?)?.toDouble(),
     locationLng: (map['location_lng'] as num?)?.toDouble(),
     locationName: map['location_name'] as String?,
@@ -63,6 +87,8 @@ class PatientProfile {
     'name': name,
     if (dateOfBirth != null)
       'date_of_birth': dateOfBirth!.toIso8601String().split('T').first,
+    // Only when set, so screens that don't edit it never clear it.
+    if (gender != null) 'gender': gender,
     'location_lat': locationLat,
     'location_lng': locationLng,
     'location_name': locationName,

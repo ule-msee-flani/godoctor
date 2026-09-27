@@ -7,7 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../data/models/prescription.dart';
-import '../../data/providers/auth_providers.dart';
+import '../../services/chemist_matching.dart';
 import 'chemist_match.dart';
 
 /// Under an issued prescription: the chemist that best fills it (most
@@ -43,7 +43,7 @@ class SuggestedChemistCard extends ConsumerWidget {
     }
 
     final stock = ref.watch(prescriptionStockProvider(key));
-    final patient = ref.watch(currentPatientProfileProvider).valueOrNull;
+    final at = ref.watch(matchingLocationProvider);
 
     return _Shell(
       child: stock.when(
@@ -63,8 +63,8 @@ class SuggestedChemistCard extends ConsumerWidget {
           final ranked = rankChemists(
             prescription,
             items,
-            patientLat: patient?.locationLat,
-            patientLng: patient?.locationLng,
+            patientLat: at?.lat,
+            patientLng: at?.lng,
           );
           if (ranked.isEmpty) {
             return Row(

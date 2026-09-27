@@ -28,7 +28,7 @@ String? routeForNotification({
     case UserRole.patient:
       return switch (kind) {
         'prescription_issued' when prescription != null =>
-          '/patient/prescription/$prescription/order',
+          '/patient/prescription/$prescription',
         'payment_window_ending' when consultation != null =>
           '/patient/consult/$consultation/pay',
         'family_session_invite' when consultation != null =>

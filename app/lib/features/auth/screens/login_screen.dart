@@ -158,144 +158,151 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final theme = Theme.of(context).textTheme;
     final role = _role;
 
-    return AuthHeroScaffold(
-      image: role.image,
-      alignment: role.alignment,
-      heightFactor: 0.40,
-      onBack: () => context.go('/auth'),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-        child: AutofillGroup(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  _isRegistering ? 'Create your account' : 'Welcome back',
-                  textAlign: TextAlign.center,
-                  style: theme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${_isRegistering ? 'Register' : 'Log in'} as a ${role.label}',
-                  textAlign: TextAlign.center,
-                  style: theme.bodyMedium,
-                ),
-                const SizedBox(height: 22),
-                if (_isRegistering) ...[
-                  TextFormField(
-                    controller: _nameCtrl,
-                    textInputAction: TextInputAction.next,
-                    textCapitalization: TextCapitalization.words,
-                    autofillHints: const [AutofillHints.name],
-                    decoration: _field(
-                      widget.role == UserRole.chemist
-                          ? 'Pharmacy name'
-                          : 'Full name',
-                      LucideIcons.idCard,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/auth');
+      },
+      child: AuthHeroScaffold(
+        image: role.image,
+        alignment: role.alignment,
+        heightFactor: 0.40,
+        onBack: () => context.go('/auth'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: AutofillGroup(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _isRegistering ? 'Create your account' : 'Welcome back',
+                    textAlign: TextAlign.center,
+                    style: theme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                    validator: (v) =>
-                        (v ?? '').trim().length < 2 ? 'Enter your name' : null,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_isRegistering ? 'Register' : 'Log in'} as a ${role.label}',
+                    textAlign: TextAlign.center,
+                    style: theme.bodyMedium,
+                  ),
+                  const SizedBox(height: 22),
+                  if (_isRegistering) ...[
+                    TextFormField(
+                      controller: _nameCtrl,
+                      textInputAction: TextInputAction.next,
+                      textCapitalization: TextCapitalization.words,
+                      autofillHints: const [AutofillHints.name],
+                      decoration: _field(
+                        widget.role == UserRole.chemist
+                            ? 'Pharmacy name'
+                            : 'Full name',
+                        LucideIcons.idCard,
+                      ),
+                      validator: (v) => (v ?? '').trim().length < 2
+                          ? 'Enter your name'
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  TextFormField(
+                    controller: _emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    autocorrect: false,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: _field('Email', LucideIcons.mail),
+                    validator: (v) {
+                      final t = (v ?? '').trim();
+                      if (t.isEmpty) return 'Enter your email';
+                      if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(t)) {
+                        return 'That doesn\'t look like an email address';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 12),
-                ],
-                TextFormField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  autocorrect: false,
-                  autofillHints: const [AutofillHints.email],
-                  decoration: _field('Email', LucideIcons.mail),
-                  validator: (v) {
-                    final t = (v ?? '').trim();
-                    if (t.isEmpty) return 'Enter your email';
-                    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(t)) {
-                      return 'That doesn\'t look like an email address';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _passwordCtrl,
-                  obscureText: !_showPassword,
-                  textInputAction: TextInputAction.done,
-                  autofillHints: [
-                    _isRegistering
-                        ? AutofillHints.newPassword
-                        : AutofillHints.password,
-                  ],
-                  onFieldSubmitted: (_) => _loading ? null : _submit(),
-                  decoration: _field(
-                    'Password',
-                    LucideIcons.lockKeyhole,
-                    suffix: IconButton(
-                      tooltip: _showPassword
-                          ? 'Hide password'
-                          : 'Show password',
-                      icon: Icon(
-                        _showPassword ? LucideIcons.eyeOff : LucideIcons.eye,
-                        size: 20,
+                  TextFormField(
+                    controller: _passwordCtrl,
+                    obscureText: !_showPassword,
+                    textInputAction: TextInputAction.done,
+                    autofillHints: [
+                      _isRegistering
+                          ? AutofillHints.newPassword
+                          : AutofillHints.password,
+                    ],
+                    onFieldSubmitted: (_) => _loading ? null : _submit(),
+                    decoration: _field(
+                      'Password',
+                      LucideIcons.lockKeyhole,
+                      suffix: IconButton(
+                        tooltip: _showPassword
+                            ? 'Hide password'
+                            : 'Show password',
+                        icon: Icon(
+                          _showPassword ? LucideIcons.eyeOff : LucideIcons.eye,
+                          size: 20,
+                        ),
+                        onPressed: () =>
+                            setState(() => _showPassword = !_showPassword),
                       ),
-                      onPressed: () =>
-                          setState(() => _showPassword = !_showPassword),
+                    ),
+                    validator: (v) {
+                      if ((v ?? '').isEmpty) return 'Enter your password';
+                      if (_isRegistering && v!.length < 6) {
+                        return 'Use at least 6 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: _loading ? null : _submit,
+                    child: _loading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(_isRegistering ? 'Create account' : 'Log in'),
+                  ),
+                  if (_error != null)
+                    _Banner(
+                      text: _error!,
+                      icon: LucideIcons.circleAlert,
+                      fg: AppColors.danger,
+                      bg: AppColors.dangerSoft,
+                    ),
+                  if (_notice != null)
+                    _Banner(
+                      text: _notice!,
+                      icon: LucideIcons.mailCheck,
+                      fg: AppColors.success,
+                      bg: AppColors.successSoft,
+                    ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _loading
+                        ? null
+                        : () => setState(() {
+                            _isRegistering = !_isRegistering;
+                            _error = null;
+                            _notice = null;
+                          }),
+                    child: Text(
+                      _isRegistering
+                          ? 'Already have an account? Log in'
+                          : 'New here? Create an account',
                     ),
                   ),
-                  validator: (v) {
-                    if ((v ?? '').isEmpty) return 'Enter your password';
-                    if (_isRegistering && v!.length < 6) {
-                      return 'Use at least 6 characters';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: _loading ? null : _submit,
-                  child: _loading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(_isRegistering ? 'Create account' : 'Log in'),
-                ),
-                if (_error != null)
-                  _Banner(
-                    text: _error!,
-                    icon: LucideIcons.circleAlert,
-                    fg: AppColors.danger,
-                    bg: AppColors.dangerSoft,
-                  ),
-                if (_notice != null)
-                  _Banner(
-                    text: _notice!,
-                    icon: LucideIcons.mailCheck,
-                    fg: AppColors.success,
-                    bg: AppColors.successSoft,
-                  ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: _loading
-                      ? null
-                      : () => setState(() {
-                          _isRegistering = !_isRegistering;
-                          _error = null;
-                          _notice = null;
-                        }),
-                  child: Text(
-                    _isRegistering
-                        ? 'Already have an account? Log in'
-                        : 'New here? Create an account',
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

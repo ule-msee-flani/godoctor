@@ -8,6 +8,7 @@ import '../../../data/models/enums.dart';
 import '../widgets/auth_hero.dart';
 import '../widgets/role_icons.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/exit_guard.dart';
 
 /// First screen: the hero photo, the app icon, and "who are you?".
 class RoleSelectScreen extends StatelessWidget {
@@ -16,45 +17,50 @@ class RoleSelectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
-    return AuthHeroScaffold(
-      image: 'assets/images/auth/auth_hero',
-      alignment: const Alignment(-0.35, 0),
-      heightFactor: 0.42,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Center(child: AppIconMark(size: 64)),
-            const SizedBox(height: 16),
-            Text(
-              '${LocalTouch.welcome} to GoDoctor',
-              textAlign: TextAlign.center,
-              style: theme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Consult a doctor or order medicine, wherever you are.',
-              textAlign: TextAlign.center,
-              style: theme.bodyMedium,
-            ),
-            const SizedBox(height: 24),
-            for (final r in _roles) ...[
-              FadeSlideIn(
-                index: _roles.indexOf(r),
-                child: Pressable(
-                  child: _RoleCard(
-                    role: r.role,
-                    title: r.title,
-                    subtitle: r.subtitle,
-                    onTap: () =>
-                        context.go('/auth/login/${EnumDbCoding.toDb(r.role)}'),
-                  ),
+    return ExitGuard(
+      child: AuthHeroScaffold(
+        image: 'assets/images/auth/auth_hero',
+        alignment: const Alignment(-0.35, 0),
+        heightFactor: 0.42,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Center(child: AppIconMark(size: 64)),
+              const SizedBox(height: 16),
+              Text(
+                '${LocalTouch.welcome} to GoDoctor',
+                textAlign: TextAlign.center,
+                style: theme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
+              Text(
+                'Consult a doctor or order medicine, wherever you are.',
+                textAlign: TextAlign.center,
+                style: theme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+              for (final r in _roles) ...[
+                FadeSlideIn(
+                  index: _roles.indexOf(r),
+                  child: Pressable(
+                    child: _RoleCard(
+                      role: r.role,
+                      title: r.title,
+                      subtitle: r.subtitle,
+                      onTap: () => context.go(
+                        '/auth/login/${EnumDbCoding.toDb(r.role)}',
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

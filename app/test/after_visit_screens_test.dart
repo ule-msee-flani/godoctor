@@ -307,6 +307,7 @@ void main() {
     );
     expect(find.text('See your visit summary'), findsOneWidget);
     expect(find.textContaining('free for 24 h'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Remind me to take these'), 300);
     expect(find.text('Remind me to take these'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _close(tester);

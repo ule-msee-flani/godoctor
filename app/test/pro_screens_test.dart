@@ -597,7 +597,13 @@ void callTests() {
     await _settle(tester);
     expect(find.text('1 tablet twice daily'), findsOneWidget);
 
+    // The "Added ..." message sits over the bottom of the screen.
+    tester
+        .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger))
+        .removeCurrentSnackBar();
+    await tester.pump();
     await tester.ensureVisible(find.text('Send to Amina Hassan'));
+    await tester.pump();
     await tester.tap(find.text('Send to Amina Hassan'));
     await _settle(tester);
     expect(sentItems?.single.drugId, 'd1');

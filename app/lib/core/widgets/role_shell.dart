@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../theme/app_colors.dart';
 import 'motion.dart';
+import 'exit_guard.dart';
 
 /// One tab in a [RoleShell].
 class ShellTab {
@@ -47,6 +48,17 @@ class RoleShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ExitGuard(
+      onBack: () {
+        if (navigationShell.currentIndex == 0) return false;
+        _go(0);
+        return true;
+      },
+      child: _build(context),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     final wide = MediaQuery.of(context).size.width >= 900;
     if (wide) {
       return Scaffold(

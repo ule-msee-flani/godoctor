@@ -8,7 +8,6 @@ import '../../core/utils/format.dart';
 import '../../core/widgets/loading_view.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../data/models/prescription.dart';
-import '../../data/providers/auth_providers.dart';
 import '../../data/providers/repository_providers.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/repository_errors.dart';
@@ -16,6 +15,8 @@ import '../../core/widgets/motion.dart';
 import '../patient/widgets/medicine_image.dart';
 import '../payments/fulfillment_picker.dart';
 import '../payments/mpesa_checkout.dart';
+import '../location/match_location_bar.dart';
+import '../../services/chemist_matching.dart';
 import 'chemist_match.dart';
 
 final _prescriptionProvider = FutureProvider.autoDispose
@@ -45,6 +46,15 @@ class PrescriptionOrderScreen extends ConsumerStatefulWidget {
 class _PrescriptionOrderScreenState
     extends ConsumerState<PrescriptionOrderScreen> {
   late String? _chemistId = widget.initialChemistId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) offerPreciseLocation(context, ref);
+    });
+  }
+
   String _fulfillment = 'pickup';
 
   /// Quantities the patient changed, by drug id.
@@ -133,7 +143,7 @@ class _PrescriptionOrderScreenState
   Widget _body(Prescription prescription, String key) {
     final theme = Theme.of(context).textTheme;
     final stock = ref.watch(prescriptionStockProvider(key));
-    final patient = ref.watch(currentPatientProfileProvider).valueOrNull;
+    final at = ref.watch(matchingLocationProvider);
     final freeText = prescription.items.where((i) => !i.isStructured).toList();
 
     return stock.when(
@@ -146,8 +156,8 @@ class _PrescriptionOrderScreenState
         final ranked = rankChemists(
           prescription,
           items,
-          patientLat: patient?.locationLat,
-          patientLng: patient?.locationLng,
+          patientLat: at?.lat,
+          patientLng: at?.lng,
         );
         if (ranked.isEmpty) {
           return const EmptyView(
@@ -179,10 +189,12 @@ class _PrescriptionOrderScreenState
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 children: [
+                  const MatchLocationBar(),
+                  const SizedBox(height: 16),
                   Text('Choose a chemist', style: theme.titleMedium),
                   const SizedBox(height: 4),
                   Text(
-                    'Sorted by how many of your medicines they have, then distance.',
+                    'The ones with all your medicines, closest to you, come first.',
                     style: theme.bodySmall,
                   ),
                   const SizedBox(height: 12),

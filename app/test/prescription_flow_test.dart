@@ -249,7 +249,9 @@ void main() {
     await _render(tester, const PatientCallScreen(consultationId: 'c1'));
     expect(tester.takeException(), isNull);
     expect(find.text('Your prescription'), findsOneWidget);
-    expect(find.text('1. Paracetamol'), findsOneWidget);
+    // Written like the paper pad: "1." then the medicine and its form.
+    expect(find.text('1.'), findsOneWidget);
+    expect(find.text('Paracetamol (tablet)'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Order from Afya Chemist'), 300);
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Order from Afya Chemist'), findsOneWidget);
