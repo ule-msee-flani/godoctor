@@ -1,0 +1,5 @@
+Prescriptions now look like a real prescription pad, with the GoDoctor logo and your doctor's name as the signature
+Save or share any prescription as a PDF
+The back button now takes you back step by step, and asks before closing the app
+See the chemists closest to you first, or search any area to find chemists there
+Add your gender in Health details so it shows on your prescriptions
