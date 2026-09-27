@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/doctor_profile.dart';
 import '../../../data/models/enums.dart';
@@ -12,6 +13,7 @@ import '../widgets/active_patient_section.dart';
 import '../widgets/doctor_appointments_section.dart';
 import '../widgets/today_card.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../../../data/repositories/repository_errors.dart';
 
 class DoctorDashboardScreen extends ConsumerWidget {
   const DoctorDashboardScreen({super.key});
@@ -62,9 +64,6 @@ class _DashboardBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAvailable = profile.status == DoctorStatus.available;
-    final isBusy = profile.status == DoctorStatus.busy;
-
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(doctorTodayProvider);
@@ -73,41 +72,7 @@ class _DashboardBody extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Icon(
-                    isAvailable ? Icons.wifi : Icons.wifi_off,
-                    color: isAvailable ? Colors.green : Colors.grey,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      isBusy
-                          ? 'In a consultation'
-                          : (isAvailable
-                                ? 'Available for consultations'
-                                : 'Offline'),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  Switch(
-                    value: isAvailable,
-                    onChanged: isBusy
-                        ? null
-                        : (value) async {
-                            await ref
-                                .read(profileRepositoryProvider)
-                                .setDoctorAvailability(value);
-                            ref.invalidate(currentDoctorProfileProvider);
-                          },
-                  ),
-                ],
-              ),
-            ),
-          ),
+          _AvailabilityCard(status: profile.status),
           const SizedBox(height: 8),
           Wrap(
             spacing: 6,
@@ -122,6 +87,102 @@ class _DashboardBody extends ConsumerWidget {
           const SizedBox(height: 20),
           const DoctorAppointmentsSection(),
         ],
+      ),
+    );
+  }
+}
+
+/// "Available for consultations" on/off. Flips at once and reverts (with
+/// the reason) if the server says no.
+class _AvailabilityCard extends ConsumerStatefulWidget {
+  const _AvailabilityCard({required this.status});
+
+  final DoctorStatus status;
+
+  @override
+  ConsumerState<_AvailabilityCard> createState() => _AvailabilityCardState();
+}
+
+class _AvailabilityCardState extends ConsumerState<_AvailabilityCard> {
+  bool? _pending;
+
+  Future<void> _set(bool on) async {
+    setState(() => _pending = on);
+    try {
+      await ref.read(profileRepositoryProvider).setDoctorAvailability(on);
+      ref.invalidate(currentDoctorProfileProvider);
+      await ref.read(currentDoctorProfileProvider.future);
+    } catch (e) {
+      if (mounted) {
+        final msg = friendlyError(e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              msg.contains('not yet verified')
+                  ? 'Your licence has not been verified yet, so you can\'t go online.'
+                  : 'Could not change your status: $msg',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _pending = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = widget.status == DoctorStatus.busy;
+    final on = _pending ?? widget.status == DoctorStatus.available;
+    final theme = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+        child: Row(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: busy
+                    ? AppColors.warning
+                    : on
+                    ? AppColors.success
+                    : AppColors.inkFaint,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    busy
+                        ? 'In a consultation'
+                        : on
+                        ? 'Available for consultations'
+                        : 'Offline',
+                    style: theme.titleMedium,
+                  ),
+                  Text(
+                    busy
+                        ? 'You\'ll be available again when it ends.'
+                        : on
+                        ? 'Patients can choose you now.'
+                        : 'Switch on to receive patients.',
+                    style: theme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: on,
+              onChanged: busy || _pending != null ? null : _set,
+            ),
+          ],
+        ),
       ),
     );
   }

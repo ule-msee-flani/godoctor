@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/enums.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../widgets/auth_hero.dart';
 
-enum _Method { phone, email }
-
+/// Log in or register (email and password) as a patient, doctor or chemist,
+/// under a photo for that kind of account.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key, required this.role});
 
@@ -19,257 +21,240 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  _Method _method = _Method.phone;
-  bool _isRegistering = false;
-  bool _otpSent = false;
-  bool _loading = false;
-  String? _error;
-
+  final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _otpCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+
+  bool _isRegistering = false;
+  bool _showPassword = false;
+  bool _loading = false;
+  String? _error;
+  String? _notice;
 
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _phoneCtrl.dispose();
-    _otpCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
 
-  ({IconData icon, Color color}) get _roleBrand => switch (widget.role) {
-    UserRole.patient => (icon: LucideIcons.user, color: AppColors.primary),
-    UserRole.doctor => (
-      icon: LucideIcons.stethoscope,
-      color: AppColors.accentTeal,
-    ),
-    UserRole.chemist => (icon: LucideIcons.pill, color: AppColors.primaryDark),
-    UserRole.admin => (icon: LucideIcons.shieldCheck, color: AppColors.ink),
-  };
+  ({String image, Alignment alignment, String label}) get _role =>
+      switch (widget.role) {
+        UserRole.patient => (
+          image: 'assets/images/auth/role_patient',
+          alignment: const Alignment(0.2, -0.2),
+          label: 'patient',
+        ),
+        UserRole.doctor => (
+          image: 'assets/images/auth/role_doctor',
+          alignment: const Alignment(0, -0.55),
+          label: 'doctor',
+        ),
+        UserRole.chemist => (
+          image: 'assets/images/auth/role_chemist',
+          alignment: const Alignment(0.1, -0.3),
+          label: 'chemist',
+        ),
+        UserRole.admin => (
+          image: 'assets/images/auth/auth_hero',
+          alignment: Alignment.center,
+          label: 'admin',
+        ),
+      };
 
-  String get _roleLabel => switch (widget.role) {
-    UserRole.patient => 'patient',
-    UserRole.doctor => 'doctor',
-    UserRole.chemist => 'chemist',
-    UserRole.admin => 'admin',
-  };
+  /// Supabase's messages, in plain words.
+  static String _friendly(Object e) {
+    final msg = e is AuthException ? e.message : e.toString();
+    final m = msg.toLowerCase();
+    if (m.contains('invalid login credentials')) {
+      return 'That email and password don\'t match. Check them and try again.';
+    }
+    if (m.contains('email not confirmed')) {
+      return 'Please confirm your email first. Check your inbox for the link we sent.';
+    }
+    if (m.contains('already registered') || m.contains('already exists')) {
+      return 'An account with this email already exists. Log in instead.';
+    }
+    if (m.contains('password should be at least') ||
+        m.contains('weak password')) {
+      return 'Choose a stronger password: at least 6 characters.';
+    }
+    if (m.contains('rate limit') || m.contains('too many')) {
+      return 'Too many attempts. Please wait a minute and try again.';
+    }
+    if (m.contains('socket') ||
+        m.contains('network') ||
+        m.contains('failed host lookup')) {
+      return 'No internet connection. Check your data or Wi-Fi and try again.';
+    }
+    return msg;
+  }
 
-  Future<void> _run(Future<void> Function() action) async {
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() {
       _loading = true;
       _error = null;
+      _notice = null;
     });
+    final auth = ref.read(authRepositoryProvider);
     try {
-      await action();
-    } catch (e) {
-      setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _sendOtp() async {
-    final auth = ref.read(authRepositoryProvider);
-    await _run(
-      () => auth.requestPhoneOtp(
-        phone: _phoneCtrl.text.trim(),
-        role: _isRegistering ? widget.role : null,
-        name: _isRegistering ? _nameCtrl.text.trim() : null,
-      ),
-    );
-    if (mounted && _error == null) setState(() => _otpSent = true);
-  }
-
-  Future<void> _verifyOtp() async {
-    final auth = ref.read(authRepositoryProvider);
-    await _run(
-      () => auth.verifyPhoneOtp(
-        phone: _phoneCtrl.text.trim(),
-        otp: _otpCtrl.text.trim(),
-      ),
-    );
-    // On success the router's redirect (driven by auth state) takes over.
-  }
-
-  Future<void> _emailSubmit() async {
-    final auth = ref.read(authRepositoryProvider);
-    if (_isRegistering) {
-      await _run(
-        () => auth.signUpWithEmail(
+      if (_isRegistering) {
+        final mustConfirm = await auth.signUpWithEmail(
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,
           role: widget.role,
           name: _nameCtrl.text.trim(),
-        ),
-      );
-    } else {
-      await _run(
-        () => auth.signInWithEmail(
+        );
+        if (mustConfirm) {
+          if (mounted) {
+            setState(() {
+              _loading = false;
+              _isRegistering = false;
+              _notice =
+                  'Account created. We sent a link to ${_emailCtrl.text.trim()}: '
+                  'confirm your email, then log in.';
+            });
+          }
+          return;
+        }
+      } else {
+        await auth.signInWithEmail(
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,
-        ),
-      );
+        );
+      }
+      // Signed in: the router moves on by itself as soon as the account has
+      // loaded. Keep the spinner until then so it isn't tapped again (but
+      // never forever).
+      Future<void>.delayed(const Duration(seconds: 10), () {
+        if (mounted) setState(() => _loading = false);
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = _friendly(e);
+        });
+      }
     }
   }
 
+  InputDecoration _field(String label, IconData icon, {Widget? suffix}) =>
+      InputDecoration(
+        labelText: label,
+        prefixIcon: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Icon(icon, size: 20),
+        ),
+        suffixIcon: suffix,
+      );
+
   @override
   Widget build(BuildContext context) {
-    final brand = _roleBrand;
+    final theme = Theme.of(context).textTheme;
+    final role = _role;
 
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  IconButton.filled(
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.white,
-                      foregroundColor: AppColors.ink,
-                      side: const BorderSide(color: AppColors.border),
-                    ),
-                    icon: const Icon(LucideIcons.arrowLeft),
-                    onPressed: () => context.go('/auth'),
+    return AuthHeroScaffold(
+      image: role.image,
+      alignment: role.alignment,
+      heightFactor: 0.40,
+      onBack: () => context.go('/auth'),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        child: AutofillGroup(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  _isRegistering ? 'Create your account' : 'Welcome back',
+                  textAlign: TextAlign.center,
+                  style: theme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
                 ),
-                child: Center(
-                  child: Icon(brand.icon, color: brand.color, size: 28),
+                const SizedBox(height: 4),
+                Text(
+                  '${_isRegistering ? 'Register' : 'Log in'} as a ${role.label}',
+                  textAlign: TextAlign.center,
+                  style: theme.bodyMedium,
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _isRegistering ? 'Create your account' : 'Welcome back',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${_isRegistering ? 'Register' : 'Log in'} as $_roleLabel',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 24),
-              SegmentedButton<_Method>(
-                segments: const [
-                  ButtonSegment(
-                    value: _Method.phone,
-                    label: Text('Phone (OTP)'),
-                    icon: Icon(LucideIcons.smartphone, size: 16),
-                  ),
-                  ButtonSegment(
-                    value: _Method.email,
-                    label: Text('Email'),
-                    icon: Icon(LucideIcons.mail, size: 16),
-                  ),
-                ],
-                selected: {_method},
-                onSelectionChanged: (s) => setState(() {
-                  _method = s.first;
-                  _otpSent = false;
-                  _error = null;
-                }),
-              ),
-              const SizedBox(height: 24),
-              if (_isRegistering)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: TextField(
+                const SizedBox(height: 22),
+                if (_isRegistering) ...[
+                  TextFormField(
                     controller: _nameCtrl,
-                    decoration: InputDecoration(
-                      labelText: widget.role == UserRole.chemist
-                          ? 'Business name'
+                    textInputAction: TextInputAction.next,
+                    textCapitalization: TextCapitalization.words,
+                    autofillHints: const [AutofillHints.name],
+                    decoration: _field(
+                      widget.role == UserRole.chemist
+                          ? 'Pharmacy name'
                           : 'Full name',
-                      prefixIcon: const Padding(
-                        padding: EdgeInsets.all(14),
-                        child: Icon(LucideIcons.idCard, size: 20),
-                      ),
+                      LucideIcons.idCard,
                     ),
+                    validator: (v) =>
+                        (v ?? '').trim().length < 2 ? 'Enter your name' : null,
                   ),
-                ),
-              if (_method == _Method.phone) ...[
-                TextField(
-                  controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  enabled: !_otpSent,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone number',
-                    hintText: '+2547XXXXXXXX',
-                    prefixIcon: Padding(
-                      padding: EdgeInsets.all(14),
-                      child: Icon(LucideIcons.smartphone, size: 20),
-                    ),
-                  ),
-                ),
-                if (_otpSent) ...[
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: _otpCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Enter the code we sent you',
-                      prefixIcon: Padding(
-                        padding: EdgeInsets.all(14),
-                        child: Icon(LucideIcons.lockKeyhole, size: 20),
-                      ),
-                    ),
-                  ),
                 ],
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: _loading
-                      ? null
-                      : (_otpSent ? _verifyOtp : _sendOtp),
-                  child: _loading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(_otpSent ? 'Verify code' : 'Send code'),
-                ),
-              ] else ...[
-                TextField(
+                TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Padding(
-                      padding: EdgeInsets.all(14),
-                      child: Icon(LucideIcons.mail, size: 20),
-                    ),
-                  ),
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false,
+                  autofillHints: const [AutofillHints.email],
+                  decoration: _field('Email', LucideIcons.mail),
+                  validator: (v) {
+                    final t = (v ?? '').trim();
+                    if (t.isEmpty) return 'Enter your email';
+                    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(t)) {
+                      return 'That doesn\'t look like an email address';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                TextFormField(
                   controller: _passwordCtrl,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Padding(
-                      padding: EdgeInsets.all(14),
-                      child: Icon(LucideIcons.lockKeyhole, size: 20),
+                  obscureText: !_showPassword,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: [
+                    _isRegistering
+                        ? AutofillHints.newPassword
+                        : AutofillHints.password,
+                  ],
+                  onFieldSubmitted: (_) => _loading ? null : _submit(),
+                  decoration: _field(
+                    'Password',
+                    LucideIcons.lockKeyhole,
+                    suffix: IconButton(
+                      tooltip: _showPassword
+                          ? 'Hide password'
+                          : 'Show password',
+                      icon: Icon(
+                        _showPassword ? LucideIcons.eyeOff : LucideIcons.eye,
+                        size: 20,
+                      ),
+                      onPressed: () =>
+                          setState(() => _showPassword = !_showPassword),
                     ),
                   ),
+                  validator: (v) {
+                    if ((v ?? '').isEmpty) return 'Enter your password';
+                    if (_isRegistering && v!.length < 6) {
+                      return 'Use at least 6 characters';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 20),
                 FilledButton(
-                  onPressed: _loading ? null : _emailSubmit,
+                  onPressed: _loading ? null : _submit,
                   child: _loading
                       ? const SizedBox(
                           width: 20,
@@ -281,48 +266,76 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         )
                       : Text(_isRegistering ? 'Create account' : 'Log in'),
                 ),
-              ],
-              if (_error != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.dangerSoft,
-                    borderRadius: BorderRadius.circular(12),
+                if (_error != null)
+                  _Banner(
+                    text: _error!,
+                    icon: LucideIcons.circleAlert,
+                    fg: AppColors.danger,
+                    bg: AppColors.dangerSoft,
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        LucideIcons.circleAlert,
-                        color: AppColors.danger,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: const TextStyle(color: AppColors.danger),
-                        ),
-                      ),
-                    ],
+                if (_notice != null)
+                  _Banner(
+                    text: _notice!,
+                    icon: LucideIcons.mailCheck,
+                    fg: AppColors.success,
+                    bg: AppColors.successSoft,
+                  ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _loading
+                      ? null
+                      : () => setState(() {
+                          _isRegistering = !_isRegistering;
+                          _error = null;
+                          _notice = null;
+                        }),
+                  child: Text(
+                    _isRegistering
+                        ? 'Already have an account? Log in'
+                        : 'New here? Create an account',
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => setState(() {
-                  _isRegistering = !_isRegistering;
-                  _otpSent = false;
-                  _error = null;
-                }),
-                child: Text(
-                  _isRegistering
-                      ? 'Already have an account? Log in'
-                      : 'New here? Register',
-                ),
-              ),
-            ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Banner extends StatelessWidget {
+  const _Banner({
+    required this.text,
+    required this.icon,
+    required this.fg,
+    required this.bg,
+  });
+
+  final String text;
+  final IconData icon;
+  final Color fg;
+  final Color bg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: fg, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(text, style: TextStyle(color: AppColors.ink)),
+            ),
+          ],
         ),
       ),
     );

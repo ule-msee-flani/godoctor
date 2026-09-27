@@ -25,7 +25,6 @@ import '../../features/support/support_screen.dart';
 import '../../features/support/ticket_screen.dart';
 import '../../services/geocoding.dart';
 import '../../data/providers/auth_providers.dart';
-import '../../data/providers/repository_providers.dart';
 import '../../features/admin/admin_shell.dart';
 import '../../features/admin/screens/admin_activity_screen.dart';
 import '../../features/admin/screens/admin_database_screen.dart';
@@ -74,7 +73,6 @@ import '../../features/prescription/prescription_order_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/pending_verification_view.dart';
 import '../widgets/role_shell.dart';
-import 'go_router_refresh_stream.dart';
 
 /// Wraps professional (doctor/chemist/admin) screens in the denser desktop
 /// theme -- see PROJECT_SPEC.md "Notes on styling/UX". The rest of the app
@@ -87,11 +85,20 @@ Widget _pro(Widget child) =>
 /// on their `public.users.role` and verification flags. See PROJECT_SPEC.md
 /// "one app, one router" decision.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authRepo = ref.watch(authRepositoryProvider);
+  // Re-run the redirect when the signed-in user or their account row
+  // changes. Listening to the providers the redirect reads (rather than the
+  // raw auth stream) means they're already up to date when it runs, so a
+  // single tap on "Log in" is enough.
+  final refresh = ValueNotifier<int>(0);
+  ref.listen(currentUserIdProvider, (_, _) => refresh.value++);
+  ref.listen(currentAppUserProvider, (_, next) {
+    if (!next.isLoading) refresh.value++;
+  });
+  ref.onDispose(refresh.dispose);
 
   return GoRouter(
     initialLocation: '/',
-    refreshListenable: GoRouterRefreshStream(authRepo.onAuthStateChange),
+    refreshListenable: refresh,
     redirect: (context, state) => _redirect(ref, state),
     routes: [
       GoRoute(path: '/', builder: (_, _) => const SizedBox.shrink()),

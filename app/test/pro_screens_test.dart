@@ -176,7 +176,17 @@ class _Notifications extends NotificationRepository {
   Stream<List<AppNotificationItem>> watch(String userId) => Stream.value([]);
 }
 
+/// Last value the doctor switched to; set [availabilityError] to fail.
+bool? availabilitySet;
+Object? availabilityError;
+
 class _Profiles extends ProfileRepository {
+  @override
+  Future<void> setDoctorAvailability(bool available) async {
+    if (availabilityError != null) throw availabilityError!;
+    availabilitySet = available;
+  }
+
   @override
   Future<PatientProfile?> fetchPatientProfile(String userId) async =>
       const PatientProfile(
@@ -445,6 +455,32 @@ Future<void> _render(
 void main() {
   dialogTests();
   callTests();
+
+  testWidgets('doctor goes offline and back; a refusal is explained', (
+    tester,
+  ) async {
+    availabilitySet = null;
+    availabilityError = null;
+    await _render(
+      tester,
+      const DoctorDashboardScreen(),
+      size: const Size(412, 915),
+    );
+    expect(find.text('Available for consultations'), findsOneWidget);
+    await tester.tap(find.byType(Switch));
+    await tester.pump();
+    expect(availabilitySet, isFalse);
+
+    availabilityError = Exception('doctor is not yet verified');
+    await tester.tap(find.byType(Switch));
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining('not been verified'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    availabilityError = null;
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 5));
+  });
   final screens = <String, Widget>{
     'doctor dashboard': const DoctorDashboardScreen(),
     'doctor onboarding': const DoctorOnboardingScreen(),

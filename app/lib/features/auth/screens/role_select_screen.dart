@@ -3,138 +3,130 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_image.dart';
-import '../../../core/widgets/app_logo.dart';
+import '../../../core/utils/local_touch.dart';
 import '../../../data/models/enums.dart';
+import '../widgets/auth_hero.dart';
+import '../widgets/role_icons.dart';
 
+/// First screen: the hero photo, the app icon, and "who are you?".
 class RoleSelectScreen extends StatelessWidget {
   const RoleSelectScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primarySofter,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-                child: AppImage(
-                  assetPath: 'assets/images/auth/auth_hero',
-                  height: 220,
-                  borderRadius: 28,
-                  placeholderIcon: LucideIcons.video,
-                  placeholderLabel: 'assets/images/auth/auth_hero',
-                ),
+    final theme = Theme.of(context).textTheme;
+    return AuthHeroScaffold(
+      image: 'assets/images/auth/auth_hero',
+      alignment: const Alignment(-0.35, 0),
+      heightFactor: 0.42,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Center(child: AppIconMark(size: 64)),
+            const SizedBox(height: 16),
+            Text(
+              '${LocalTouch.welcome} to GoDoctor',
+              textAlign: TextAlign.center,
+              style: theme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Consult a doctor or order medicine, wherever you are.',
+              textAlign: TextAlign.center,
+              style: theme.bodyMedium,
+            ),
+            const SizedBox(height: 24),
+            for (final r in _roles) ...[
+              _RoleCard(
+                role: r.role,
+                title: r.title,
+                subtitle: r.subtitle,
+                onTap: () =>
+                    context.go('/auth/login/${EnumDbCoding.toDb(r.role)}'),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: AppLogo(height: 44),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Consult a doctor or order medicine,\nwherever you are.',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 28),
-                    _RoleCard(
-                      icon: LucideIcons.user,
-                      title: 'I am a patient',
-                      subtitle: 'See a doctor or order medicine',
-                      color: AppColors.primary,
-                      onTap: () =>
-                          context.go('/auth/login/${_role(UserRole.patient)}'),
-                    ),
-                    const SizedBox(height: 12),
-                    _RoleCard(
-                      icon: LucideIcons.stethoscope,
-                      title: 'I am a doctor',
-                      subtitle: 'Accept consultations, issue prescriptions',
-                      color: AppColors.accentTeal,
-                      onTap: () =>
-                          context.go('/auth/login/${_role(UserRole.doctor)}'),
-                    ),
-                    const SizedBox(height: 12),
-                    _RoleCard(
-                      icon: LucideIcons.pill,
-                      title: 'I am a chemist',
-                      subtitle: 'Manage inventory, fulfill orders',
-                      color: AppColors.primaryDark,
-                      onTap: () =>
-                          context.go('/auth/login/${_role(UserRole.chemist)}'),
-                    ),
-                  ],
-                ),
-              ),
+              const SizedBox(height: 12),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 
-  static String _role(UserRole role) => EnumDbCoding.toDb(role);
+  static const _roles = [
+    (
+      role: UserRole.patient,
+      title: 'I am a patient',
+      subtitle: 'See a doctor or order medicine',
+    ),
+    (
+      role: UserRole.doctor,
+      title: 'I am a doctor',
+      subtitle: 'Consult patients and prescribe',
+    ),
+    (
+      role: UserRole.chemist,
+      title: 'I am a chemist',
+      subtitle: 'Manage stock and fill orders',
+    ),
+  ];
 }
 
 class _RoleCard extends StatelessWidget {
   const _RoleCard({
-    required this.icon,
+    required this.role,
     required this.title,
     required this.subtitle,
-    required this.color,
     required this.onTap,
   });
 
-  final IconData icon;
+  final UserRole role;
   final String title;
   final String subtitle;
-  final Color color;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
+    final theme = Theme.of(context).textTheme;
+    return Material(
+      color: AppColors.white,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
           child: Row(
             children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Icon(icon, color: AppColors.ink, size: 26),
-                ),
-              ),
+              RoleIcon(role: role, size: 34),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      title,
+                      style: theme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: theme.bodySmall?.copyWith(
+                        color: AppColors.inkSoft,
+                      ),
                     ),
                   ],
                 ),
               ),
               const Icon(
                 LucideIcons.chevronRight,
-                color: AppColors.inkFaint,
+                color: AppColors.ink,
                 size: 18,
               ),
             ],
