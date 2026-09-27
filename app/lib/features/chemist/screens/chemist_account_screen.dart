@@ -13,6 +13,7 @@ import '../../../services/geocoding.dart';
 import '../../patient/profile/account_screen.dart'
     show showChangePasswordDialog;
 import '../../support/rate_app_sheet.dart';
+import '../../update/update_sheet.dart';
 
 /// Chemist "Account" tab: photo, pharmacy location (used to rank chemists
 /// by distance for patients), support and account settings.
@@ -153,6 +154,7 @@ class ChemistAccountScreen extends ConsumerWidget {
                     title: 'Rate GoDoctor',
                     onTap: () => showRateAppSheet(context),
                   ),
+                  const AppVersionTile(),
                 ],
               ),
               SettingsSection(

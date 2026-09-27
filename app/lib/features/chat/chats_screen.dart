@@ -11,6 +11,7 @@ import '../../core/widgets/user_avatar.dart';
 import '../../data/models/chat.dart';
 import '../../data/repositories/repository_errors.dart';
 import 'chat_providers.dart';
+import '../../core/widgets/motion.dart';
 
 /// "Closes in 5 h" / "Closes in 20 min" / "Closed".
 String chatWindowLabel(DateTime? closesAt, {DateTime? now}) {
@@ -64,9 +65,17 @@ class ChatsScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
                 if (open.isNotEmpty) const _Header('Open now'),
-                for (final c in open) _ChatRow(thread: c, doctor: doctor),
+                for (final (i, c) in open.indexed)
+                  FadeSlideIn(
+                    index: i,
+                    child: _ChatRow(thread: c, doctor: doctor),
+                  ),
                 if (closed.isNotEmpty) const _Header('Closed'),
-                for (final c in closed) _ChatRow(thread: c, doctor: doctor),
+                for (final (i, c) in closed.indexed)
+                  FadeSlideIn(
+                    index: open.length + i,
+                    child: _ChatRow(thread: c, doctor: doctor),
+                  ),
               ],
             ),
           );

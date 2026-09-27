@@ -12,6 +12,7 @@ import '../../../data/providers/repository_providers.dart';
 import '../../support/rate_app_sheet.dart';
 import '../family/family_providers.dart';
 import '../../../services/data_saver.dart';
+import '../../update/update_sheet.dart';
 
 /// The patient's Profile tab: photo, name and email on top, then
 /// Profile · Family · Billing information · Support & feedback.
@@ -198,6 +199,7 @@ class ProfileScreen extends ConsumerWidget {
                 title: 'Rate GoDoctor',
                 onTap: () => showRateAppSheet(context),
               ),
+              const AppVersionTile(),
               SettingsTile(
                 icon: LucideIcons.flag,
                 title: 'Report a complaint',

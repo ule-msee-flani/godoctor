@@ -163,6 +163,7 @@ class ProfileRepository {
     required String registrationNumber,
     double? locationLat,
     double? locationLng,
+    String? locationName,
     List<String> verificationDocuments = const [],
   }) async {
     await _client
@@ -172,6 +173,7 @@ class ProfileRepository {
           'registration_number': registrationNumber,
           'location_lat': locationLat,
           'location_lng': locationLng,
+          'location_name': locationName,
           'verification_documents': verificationDocuments,
         })
         .eq('user_id', userId);

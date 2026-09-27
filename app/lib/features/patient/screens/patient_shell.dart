@@ -5,10 +5,25 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../chat/chat_providers.dart';
 import '../family/family_providers.dart';
+import '../../../core/widgets/motion.dart';
 
 /// Bottom-navigation frame for the patient's top-level tabs. Every other
 /// patient route (intake, call, checkout...) is pushed full-screen on top,
 /// so focused flows don't show the tab bar.
+/// A bottom-bar tab whose icon pops when chosen and, with a [badge],
+/// floats gently until it's read.
+NavigationDestination _tab(IconData icon, String label, {int badge = 0}) =>
+    NavigationDestination(
+      icon: Bobbing(
+        active: badge > 0,
+        child: PopBadge(count: badge, child: Icon(icon)),
+      ),
+      selectedIcon: TabPop(
+        child: PopBadge(count: badge, child: Icon(icon)),
+      ),
+      label: label,
+    );
+
 class PatientShell extends ConsumerWidget {
   const PatientShell({super.key, required this.navigationShell});
 
@@ -29,30 +44,11 @@ class PatientShell extends ConsumerWidget {
           initialLocation: i == navigationShell.currentIndex,
         ),
         destinations: [
-          const NavigationDestination(
-            icon: Icon(LucideIcons.house),
-            label: 'Home',
-          ),
-          const NavigationDestination(
-            icon: Icon(LucideIcons.stethoscope),
-            label: 'Doctors',
-          ),
-          NavigationDestination(
-            icon: Badge(
-              isLabelVisible: unreadChats > 0,
-              label: Text('$unreadChats'),
-              child: const Icon(LucideIcons.messagesSquare),
-            ),
-            label: 'Chats',
-          ),
-          const NavigationDestination(
-            icon: Icon(LucideIcons.heartPulse),
-            label: 'Health',
-          ),
-          const NavigationDestination(
-            icon: Icon(LucideIcons.user),
-            label: 'Profile',
-          ),
+          _tab(LucideIcons.house, 'Home'),
+          _tab(LucideIcons.stethoscope, 'Doctors'),
+          _tab(LucideIcons.messagesSquare, 'Chats', badge: unreadChats),
+          _tab(LucideIcons.heartPulse, 'Health'),
+          _tab(LucideIcons.user, 'Profile'),
         ],
       ),
     );

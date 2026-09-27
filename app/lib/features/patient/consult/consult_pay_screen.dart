@@ -12,16 +12,14 @@ import '../../../core/utils/local_touch.dart';
 import '../../../core/widgets/heartbeat_loader.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../core/widgets/skeleton.dart';
-import '../../../data/models/billing.dart';
 import '../../../data/models/consultation.dart';
 import '../../../data/models/enums.dart';
 import '../../../data/providers/appointment_providers.dart';
-import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../screens/doctor_profile_screen.dart' show publicDoctorProvider;
 import '../family/family_session_panel.dart';
-import '../profile/billing_screen.dart' show paymentMethodsProvider;
+import '../../payments/mpesa_checkout.dart';
 import '../widgets/doctor_widgets.dart';
 import 'consult_flow.dart';
 
@@ -49,8 +47,7 @@ class _ConsultPayScreenState extends ConsumerState<ConsultPayScreen> {
   Future<void> _pay() async {
     setState(() => _paying = true);
     try {
-      // Test mode: stands in for the M-Pesa prompt on the patient's phone.
-      await Future<void>.delayed(const Duration(milliseconds: 1400));
+      await simulateMpesaPrompt();
       await ref
           .read(consultationRepositoryProvider)
           .payForConsultation(widget.consultationId);
@@ -131,7 +128,9 @@ class _ConsultPayScreenState extends ConsumerState<ConsultPayScreen> {
               case ConsultationStatus.inProgress:
               case ConsultationStatus.completed:
                 _goToCall();
-                return const _PaidMoment();
+                return const PaymentSuccessView(
+                  message: 'Payment received. Connecting you to your doctor…',
+                );
               default:
                 return _EndedBody(onChooseAgain: () => context.pop());
             }
@@ -255,7 +254,10 @@ class _PayBody extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (!free) ...[const SizedBox(height: 12), const _PayWithCard()],
+              if (!free) ...[
+                const SizedBox(height: 12),
+                const MpesaPayWithCard(),
+              ],
               const SizedBox(height: 12),
               FamilySessionPanel(consultationId: consultation.id),
               const SizedBox(height: 16),
@@ -436,120 +438,6 @@ class _EndedBody extends StatelessWidget {
       action: FilledButton(
         onPressed: onChooseAgain,
         child: const Text('Choose a doctor'),
-      ),
-    );
-  }
-}
-
-/// "Pay with M-Pesa 0712 345 678 · Change": the saved default number, or the
-/// phone number on the account.
-class _PayWithCard extends ConsumerWidget {
-  const _PayWithCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context).textTheme;
-    final methods =
-        ref.watch(paymentMethodsProvider).valueOrNull ??
-        const <PaymentMethod>[];
-    final mpesa = methods.where((m) => m.isMpesa).toList()
-      ..sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0));
-    final phone =
-        mpesa.firstOrNull?.mpesaPhone ??
-        ref.watch(currentAppUserProvider).valueOrNull?.phone;
-
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => context.push('/patient/profile/billing'),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF3BB54A),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'M-PESA',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Pay with', style: theme.bodySmall),
-                    Text(
-                      phone == null || phone.isEmpty
-                          ? 'Add your M-Pesa number'
-                          : formatKenyanPhone(phone),
-                      style: theme.titleSmall,
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                'Change',
-                style: theme.labelLarge?.copyWith(color: AppColors.primary),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Payment went through: a check mark and a thank-you before the call opens.
-class _PaidMoment extends StatelessWidget {
-  const _PaidMoment();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
-    return Center(
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: 1),
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeOutBack,
-        builder: (context, t, child) => Opacity(
-          opacity: t.clamp(0.0, 1.0),
-          child: Transform.scale(scale: 0.7 + 0.3 * t, child: child),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 84,
-              height: 84,
-              decoration: const BoxDecoration(
-                color: AppColors.successSoft,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                LucideIcons.check,
-                size: 44,
-                color: AppColors.success,
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(LocalTouch.thanks, style: theme.headlineSmall),
-            const SizedBox(height: 6),
-            Text(
-              'Payment received. Connecting you to your doctor…',
-              style: theme.bodyMedium,
-            ),
-          ],
-        ),
       ),
     );
   }

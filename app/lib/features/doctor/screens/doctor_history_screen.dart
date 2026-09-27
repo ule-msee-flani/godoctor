@@ -5,6 +5,7 @@ import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/consultation.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../../../data/repositories/repository_errors.dart';
 
 final _doctorHistoryProvider = FutureProvider<List<Consultation>>((ref) async {
   final userId = ref.watch(currentUserIdProvider);
@@ -24,7 +25,7 @@ class DoctorHistoryScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Consultation history')),
       body: history.when(
         loading: () => const LoadingView(),
-        error: (e, _) => ErrorView(message: '$e'),
+        error: (e, _) => ErrorView(message: friendlyError(e)),
         data: (list) {
           if (list.isEmpty) {
             return const EmptyView(message: 'No consultations yet.');

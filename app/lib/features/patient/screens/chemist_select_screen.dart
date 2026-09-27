@@ -10,6 +10,7 @@ import '../../../data/models/drug.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../services/distance.dart';
+import '../../../data/repositories/repository_errors.dart';
 
 final _stockForDrugProvider =
     FutureProvider.family<List<ChemistInventoryItem>, String>(
@@ -32,7 +33,7 @@ class ChemistSelectScreen extends ConsumerWidget {
       body: SafeArea(
         child: stockAsync.when(
           loading: () => const SkeletonList(),
-          error: (e, _) => ErrorView(message: '$e'),
+          error: (e, _) => ErrorView(message: friendlyError(e)),
           data: (items) {
             if (items.isEmpty) {
               return const EmptyView(

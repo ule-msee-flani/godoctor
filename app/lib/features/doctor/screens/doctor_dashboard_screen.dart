@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
@@ -14,6 +13,7 @@ import '../widgets/doctor_appointments_section.dart';
 import '../widgets/today_card.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
+import '../../../core/widgets/motion.dart';
 
 class DoctorDashboardScreen extends ConsumerWidget {
   const DoctorDashboardScreen({super.key});
@@ -27,15 +27,9 @@ class DoctorDashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Doctor dashboard'),
         actions: [
-          Badge(
-            isLabelVisible: ref.watch(unreadNotificationCountProvider) > 0,
-            label: Text('${ref.watch(unreadNotificationCountProvider)}'),
-            offset: const Offset(-4, 4),
-            child: IconButton(
-              icon: const Icon(LucideIcons.bell),
-              tooltip: 'Notifications',
-              onPressed: () => context.push('/doctor/notifications'),
-            ),
+          NotificationBell(
+            count: ref.watch(unreadNotificationCountProvider),
+            onPressed: () => context.push('/doctor/notifications'),
           ),
           const SizedBox(width: 8),
         ],
@@ -43,7 +37,7 @@ class DoctorDashboardScreen extends ConsumerWidget {
       body: SafeArea(
         child: profileAsync.when(
           loading: () => const LoadingView(),
-          error: (e, _) => ErrorView(message: '$e'),
+          error: (e, _) => ErrorView(message: friendlyError(e)),
           data: (profile) {
             if (profile == null || userId == null) {
               return const ErrorView(message: 'Profile not found');
@@ -140,20 +134,24 @@ class _AvailabilityCardState extends ConsumerState<_AvailabilityCard> {
         padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
         child: Row(
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: busy
-                    ? AppColors.warning
-                    : on
-                    ? AppColors.success
-                    : AppColors.inkFaint,
+            if (on && !busy)
+              const PulseDot(color: AppColors.success, size: 12)
+            else
+              SizedBox(
+                width: 26,
+                height: 26,
+                child: Center(
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: busy ? AppColors.warning : AppColors.inkFaint,
+                    ),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

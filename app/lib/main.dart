@@ -8,6 +8,8 @@ import 'core/config/supabase_client.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/splash_gate.dart';
+import 'features/update/update_sheet.dart';
+import 'services/app_update.dart';
 import 'services/push_service.dart';
 
 Future<void> main() async {
@@ -18,6 +20,9 @@ Future<void> main() async {
   await initFirebase();
   runApp(const ProviderScope(child: GoDoctorApp()));
 }
+
+/// The update prompt is shown at most once per app launch.
+bool _offeredUpdate = false;
 
 class GoDoctorApp extends ConsumerWidget {
   const GoDoctorApp({super.key});
@@ -31,6 +36,18 @@ class GoDoctorApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
     // Push notifications for whoever is signed in.
     ref.watch(pushServiceProvider);
+    // A newer APK published? Offer it once per launch, after the intro.
+    ref.listen(availableUpdateProvider, (_, next) async {
+      final release = next.valueOrNull;
+      if (release == null || _offeredUpdate) return;
+      _offeredUpdate = true;
+      if (await UpdateSnooze.isSnoozed(release)) return;
+      await Future<void>.delayed(const Duration(seconds: 5));
+      final installed = await ref.read(installedVersionProvider.future);
+      final ctx = router.routerDelegate.navigatorKey.currentContext;
+      if (ctx == null || !ctx.mounted) return;
+      await showUpdateSheet(ctx, release, installedVersion: installed.version);
+    });
     return MaterialApp.router(
       title: 'GoDoctor',
       scaffoldMessengerKey: pushMessengerKey,

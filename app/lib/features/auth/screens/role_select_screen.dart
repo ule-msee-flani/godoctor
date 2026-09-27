@@ -7,6 +7,7 @@ import '../../../core/utils/local_touch.dart';
 import '../../../data/models/enums.dart';
 import '../widgets/auth_hero.dart';
 import '../widgets/role_icons.dart';
+import '../../../core/widgets/motion.dart';
 
 /// First screen: the hero photo, the app icon, and "who are you?".
 class RoleSelectScreen extends StatelessWidget {
@@ -39,12 +40,17 @@ class RoleSelectScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             for (final r in _roles) ...[
-              _RoleCard(
-                role: r.role,
-                title: r.title,
-                subtitle: r.subtitle,
-                onTap: () =>
-                    context.go('/auth/login/${EnumDbCoding.toDb(r.role)}'),
+              FadeSlideIn(
+                index: _roles.indexOf(r),
+                child: Pressable(
+                  child: _RoleCard(
+                    role: r.role,
+                    title: r.title,
+                    subtitle: r.subtitle,
+                    onTap: () =>
+                        context.go('/auth/login/${EnumDbCoding.toDb(r.role)}'),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
             ],

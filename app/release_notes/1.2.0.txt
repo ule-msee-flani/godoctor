@@ -1,0 +1,7 @@
+Updates now come to you: GoDoctor tells you when a new version is ready and installs it from inside the app
+Chemists that have your medicine show up again, and ordering from them works
+A clearer checkout: pick up or delivery, your prescription picked for you, and paying with M-Pesa
+Notifications now show the GoDoctor stethoscope
+The bell rings when something new arrives, and Chats floats when you have a message
+Pharmacies choose their location on a map
+Clearer messages when something goes wrong

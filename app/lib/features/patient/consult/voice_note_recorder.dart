@@ -10,6 +10,7 @@ import 'package:record/record.dart';
 import 'package:share_plus/share_plus.dart' show XFile;
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/motion.dart';
 
 /// A finished recording, ready to upload.
 class VoiceRecording {
@@ -53,6 +54,10 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> {
   bool _playing = false;
   String? _error;
 
+  /// Recent loudness (0..1) for the live waveform.
+  final List<double> _levels = List.filled(22, 0.05, growable: true);
+  StreamSubscription<Amplitude>? _ampSub;
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +69,7 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> {
   @override
   void dispose() {
     _ticker?.cancel();
+    _ampSub?.cancel();
     _playerSub?.cancel();
     _player.dispose();
     _recorder.dispose();
@@ -86,6 +92,18 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> {
         path: path,
       );
       _startedAt = DateTime.now();
+      _ampSub = _recorder
+          .onAmplitudeChanged(const Duration(milliseconds: 110))
+          .listen((a) {
+            if (!mounted) return;
+            // dBFS: about -50 is quiet room, 0 is as loud as it gets.
+            final level = ((a.current + 50) / 50).clamp(0.05, 1.0);
+            setState(() {
+              _levels
+                ..removeAt(0)
+                ..add(level);
+            });
+          });
       _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
         final e = DateTime.now().difference(_startedAt!);
         if (e >= _max) {
@@ -107,6 +125,8 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> {
 
   Future<void> _stop() async {
     _ticker?.cancel();
+    await _ampSub?.cancel();
+    _ampSub = null;
     try {
       final path = await _recorder.stop();
       if (path == null) throw StateError('no recording');
@@ -171,11 +191,18 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> {
           children: [
             const _RecDot(),
             const SizedBox(width: 10),
+            Text(
+              _fmt(_elapsed),
+              style: theme.titleSmall?.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                'Recording ${_fmt(_elapsed)} / ${_fmt(_max)}',
-                style: theme.titleSmall?.copyWith(
-                  fontFeatures: const [FontFeature.tabularFigures()],
+              child: ClipRect(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: VoiceWaveform(levels: List.of(_levels)),
                 ),
               ),
             ),

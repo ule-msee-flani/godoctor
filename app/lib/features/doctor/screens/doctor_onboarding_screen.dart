@@ -7,6 +7,7 @@ import '../../../core/config/supabase_client.dart';
 import '../../../data/models/doctor_profile.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../../../data/repositories/repository_errors.dart';
 
 class DoctorOnboardingScreen extends ConsumerStatefulWidget {
   const DoctorOnboardingScreen({super.key});
@@ -71,7 +72,7 @@ class _DoctorOnboardingScreenState
           );
       ref.invalidate(currentDoctorProfileProvider);
     } catch (e) {
-      setState(() => _error = '$e');
+      setState(() => _error = friendlyError(e));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

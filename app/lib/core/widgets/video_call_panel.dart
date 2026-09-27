@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../theme/app_colors.dart';
+import 'motion.dart';
 
 /// The video call surface. For now this is a MOCK: it looks and behaves like
 /// a live call (the other person's tile, your own self-view, a running
@@ -384,14 +385,7 @@ class _LiveChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 7,
-            height: 7,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFF4D4F),
-              shape: BoxShape.circle,
-            ),
-          ),
+          const PulseDot(color: Color(0xFFFF4D4F), size: 7),
           const SizedBox(width: 5),
           Text(
             dense ? elapsed : 'Live · $elapsed',

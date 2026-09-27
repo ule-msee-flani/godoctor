@@ -19,6 +19,7 @@ import '../../patient/screens/doctor_profile_screen.dart'
     show publicDoctorProvider;
 import '../../patient/widgets/medicine_image.dart';
 import '../../prescription/digital_prescription.dart';
+import '../../../core/widgets/motion.dart';
 
 /// Live orders for the signed-in chemist (newest first).
 final chemistOrdersProvider = StreamProvider.autoDispose<List<model.Order>>((
@@ -105,15 +106,9 @@ class _ChemistOrdersScreenState extends ConsumerState<ChemistOrdersScreen> {
       appBar: AppBar(
         title: const Text('Orders'),
         actions: [
-          Badge(
-            isLabelVisible: ref.watch(unreadNotificationCountProvider) > 0,
-            label: Text('${ref.watch(unreadNotificationCountProvider)}'),
-            offset: const Offset(-4, 4),
-            child: IconButton(
-              tooltip: 'Notifications',
-              icon: const Icon(LucideIcons.bell),
-              onPressed: () => context.push('/chemist/notifications'),
-            ),
+          NotificationBell(
+            count: ref.watch(unreadNotificationCountProvider),
+            onPressed: () => context.push('/chemist/notifications'),
           ),
           IconButton(
             tooltip: 'Sign out',
@@ -196,8 +191,11 @@ class _ChemistOrdersScreenState extends ConsumerState<ChemistOrdersScreen> {
                             return ListView.builder(
                               padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                               itemCount: list.length,
-                              itemBuilder: (context, i) =>
-                                  _OrderTicket(order: list[i]),
+                              itemBuilder: (context, i) => FadeSlideIn(
+                                key: ValueKey(list[i].id),
+                                index: i,
+                                child: _OrderTicket(order: list[i]),
+                              ),
                             );
                           }
                           return SingleChildScrollView(

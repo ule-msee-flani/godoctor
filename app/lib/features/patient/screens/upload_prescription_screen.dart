@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../../../data/repositories/repository_errors.dart';
 
 class UploadPrescriptionScreen extends ConsumerStatefulWidget {
   const UploadPrescriptionScreen({super.key});
@@ -43,7 +44,7 @@ class _UploadPrescriptionScreenState
           .uploadExternalPrescription(fileBytes: bytes, fileExt: ext);
       if (mounted) context.pop();
     } catch (e) {
-      setState(() => _error = '$e');
+      setState(() => _error = friendlyError(e));
     } finally {
       if (mounted) setState(() => _uploading = false);
     }

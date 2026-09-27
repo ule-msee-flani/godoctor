@@ -8,6 +8,7 @@ import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/order.dart' as model;
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../../../data/repositories/repository_errors.dart';
 
 final _patientOrdersProvider = FutureProvider<List<model.Order>>((ref) async {
   final userId = ref.watch(currentUserIdProvider);
@@ -38,7 +39,7 @@ class OrderTrackingScreen extends ConsumerWidget {
       body: SafeArea(
         child: ordersAsync.when(
           loading: () => const LoadingView(),
-          error: (e, _) => ErrorView(message: '$e'),
+          error: (e, _) => ErrorView(message: friendlyError(e)),
           data: (orders) {
             final order = orders.where((o) => o.id == orderId).firstOrNull;
             if (order == null) {

@@ -20,6 +20,7 @@ import '../home/smart_home_card.dart';
 import '../widgets/emergency_stop_view.dart' show launchDialer;
 import '../widgets/promo_banner_carousel.dart';
 import '../widgets/specialty_tiles.dart';
+import '../../../core/widgets/motion.dart';
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
@@ -96,15 +97,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                       ],
                     ),
                   ),
-                  Badge(
-                    isLabelVisible: unread > 0,
-                    label: Text(unread > 9 ? '9+' : '$unread'),
-                    offset: const Offset(-6, 4),
-                    child: IconButton(
-                      tooltip: 'Notifications',
-                      icon: const Icon(LucideIcons.bell),
-                      onPressed: () => context.push('/patient/notifications'),
-                    ),
+                  NotificationBell(
+                    count: unread,
+                    onPressed: () => context.push('/patient/notifications'),
                   ),
                   const SizedBox(width: 4),
                   InkWell(
@@ -147,70 +142,84 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: FamilyInviteBanner(consultationIds: familyInvites),
                 ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: SmartHomeCard(
-                  onFeeling: (specialty, symptom) =>
-                      _startIntake(specialty, symptoms: symptom),
+              FadeSlideIn(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: SmartHomeCard(
+                    onFeeling: (specialty, symptom) =>
+                        _startIntake(specialty, symptoms: symptom),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _PrimaryTile(
-                        image: 'assets/images/home/see_doctor',
-                        fallbackIcon: LucideIcons.video,
-                        alignment: const Alignment(0, -0.6),
-                        title: 'See a Doctor',
-                        subtitle: 'Video consult now',
-                        onTap: () => context.push('/patient/intake'),
+              FadeSlideIn(
+                index: 1,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _PrimaryTile(
+                          image: 'assets/images/home/see_doctor',
+                          fallbackIcon: LucideIcons.video,
+                          alignment: const Alignment(0, -0.6),
+                          title: 'See a Doctor',
+                          subtitle: 'Video consult now',
+                          onTap: () => context.push('/patient/intake'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _PrimaryTile(
-                        image: 'assets/images/home/order_medicine',
-                        fallbackIcon: LucideIcons.pill,
-                        title: 'Order Medicine',
-                        subtitle: 'From chemists near you',
-                        onTap: () => context.push('/patient/medicine-search'),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _PrimaryTile(
+                          image: 'assets/images/home/order_medicine',
+                          fallbackIcon: LucideIcons.pill,
+                          title: 'Order Medicine',
+                          subtitle: 'From chemists near you',
+                          onTap: () => context.push('/patient/medicine-search'),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 22),
-              const PromoBannerCarousel(),
+              const FadeSlideIn(index: 2, child: PromoBannerCarousel()),
               const SizedBox(height: 22),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Specialties',
-                        style: Theme.of(context).textTheme.titleMedium,
+              FadeSlideIn(
+                index: 3,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Specialties',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: () => context.go('/patient/doctors'),
-                      child: const Text('Browse doctors'),
-                    ),
-                  ],
+                      TextButton(
+                        onPressed: () => context.go('/patient/doctors'),
+                        child: const Text('Browse doctors'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              SpecialtyRow(
-                onSelected: (meta) =>
-                    context.push('/patient/specialty/${meta.slug}'),
+              FadeSlideIn(
+                index: 4,
+                child: SpecialtyRow(
+                  onSelected: (meta) =>
+                      context.push('/patient/specialty/${meta.slug}'),
+                ),
               ),
               const SizedBox(height: 24),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: EmergencyStrip(),
+              const FadeSlideIn(
+                index: 5,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: EmergencyStrip(),
+                ),
               ),
             ],
           ],
@@ -242,64 +251,66 @@ class _PrimaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
-    return Material(
-      color: AppColors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: const BorderSide(color: AppColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppImage(
-              assetPath: image,
-              height: 118,
-              borderRadius: 0,
-              alignment: alignment,
-              placeholderIcon: fallbackIcon,
-              placeholderLabel: title,
-              showPlaceholderContent: false,
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 10, 14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.bodySmall?.copyWith(
-                            color: AppColors.inkSoft,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    LucideIcons.chevronRight,
-                    size: 18,
-                    color: AppColors.ink,
-                  ),
-                ],
+    return Pressable(
+      child: Material(
+        color: AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppImage(
+                assetPath: image,
+                height: 118,
+                borderRadius: 0,
+                alignment: alignment,
+                placeholderIcon: fallbackIcon,
+                placeholderLabel: title,
+                showPlaceholderContent: false,
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 10, 14),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.bodySmall?.copyWith(
+                              color: AppColors.inkSoft,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      LucideIcons.chevronRight,
+                      size: 18,
+                      color: AppColors.ink,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

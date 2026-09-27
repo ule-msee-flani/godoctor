@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../theme/app_colors.dart';
+import 'motion.dart';
 
 /// One tab in a [RoleShell].
 class ShellTab {
@@ -33,8 +34,13 @@ class RoleShell extends StatelessWidget {
   );
 
   Widget _icon(ShellTab t, {bool selected = false}) {
-    final icon = Icon(t.icon, color: selected ? AppColors.ink : null);
-    return t.badge > 0 ? Badge(label: Text('${t.badge}'), child: icon) : icon;
+    final icon = PopBadge(
+      count: t.badge,
+      child: Icon(t.icon, color: selected ? AppColors.ink : null),
+    );
+    return selected
+        ? TabPop(child: icon)
+        : Bobbing(active: t.badge > 0, child: icon);
   }
 
   Widget get _body => navigationShell;

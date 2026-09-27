@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../../../core/widgets/motion.dart';
 
 final doctorTodayProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   (ref) => ref.watch(consultationRepositoryProvider).doctorTodayStats(),
@@ -22,7 +23,13 @@ class DoctorTodayCard extends ConsumerWidget {
     final rating = stats?['rating'] as num?;
     final openChats = n('open_chats').toInt();
 
-    Widget stat(String value, String label, {VoidCallback? onTap}) => Expanded(
+    Widget stat(
+      String value,
+      String label, {
+      VoidCallback? onTap,
+      num? countTo,
+      String Function(num v)? format,
+    }) => Expanded(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
@@ -30,14 +37,24 @@ class DoctorTodayCard extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Column(
             children: [
-              Text(
-                stats == null ? '–' : value,
-                maxLines: 1,
-                style: theme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+              if (stats != null && countTo != null)
+                CountUp(
+                  value: countTo,
+                  format: format ?? (v) => '$v',
+                  style: theme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                )
+              else
+                Text(
+                  stats == null ? '–' : value,
+                  maxLines: 1,
+                  style: theme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
-              ),
               const SizedBox(height: 2),
               Text(label, style: theme.bodySmall),
             ],
@@ -62,12 +79,19 @@ class DoctorTodayCard extends ConsumerWidget {
           ),
           Row(
             children: [
-              stat('${n('patients')}', 'Patients'),
+              stat(
+                '${n('patients')}',
+                'Patients',
+                countTo: n('patients').toInt(),
+              ),
               stat(
                 formatKes(
                   n('earnings').toDouble(),
                 ).replaceFirst('Free', 'KES 0'),
                 'Earned',
+                countTo: n('earnings').toInt(),
+                format: (v) =>
+                    formatKes(v.toDouble()).replaceFirst('Free', 'KES 0'),
               ),
               stat(
                 rating == null || n('ratings') == 0
@@ -78,6 +102,7 @@ class DoctorTodayCard extends ConsumerWidget {
               stat(
                 '$openChats',
                 'Open chats',
+                countTo: openChats,
                 onTap: () => context.go('/doctor/chats'),
               ),
             ],

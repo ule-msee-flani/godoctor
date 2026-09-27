@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/widgets/motion.dart';
 import '../../data/models/medication.dart';
 import '../../data/providers/repository_providers.dart';
 import '../../data/repositories/repository_errors.dart';
@@ -178,12 +179,8 @@ class _MedicineCourseCardState extends ConsumerState<MedicineCourseCard> {
             )
           else
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Icon(
-                LucideIcons.circleCheck,
-                color: AppColors.success,
-                size: 20,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 6),
+              child: AnimatedCheck(size: 30),
             ),
           PopupMenuButton<String>(
             tooltip: 'More',

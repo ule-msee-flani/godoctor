@@ -11,6 +11,7 @@ import '../../../data/models/enums.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../../../data/repositories/repository_errors.dart';
 
 final _historyProvider = FutureProvider<List<Consultation>>((ref) async {
   final userId = ref.watch(currentUserIdProvider);
@@ -39,7 +40,7 @@ class ConsultationHistoryList extends ConsumerWidget {
     final history = ref.watch(_historyProvider);
     return history.when(
       loading: () => const SkeletonList(),
-      error: (e, _) => ErrorView(message: '$e'),
+      error: (e, _) => ErrorView(message: friendlyError(e)),
       data: (list) {
         if (list.isEmpty) {
           return const EmptyView(

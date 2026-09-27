@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_client.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../../../data/repositories/repository_errors.dart';
+import '../../../services/geocoding.dart';
 
 class ChemistOnboardingScreen extends ConsumerStatefulWidget {
   const ChemistOnboardingScreen({super.key});
@@ -19,11 +24,18 @@ class _ChemistOnboardingScreenState
     extends ConsumerState<ChemistOnboardingScreen> {
   final _nameCtrl = TextEditingController();
   final _regCtrl = TextEditingController();
-  final _latCtrl = TextEditingController();
-  final _lngCtrl = TextEditingController();
+  Place? _place;
   XFile? _document;
   bool _saving = false;
   String? _error;
+
+  Future<void> _pickLocation() async {
+    final picked = await context.push<Place>(
+      '/account/location',
+      extra: _place,
+    );
+    if (picked != null) setState(() => _place = picked);
+  }
 
   Future<void> _pickDocument() async {
     final file = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -64,13 +76,14 @@ class _ChemistOnboardingScreenState
             userId: userId,
             businessName: _nameCtrl.text.trim(),
             registrationNumber: _regCtrl.text.trim(),
-            locationLat: double.tryParse(_latCtrl.text),
-            locationLng: double.tryParse(_lngCtrl.text),
+            locationLat: _place?.lat,
+            locationLng: _place?.lng,
+            locationName: _place?.name,
             verificationDocuments: docs,
           );
       ref.invalidate(currentChemistProfileProvider);
     } catch (e) {
-      setState(() => _error = '$e');
+      setState(() => _error = friendlyError(e));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -101,34 +114,32 @@ class _ChemistOnboardingScreenState
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _latCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: true,
-                    ),
-                    decoration: const InputDecoration(labelText: 'Latitude'),
-                  ),
+            // Where the pharmacy is: patients see the nearest chemists first.
+            Material(
+              color: AppColors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: AppColors.border),
+              ),
+              child: ListTile(
+                onTap: _pickLocation,
+                leading: const Icon(LucideIcons.mapPin, color: AppColors.ink),
+                title: Text(
+                  _place == null ? 'Pharmacy location' : _place!.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _lngCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: true,
-                    ),
-                    decoration: const InputDecoration(labelText: 'Longitude'),
-                  ),
+                subtitle: Text(
+                  _place == null
+                      ? 'Pick it on the map so nearby patients find you'
+                      : 'Tap to change',
                 ),
-              ],
+                trailing: const Icon(LucideIcons.chevronRight, size: 18),
+              ),
             ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
-              icon: const Icon(Icons.upload_file),
+              icon: const Icon(LucideIcons.upload, size: 18),
               label: Text(
                 _document == null
                     ? 'Upload registration document'

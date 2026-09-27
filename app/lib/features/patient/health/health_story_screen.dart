@@ -15,6 +15,7 @@ import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../../medications/medicines_taking_section.dart';
+import '../../../core/widgets/motion.dart';
 
 enum HealthFilter { all, consultations, prescriptions, orders }
 
@@ -222,12 +223,16 @@ class _HealthStoryScreenState extends ConsumerState<HealthStoryScreen> {
                 return Column(
                   children: [
                     for (var i = 0; i < list.length; i++)
-                      _TimelineTile(
-                        event: list[i],
-                        first: i == 0,
-                        last: i == list.length - 1,
-                        showYear:
-                            i == 0 || list[i - 1].at.year != list[i].at.year,
+                      FadeSlideIn(
+                        key: ValueKey('${_filter.name}-$i'),
+                        index: i,
+                        child: _TimelineTile(
+                          event: list[i],
+                          first: i == 0,
+                          last: i == list.length - 1,
+                          showYear:
+                              i == 0 || list[i - 1].at.year != list[i].at.year,
+                        ),
                       ),
                   ],
                 );

@@ -269,8 +269,14 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Ask the chemist about: Saline gargle.'), findsOneWidget);
 
-    await tester.tap(find.text('Pay with M-Pesa'));
+    await tester.ensureVisible(find.textContaining('Pay KES'));
+    await tester.tap(find.textContaining('Pay KES'));
     await tester.pump(const Duration(milliseconds: 100));
+    // The M-Pesa prompt step, then the order is placed and confirmed.
+    expect(find.text('Check your phone'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1500));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Order placed'), findsOneWidget);
     expect(orders.chemistId, 'far');
     expect(orders.prescriptionId, 'rx1');
     expect(
@@ -278,5 +284,6 @@ void main() {
       {'para': 10, 'amox': 14},
     );
     await _close(tester);
+    await tester.pump(const Duration(seconds: 2));
   });
 }

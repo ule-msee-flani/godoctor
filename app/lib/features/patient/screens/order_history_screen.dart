@@ -9,6 +9,7 @@ import '../../../data/models/order.dart' as model;
 import '../../../core/widgets/skeleton.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
+import '../../../data/repositories/repository_errors.dart';
 
 final _ordersProvider = FutureProvider<List<model.Order>>((ref) async {
   final userId = ref.watch(currentUserIdProvider);
@@ -44,7 +45,7 @@ class OrderHistoryList extends ConsumerWidget {
     final orders = ref.watch(_ordersProvider);
     return orders.when(
       loading: () => const SkeletonList(),
-      error: (e, _) => ErrorView(message: '$e'),
+      error: (e, _) => ErrorView(message: friendlyError(e)),
       data: (list) {
         if (list.isEmpty) {
           return const EmptyView(

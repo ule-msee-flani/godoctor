@@ -15,6 +15,7 @@ import '../../../data/repositories/repository_errors.dart';
 import '../../patient/profile/account_screen.dart'
     show showChangePasswordDialog;
 import '../../support/rate_app_sheet.dart';
+import '../../update/update_sheet.dart';
 
 /// What patients see in the certified-doctor directory: photo, bio, fee,
 /// languages, experience. Licence details and verification are separate.
@@ -287,6 +288,7 @@ class _FormState extends ConsumerState<_Form> {
                   title: 'Rate GoDoctor',
                   onTap: () => showRateAppSheet(context),
                 ),
+                const AppVersionTile(),
                 if (email.isNotEmpty)
                   SettingsTile(
                     icon: LucideIcons.keyRound,

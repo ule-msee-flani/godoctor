@@ -5,7 +5,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// `slot_unavailable`); anything unrecognised falls back to the server's
 /// message rather than a stack trace.
 String friendlyError(Object error) {
-  final raw = error is PostgrestException ? error.message : error.toString();
+  final raw = switch (error) {
+    PostgrestException e => e.message,
+    StorageException e => e.message,
+    AuthException e => e.message,
+    _ => error.toString(),
+  };
   final text = raw.toLowerCase();
 
   if (text.contains('doctor_unavailable')) {
@@ -86,8 +91,37 @@ String friendlyError(Object error) {
   }
   if (text.contains('failed host lookup') ||
       text.contains('socketexception') ||
-      text.contains('clientexception')) {
+      text.contains('clientexception') ||
+      text.contains('connection closed') ||
+      text.contains('timeoutexception') ||
+      text.contains('network is unreachable')) {
     return 'No internet connection. Check your connection and try again.';
+  }
+  if (text.contains('row-level security') ||
+      text.contains('permission denied')) {
+    return 'You don\'t have access to this.';
+  }
+  if (text.contains('jwt expired') || text.contains('invalid jwt')) {
+    return 'Your session has expired. Please log in again.';
+  }
+  // Database / API internals (schema, relationships, SQL errors) mean
+  // something is wrong on our side: never show them to people.
+  final code = error is PostgrestException ? (error.code ?? '') : '';
+  if (code.startsWith('PGRST') ||
+      RegExp(r'^[0-9A-Z]{5}$').hasMatch(code) && !_isOurCode(raw) ||
+      text.contains('schema cache') ||
+      text.contains('relationship') ||
+      text.contains('column ') ||
+      text.contains('violates') ||
+      text.contains('syntax error') ||
+      text.contains('function ') ||
+      text.contains('exception(')) {
+    return 'Something went wrong on our side. Please try again in a moment.';
   }
   return raw.replaceFirst('Exception: ', '');
 }
+
+/// Our own SQL functions raise short, readable messages (e.g. "doctor is
+/// not yet verified", "chat_closed"); those are fine to pass on.
+bool _isOurCode(String message) =>
+    message.length < 90 && !message.contains('"') && !message.contains('(');

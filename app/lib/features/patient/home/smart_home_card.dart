@@ -17,6 +17,7 @@ import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../chat/chat_providers.dart';
 import '../../medications/medication_providers.dart';
+import '../../../core/widgets/motion.dart';
 
 /// My on-demand consultation that's still under way, live.
 final activeConsultationProvider = StreamProvider.autoDispose<Consultation?>((
@@ -225,7 +226,7 @@ class _Card extends StatelessWidget {
     final theme = Theme.of(context).textTheme;
     final fg = strong ? Colors.white : AppColors.ink;
     final soft = strong ? Colors.white70 : AppColors.inkSoft;
-    return Material(
+    final card = Material(
       color: strong ? AppColors.primary : AppColors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
@@ -289,6 +290,7 @@ class _Card extends StatelessWidget {
         ),
       ),
     );
+    return Pressable(child: card);
   }
 }
 

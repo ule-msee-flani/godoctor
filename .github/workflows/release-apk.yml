@@ -2,6 +2,11 @@
 # GitHub Release. The download page (docs/, GitHub Pages) always offers the
 # latest release's .apk, so publishing here is all a new version needs.
 #
+# Each release also carries version.json, which the installed app reads
+# (releases/latest/download/version.json) to offer the update in-app. Its
+# "What's new" list comes from app/release_notes/<version>.txt if it exists,
+# otherwise from the commit subjects since the previous tag.
+#
 # Release a version either way:
 #   git tag v1.0.1 && git push origin v1.0.1
 #   or: GitHub > Actions > "Release Android APK" > Run workflow (enter 1.0.1)
@@ -37,6 +42,8 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # tags + history, for the "What's new" notes
 
       - uses: actions/setup-java@v4
         with:
@@ -85,20 +92,46 @@ jobs:
       - run: flutter pub get
 
       - name: Build APK
+        # Phones only (32- and 64-bit ARM): leaving out the x86_64 emulator
+        # build makes the download noticeably smaller.
         run: >
           flutter build apk --release
+          --target-platform android-arm,android-arm64
           --build-name=${{ steps.v.outputs.version }}
           --build-number=${{ github.run_number }}
 
       - name: Name the file
         run: cp build/app/outputs/flutter-apk/app-release.apk "GoDoctor-${{ steps.v.outputs.version }}.apk"
 
+      - name: Version file for in-app updates
+        env:
+          V: ${{ steps.v.outputs.version }}
+          BUILD: ${{ github.run_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -s "release_notes/$V.txt" ]; then
+            grep -v '^[[:space:]]*$' "release_notes/$V.txt" | head -10 > notes.txt
+          else
+            PREV=$(git describe --tags --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true)
+            RANGE="${PREV:+$PREV..}${GITHUB_SHA}"
+            git log --no-merges --pretty=format:'%s' "$RANGE" | grep -v '^Version ' | head -8 > notes.txt || true
+          fi
+          SIZE=$(stat -c%s "GoDoctor-$V.apk")
+          jq -n --arg v "$V" --argjson b "$BUILD" --argjson size "$SIZE" \
+            --arg url "https://github.com/$REPO/releases/download/v$V/GoDoctor-$V.apk" \
+            --rawfile notes notes.txt \
+            '{version: $v, build: $b, apk: $url, size: $size,
+              notes: ($notes | split("\n") | map(select(length > 0)))}' > version.json
+          cat version.json
+
       - name: Publish the release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.v.outputs.version }}
           name: GoDoctor ${{ steps.v.outputs.version }}
-          files: app/GoDoctor-${{ steps.v.outputs.version }}.apk
+          files: |
+            app/GoDoctor-${{ steps.v.outputs.version }}.apk
+            app/version.json
           generate_release_notes: true
           make_latest: true
 

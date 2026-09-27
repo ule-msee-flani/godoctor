@@ -4,23 +4,31 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/format.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../data/models/drug.dart';
+import '../../../data/models/enums.dart';
 import '../../../data/models/prescription.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/order_repository.dart';
+import '../../../data/repositories/repository_errors.dart';
+import '../../payments/fulfillment_picker.dart';
+import '../../payments/mpesa_checkout.dart';
+import '../widgets/medicine_image.dart';
 
-final _validPrescriptionsProvider = FutureProvider<List<Prescription>>((
-  ref,
-) async {
-  final userId = ref.watch(currentUserIdProvider);
-  if (userId == null) return [];
-  final all = await ref
-      .watch(prescriptionRepositoryProvider)
-      .fetchForPatient(userId);
-  return all.where((p) => p.isValid).toList();
-});
+final _validPrescriptionsProvider =
+    FutureProvider.autoDispose<List<Prescription>>((ref) async {
+      final userId = ref.watch(currentUserIdProvider);
+      if (userId == null) return [];
+      final all = await ref
+          .watch(prescriptionRepositoryProvider)
+          .fetchForPatient(userId);
+      return all.where((p) => p.isValid).toList();
+    });
 
+/// Buy one medicine from the chemist the patient picked: how many, pickup
+/// or delivery, the prescription when it needs one, and M-Pesa.
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key, required this.item});
 
@@ -33,321 +41,408 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   int _quantity = 1;
   String _fulfillment = 'pickup';
-  String? _selectedPrescriptionId;
-  bool _placing = false;
+  String? _prescriptionId;
+  bool _pickedPrescription = false;
+  bool _paying = false;
+  bool _paid = false;
   String? _error;
 
-  bool get _requiresPrescription =>
-      widget.item.drug?.requiresPrescription ?? false;
+  ChemistInventoryItem get _item => widget.item;
 
-  Future<void> _placeOrder() async {
-    if (_requiresPrescription && _selectedPrescriptionId == null) {
+  bool get _needsPrescription => _item.drug?.requiresPrescription ?? false;
+
+  Future<void> _pay() async {
+    if (_needsPrescription && _prescriptionId == null) {
       setState(
-        () => _error = 'Attach a valid prescription to order this item.',
+        () => _error = 'Choose or upload a prescription for this medicine.',
       );
       return;
     }
     setState(() {
-      _placing = true;
+      _paying = true;
       _error = null;
     });
     try {
+      await simulateMpesaPrompt();
       final orderId = await ref
           .read(orderRepositoryProvider)
           .placeOrder(
-            chemistId: widget.item.chemistId,
-            prescriptionId: _selectedPrescriptionId,
+            chemistId: _item.chemistId,
+            prescriptionId: _needsPrescription ? _prescriptionId : null,
             fulfillmentType: _fulfillment,
             lines: [
               CartLine(
-                drugId: widget.item.drugId,
+                drugId: _item.drugId,
                 quantity: _quantity,
-                unitPrice: widget.item.price,
+                unitPrice: _item.price,
               ),
             ],
           );
+      if (!mounted) return;
+      setState(() => _paid = true);
+      await Future<void>.delayed(const Duration(milliseconds: 1700));
       if (mounted) context.pushReplacement('/patient/order/$orderId');
     } catch (e) {
-      setState(() => _error = '$e');
-    } finally {
-      if (mounted) setState(() => _placing = false);
+      if (mounted) {
+        setState(() {
+          _paying = false;
+          _error = friendlyError(e);
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final total = widget.item.price * _quantity;
-    final prescriptions = ref.watch(_validPrescriptionsProvider);
+    final theme = Theme.of(context).textTheme;
+    final total = _item.price * _quantity;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Checkout')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
+    if (_paid) {
+      return Scaffold(
+        body: PaymentSuccessView(
+          message:
+              'Order placed. ${_item.chemistName ?? 'The chemist'} is getting '
+              'your medicine ready.',
+        ),
+      );
+    }
+
+    return PopScope(
+      canPop: !_paying,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Checkout')),
+        body: Column(
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          LucideIcons.pill,
-                          color: AppColors.ink,
-                          size: 22,
-                        ),
-                      ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                children: [
+                  FadeSlideIn(child: _ItemCard(item: _item)),
+                  const SizedBox(height: 14),
+                  FadeSlideIn(
+                    index: 1,
+                    child: _QuantityRow(
+                      quantity: _quantity,
+                      max: _item.quantity,
+                      onChanged: (v) => setState(() => _quantity = v),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.item.drug?.displayName ?? 'Medicine',
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.item.chemistName ?? '',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
+                  ),
+                  const SizedBox(height: 20),
+                  FadeSlideIn(
+                    index: 2,
+                    child: FulfillmentPicker(
+                      value: _fulfillment,
+                      chemistName: _item.chemistName,
+                      onChanged: (v) => setState(() => _fulfillment = v),
                     ),
-                    Text(
-                      'KES ${widget.item.price.toStringAsFixed(0)}',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
+                  ),
+                  if (_needsPrescription) ...[
+                    const SizedBox(height: 22),
+                    FadeSlideIn(index: 3, child: _prescriptionPicker(theme)),
                   ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _SectionCard(
-              title: 'Quantity',
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'How many do you need?',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  Row(
-                    children: [
-                      _StepperButton(
-                        icon: LucideIcons.minus,
-                        onTap: _quantity > 1
-                            ? () => setState(() => _quantity--)
-                            : null,
-                      ),
-                      SizedBox(
-                        width: 36,
-                        child: Text(
-                          '$_quantity',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleMedium,
+                  const SizedBox(height: 22),
+                  const FadeSlideIn(index: 4, child: MpesaPayWithCard()),
+                  const SizedBox(height: 10),
+                  const EscrowNote(),
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 14),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.dangerSoft,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              LucideIcons.circleAlert,
+                              size: 18,
+                              color: AppColors.danger,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(_error!, style: theme.bodyMedium),
+                            ),
+                          ],
                         ),
                       ),
-                      _StepperButton(
-                        icon: LucideIcons.plus,
-                        onTap: _quantity < widget.item.quantity
-                            ? () => setState(() => _quantity++)
-                            : null,
-                      ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            _SectionCard(
-              title: 'Fulfillment',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(
-                        value: 'pickup',
-                        label: Text('Pickup'),
-                        icon: Icon(LucideIcons.store, size: 16),
-                      ),
-                      ButtonSegment(
-                        value: 'delivery',
-                        label: Text('Delivery'),
-                        icon: Icon(LucideIcons.bike, size: 16),
-                      ),
-                    ],
-                    selected: {_fulfillment},
-                    onSelectionChanged: (s) =>
-                        setState(() => _fulfillment = s.first),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Pickup/delivery logistics are arranged directly with the chemist.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
+            MpesaPayBar(total: total, paying: _paying, onPay: _pay),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _prescriptionPicker(TextTheme theme) {
+    final async = ref.watch(_validPrescriptionsProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Icon(LucideIcons.fileText, size: 18, color: AppColors.ink),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('Prescription needed', style: theme.titleMedium),
             ),
-            if (_requiresPrescription) ...[
-              const SizedBox(height: 16),
-              _SectionCard(
-                title: 'Prescription required',
-                titleIcon: LucideIcons.fileText,
-                child: prescriptions.when(
-                  loading: () => const LinearProgressIndicator(),
-                  error: (e, _) => Text('$e'),
-                  data: (list) {
-                    if (list.isEmpty) {
-                      return OutlinedButton.icon(
-                        icon: const Icon(LucideIcons.upload, size: 18),
-                        label: const Text('Upload a prescription'),
-                        onPressed: () =>
-                            context.push('/patient/prescriptions/upload'),
-                      );
-                    }
-                    return DropdownButtonFormField<String>(
-                      initialValue: _selectedPrescriptionId,
-                      decoration: const InputDecoration(
-                        labelText: 'Select a prescription',
-                      ),
-                      items: list
-                          .map(
-                            (p) => DropdownMenuItem(
-                              value: p.id,
-                              child: Text(
-                                '${p.source.name == 'app' ? 'App-issued' : 'Uploaded'} · ${p.issuedAt.toLocal().toString().split(' ').first}',
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) =>
-                          setState(() => _selectedPrescriptionId = v),
-                    );
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'The chemist checks it before handing this medicine over.',
+          style: theme.bodySmall,
+        ),
+        const SizedBox(height: 10),
+        async.when(
+          loading: () => const LinearProgressIndicator(),
+          error: (e, _) => Text(friendlyError(e)),
+          data: (list) {
+            // The ones that include this medicine first; pick one for them.
+            final sorted = [...list]
+              ..sort(
+                (a, b) =>
+                    (_includes(b) ? 1 : 0).compareTo(_includes(a) ? 1 : 0),
+              );
+            if (!_pickedPrescription && sorted.isNotEmpty) {
+              final best = sorted.first;
+              if (_includes(best) ||
+                  best.source == PrescriptionSource.externalUpload) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && !_pickedPrescription) {
+                    setState(() {
+                      _prescriptionId = best.id;
+                      _pickedPrescription = true;
+                    });
+                  }
+                });
+              }
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final p in sorted)
+                  _PrescriptionOption(
+                    prescription: p,
+                    includesThis: _includes(p),
+                    drugName: _item.drug?.genericName,
+                    selected: _prescriptionId == p.id,
+                    onTap: () => setState(() {
+                      _prescriptionId = p.id;
+                      _pickedPrescription = true;
+                      _error = null;
+                    }),
+                  ),
+                OutlinedButton.icon(
+                  icon: const Icon(LucideIcons.upload, size: 18),
+                  label: Text(
+                    list.isEmpty
+                        ? 'Upload a photo of your prescription'
+                        : 'Upload a different prescription',
+                  ),
+                  onPressed: () async {
+                    await context.push('/patient/prescriptions/upload');
+                    ref.invalidate(_validPrescriptionsProvider);
                   },
                 ),
-              ),
-            ],
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Total',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    'KES ${total.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              icon: const Icon(LucideIcons.wallet, size: 18),
-              label: Text(
-                _placing ? 'Placing order...' : 'Pay with M-Pesa (simulated)',
-              ),
-              onPressed: _placing ? null : _placeOrder,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Real M-Pesa payment isn\'t wired up yet -- this simulates a successful escrow hold.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: const TextStyle(color: AppColors.danger)),
-            ],
-          ],
+              ],
+            );
+          },
         ),
-      ),
+      ],
     );
   }
+
+  bool _includes(Prescription p) =>
+      p.items.any((i) => i.drugId != null && i.drugId == _item.drugId);
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.title,
-    required this.child,
-    this.titleIcon,
-  });
+class _ItemCard extends StatelessWidget {
+  const _ItemCard({required this.item});
 
-  final String title;
-  final IconData? titleIcon;
-  final Widget child;
+  final ChemistInventoryItem item;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+    final theme = Theme.of(context).textTheme;
+    final drug = item.drug;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          if (drug != null)
+            MedicineImage(drug: drug, size: 64, radius: 16)
+          else
+            const SizedBox(
+              width: 64,
+              height: 64,
+              child: Icon(LucideIcons.pill, color: AppColors.ink),
+            ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (titleIcon case final icon?) ...[
-                  Icon(icon, size: 16, color: AppColors.ink),
-                  const SizedBox(width: 6),
-                ],
-                Text(title, style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  drug?.displayName ?? 'Medicine',
+                  style: theme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (item.chemistName != null)
+                  Text(item.chemistName!, style: theme.bodySmall),
+                const SizedBox(height: 4),
+                Text(
+                  '${formatKes(item.price)} each · ${item.quantity} in stock',
+                  style: theme.bodySmall?.copyWith(color: AppColors.inkSoft),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _StepperButton extends StatelessWidget {
-  const _StepperButton({required this.icon, required this.onTap});
+class _QuantityRow extends StatelessWidget {
+  const _QuantityRow({
+    required this.quantity,
+    required this.max,
+    required this.onChanged,
+  });
 
-  final IconData icon;
-  final VoidCallback? onTap;
+  final int quantity;
+  final int max;
+  final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    return Material(
-      color: enabled ? AppColors.primarySoft : AppColors.border,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: SizedBox(
-          width: 34,
-          height: 34,
-          child: Center(
-            child: Icon(
-              icon,
-              size: 16,
-              color: enabled ? AppColors.primary : AppColors.inkFaint,
+    final theme = Theme.of(context).textTheme;
+    Widget step(IconData icon, String tip, VoidCallback? onTap) =>
+        IconButton.filledTonal(
+          tooltip: tip,
+          onPressed: onTap,
+          icon: Icon(icon, size: 16),
+        );
+    return Row(
+      children: [
+        Expanded(child: Text('Quantity', style: theme.titleMedium)),
+        step(
+          LucideIcons.minus,
+          'Fewer',
+          quantity > 1 ? () => onChanged(quantity - 1) : null,
+        ),
+        SizedBox(
+          width: 44,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 160),
+            transitionBuilder: (child, a) =>
+                ScaleTransition(scale: a, child: child),
+            child: Text(
+              '$quantity',
+              key: ValueKey(quantity),
+              textAlign: TextAlign.center,
+              style: theme.titleLarge,
+            ),
+          ),
+        ),
+        step(
+          LucideIcons.plus,
+          'More',
+          quantity < max ? () => onChanged(quantity + 1) : null,
+        ),
+      ],
+    );
+  }
+}
+
+class _PrescriptionOption extends StatelessWidget {
+  const _PrescriptionOption({
+    required this.prescription,
+    required this.includesThis,
+    required this.drugName,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Prescription prescription;
+  final bool includesThis;
+  final String? drugName;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    final p = prescription;
+    final uploaded = p.source == PrescriptionSource.externalUpload;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: selected ? AppColors.primarySofter : AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: selected ? AppColors.primary : AppColors.border,
+            width: selected ? 1.6 : 1,
+          ),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Icon(
+                  selected ? LucideIcons.circleCheck : LucideIcons.circle,
+                  size: 20,
+                  color: selected ? AppColors.primary : AppColors.inkFaint,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${uploaded ? 'Uploaded photo' : 'From your consultation'} · '
+                        '${formatDayShort(p.issuedAt.toLocal())}',
+                        style: theme.titleSmall,
+                      ),
+                      Text(
+                        uploaded
+                            ? 'The chemist reads the photo'
+                            : p.items.map((i) => i.displayName).join(', '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.bodySmall,
+                      ),
+                      if (!uploaded)
+                        Text(
+                          includesThis
+                              ? 'Includes ${drugName ?? 'this medicine'}'
+                              : 'Doesn\'t include ${drugName ?? 'this medicine'}',
+                          style: theme.bodySmall?.copyWith(
+                            color: includesThis
+                                ? AppColors.success
+                                : AppColors.warning,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),

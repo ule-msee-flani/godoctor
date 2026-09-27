@@ -12,7 +12,10 @@ import '../../data/providers/auth_providers.dart';
 import '../../data/providers/repository_providers.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/repository_errors.dart';
+import '../../core/widgets/motion.dart';
 import '../patient/widgets/medicine_image.dart';
+import '../payments/fulfillment_picker.dart';
+import '../payments/mpesa_checkout.dart';
 import 'chemist_match.dart';
 
 final _prescriptionProvider = FutureProvider.autoDispose
@@ -47,10 +50,12 @@ class _PrescriptionOrderScreenState
   /// Quantities the patient changed, by drug id.
   final Map<String, int> _qty = {};
   bool _placing = false;
+  String? _paidAt;
 
   Future<void> _place(ChemistMatch match) async {
     setState(() => _placing = true);
     try {
+      await simulateMpesaPrompt();
       final orderId = await ref
           .read(orderRepositoryProvider)
           .placeOrder(
@@ -66,15 +71,17 @@ class _PrescriptionOrderScreenState
                 ),
             ],
           );
+      if (!mounted) return;
+      setState(() => _paidAt = match.chemistName);
+      await Future<void>.delayed(const Duration(milliseconds: 1700));
       if (mounted) context.pushReplacement('/patient/order/$orderId');
     } catch (e) {
       if (mounted) {
+        setState(() => _placing = false);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(friendlyError(e))));
       }
-    } finally {
-      if (mounted) setState(() => _placing = false);
     }
   }
 
@@ -83,6 +90,14 @@ class _PrescriptionOrderScreenState
     final prescriptionAsync = ref.watch(
       _prescriptionProvider(widget.prescriptionId),
     );
+
+    if (_paidAt != null) {
+      return Scaffold(
+        body: PaymentSuccessView(
+          message: 'Order placed. $_paidAt is getting your medicines ready.',
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Order your medicines')),
@@ -171,14 +186,17 @@ class _PrescriptionOrderScreenState
                     style: theme.bodySmall,
                   ),
                   const SizedBox(height: 12),
-                  for (final m in ranked)
-                    _ChemistOption(
-                      match: m,
-                      selected: m.chemistId == selected.chemistId,
-                      onTap: () => setState(() {
-                        _chemistId = m.chemistId;
-                        _qty.clear();
-                      }),
+                  for (final (i, m) in ranked.indexed)
+                    FadeSlideIn(
+                      index: i,
+                      child: _ChemistOption(
+                        match: m,
+                        selected: m.chemistId == selected.chemistId,
+                        onTap: () => setState(() {
+                          _chemistId = m.chemistId;
+                          _qty.clear();
+                        }),
+                      ),
                     ),
                   const SizedBox(height: 18),
                   Text(
@@ -224,25 +242,17 @@ class _PrescriptionOrderScreenState
                         ],
                       ),
                     ),
-                  const SizedBox(height: 18),
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(
-                        value: 'pickup',
-                        label: Text('Pickup'),
-                        icon: Icon(LucideIcons.store, size: 16),
-                      ),
-                      ButtonSegment(
-                        value: 'delivery',
-                        label: Text('Delivery'),
-                        icon: Icon(LucideIcons.bike, size: 16),
-                      ),
-                    ],
-                    selected: {_fulfillment},
-                    onSelectionChanged: (s) =>
-                        setState(() => _fulfillment = s.first),
+                  const SizedBox(height: 20),
+                  FulfillmentPicker(
+                    value: _fulfillment,
+                    chemistName: selected.chemistName,
+                    onChanged: (v) => setState(() => _fulfillment = v),
                   ),
+                  const SizedBox(height: 20),
+                  const MpesaPayWithCard(),
                   const SizedBox(height: 10),
+                  const EscrowNote(),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       const Icon(
@@ -262,37 +272,10 @@ class _PrescriptionOrderScreenState
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              decoration: const BoxDecoration(
-                color: AppColors.white,
-                border: Border(top: BorderSide(color: AppColors.border)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Total', style: theme.bodySmall),
-                        Text(formatKes(total), style: theme.titleLarge),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: _placing ? null : () => _place(selected),
-                        icon: const Icon(LucideIcons.smartphone, size: 18),
-                        label: Text(
-                          _placing ? 'Placing order…' : 'Pay with M-Pesa',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            MpesaPayBar(
+              total: total,
+              paying: _placing,
+              onPay: () => _place(selected),
             ),
           ],
         );

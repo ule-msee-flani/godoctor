@@ -10,6 +10,7 @@ import '../../../data/models/prescription.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../medications/dose_reminder_sheet.dart';
+import '../../../data/repositories/repository_errors.dart';
 
 final _patientPrescriptionsProvider = FutureProvider<List<Prescription>>((
   ref,
@@ -50,7 +51,7 @@ class PrescriptionsList extends ConsumerWidget {
         Expanded(
           child: prescriptions.when(
             loading: () => const SkeletonList(),
-            error: (e, _) => ErrorView(message: '$e'),
+            error: (e, _) => ErrorView(message: friendlyError(e)),
             data: (list) {
               if (list.isEmpty) {
                 return const EmptyView(
