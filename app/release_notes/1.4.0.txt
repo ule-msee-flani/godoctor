@@ -1,0 +1,4 @@
+Doctor profiles now open with the doctor's own photo, their experience, consultations, what they help with and what patients say
+New pharmacy pages: see the pharmacy, where it is, how many orders it has filled and what it has in stock, with directions and a call button
+Tap "About this pharmacy" when choosing a chemist to see who you're buying from
+Doctors and chemists are welcomed by name when they open the app
