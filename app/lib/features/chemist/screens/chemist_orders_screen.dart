@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/widgets/greeting_header.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/enums.dart';
 import '../../../data/models/order.dart' as model;
@@ -102,123 +103,147 @@ class _ChemistOrdersScreenState extends ConsumerState<ChemistOrdersScreen> {
     final ordersAsync = ref.watch(chemistOrdersProvider);
     ref.watch(clockTickProvider); // keeps the waiting times current
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Orders'),
-        actions: [
-          NotificationBell(
-            count: ref.watch(unreadNotificationCountProvider),
-            onPressed: () => context.push('/chemist/notifications'),
-          ),
-          IconButton(
-            tooltip: 'Sign out',
-            icon: const Icon(LucideIcons.logOut),
-            onPressed: () => ref.read(authRepositoryProvider).signOut(),
-          ),
-        ],
-      ),
-      body: ordersAsync.when(
-        loading: () => const LoadingView(),
-        error: (e, _) => ErrorView(message: friendlyError(e)),
-        data: (orders) {
-          final byLane = {
-            for (final l in OrderLane.values)
-              l: [
-                for (final o in orders)
-                  if (laneOf(o.status) == l) o,
-              ],
-          };
-          // Oldest first where work is waiting, so the longest wait is on top.
-          for (final l in [OrderLane.fresh, OrderLane.preparing]) {
-            byLane[l]!.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-          }
-          final lane =
-              _lane ??
-              (byLane[OrderLane.fresh]!.isNotEmpty
-                  ? OrderLane.fresh
-                  : byLane[OrderLane.preparing]!.isNotEmpty
-                  ? OrderLane.preparing
-                  : OrderLane.fresh);
-          final list = byLane[lane]!;
+    final pharmacy = ref.watch(currentChemistProfileProvider).valueOrNull;
 
-          return Column(
-            children: [
-              SizedBox(
-                height: 56,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-                  children: [
-                    for (final l in OrderLane.values) ...[
-                      ChoiceChip(
-                        label: Text(
-                          '${_laneLabel(l)}'
-                          '${l == OrderLane.done || byLane[l]!.isEmpty ? '' : '  ${byLane[l]!.length}'}',
+    return Scaffold(
+      body: SafeArea(
+        child: ordersAsync.when(
+          loading: () => const LoadingView(),
+          error: (e, _) => ErrorView(message: friendlyError(e)),
+          data: (orders) {
+            final byLane = {
+              for (final l in OrderLane.values)
+                l: [
+                  for (final o in orders)
+                    if (laneOf(o.status) == l) o,
+                ],
+            };
+            // Oldest first where work is waiting, so the longest wait is on top.
+            for (final l in [OrderLane.fresh, OrderLane.preparing]) {
+              byLane[l]!.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+            }
+            final lane =
+                _lane ??
+                (byLane[OrderLane.fresh]!.isNotEmpty
+                    ? OrderLane.fresh
+                    : byLane[OrderLane.preparing]!.isNotEmpty
+                    ? OrderLane.preparing
+                    : OrderLane.fresh);
+            final list = byLane[lane]!;
+
+            final waiting = byLane[OrderLane.fresh]!.length;
+            final preparing = byLane[OrderLane.preparing]!.length;
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: FadeSlideIn(
+                    child: GreetingHeader(
+                      name: (pharmacy?.businessName ?? '').trim().isEmpty
+                          ? 'Welcome'
+                          : pharmacy!.businessName,
+                      subtitle: waiting > 0
+                          ? '$waiting new ${waiting == 1 ? 'order is' : 'orders are'} waiting for you.'
+                          : preparing > 0
+                          ? '$preparing ${preparing == 1 ? 'order' : 'orders'} being prepared.'
+                          : 'All caught up. New orders appear here straight away.',
+                      avatarPath: ref
+                          .watch(currentAppUserProvider)
+                          .valueOrNull
+                          ?.avatarUrl,
+                      onAvatarTap: () => context.go('/chemist/account'),
+                      actions: [
+                        NotificationBell(
+                          count: ref.watch(unreadNotificationCountProvider),
+                          onPressed: () =>
+                              context.push('/chemist/notifications'),
                         ),
-                        selected: lane == l,
-                        onSelected: (_) => setState(() => _lane = l),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              Expanded(
-                child: orders.isEmpty
-                    ? const EmptyView(
-                        message:
-                            'No orders yet.\nWhen a patient orders from you, it appears here straight away.',
-                        icon: LucideIcons.receipt,
-                      )
-                    : list.isEmpty
-                    ? EmptyView(
-                        message: switch (lane) {
-                          OrderLane.fresh => 'No new orders right now.',
-                          OrderLane.preparing => 'Nothing being prepared.',
-                          OrderLane.ready => 'No orders waiting for pickup.',
-                          OrderLane.done => 'No finished orders yet.',
-                        },
-                        icon: LucideIcons.inbox,
-                      )
-                    : LayoutBuilder(
-                        builder: (context, c) {
-                          final cols = c.maxWidth >= 1100
-                              ? 3
-                              : c.maxWidth >= 700
-                              ? 2
-                              : 1;
-                          if (cols == 1) {
-                            return ListView.builder(
+                SizedBox(
+                  height: 56,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                    children: [
+                      for (final l in OrderLane.values) ...[
+                        ChoiceChip(
+                          label: Text(
+                            '${_laneLabel(l)}'
+                            '${l == OrderLane.done || byLane[l]!.isEmpty ? '' : '  ${byLane[l]!.length}'}',
+                          ),
+                          selected: lane == l,
+                          onSelected: (_) => setState(() => _lane = l),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: orders.isEmpty
+                      ? const EmptyView(
+                          message:
+                              'No orders yet.\nWhen a patient orders from you, it appears here straight away.',
+                          icon: LucideIcons.receipt,
+                        )
+                      : list.isEmpty
+                      ? EmptyView(
+                          message: switch (lane) {
+                            OrderLane.fresh => 'No new orders right now.',
+                            OrderLane.preparing => 'Nothing being prepared.',
+                            OrderLane.ready => 'No orders waiting for pickup.',
+                            OrderLane.done => 'No finished orders yet.',
+                          },
+                          icon: LucideIcons.inbox,
+                        )
+                      : LayoutBuilder(
+                          builder: (context, c) {
+                            final cols = c.maxWidth >= 1100
+                                ? 3
+                                : c.maxWidth >= 700
+                                ? 2
+                                : 1;
+                            if (cols == 1) {
+                              return ListView.builder(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  4,
+                                  16,
+                                  16,
+                                ),
+                                itemCount: list.length,
+                                itemBuilder: (context, i) => FadeSlideIn(
+                                  key: ValueKey(list[i].id),
+                                  index: i,
+                                  child: _OrderTicket(order: list[i]),
+                                ),
+                              );
+                            }
+                            return SingleChildScrollView(
                               padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                              itemCount: list.length,
-                              itemBuilder: (context, i) => FadeSlideIn(
-                                key: ValueKey(list[i].id),
-                                index: i,
-                                child: _OrderTicket(order: list[i]),
+                              child: Wrap(
+                                spacing: 12,
+                                children: [
+                                  for (final o in list)
+                                    SizedBox(
+                                      width:
+                                          (c.maxWidth - 32 - 12 * (cols - 1)) /
+                                          cols,
+                                      child: _OrderTicket(order: o),
+                                    ),
+                                ],
                               ),
                             );
-                          }
-                          return SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                            child: Wrap(
-                              spacing: 12,
-                              children: [
-                                for (final o in list)
-                                  SizedBox(
-                                    width:
-                                        (c.maxWidth - 32 - 12 * (cols - 1)) /
-                                        cols,
-                                    child: _OrderTicket(order: o),
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          );
-        },
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

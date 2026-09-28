@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/local_touch.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
@@ -108,8 +109,8 @@ class _Body extends ConsumerWidget {
       ..sort((a, b) => asNum(b.value).compareTo(asNum(a.value)));
 
     return AdminPage(
-      title: 'Overview',
-      subtitle: 'Everything happening on GoDoctor · $period',
+      title: LocalTouch.greeting(DateTime.now()),
+      subtitle: 'Here\'s everything happening on GoDoctor · $period',
       actions: filters,
       onRefresh: () async => ref.invalidate(adminOverviewProvider),
       children: [

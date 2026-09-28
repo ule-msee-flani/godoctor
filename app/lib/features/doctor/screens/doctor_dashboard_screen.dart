@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/greeting_header.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/doctor_profile.dart';
 import '../../../data/models/enums.dart';
@@ -24,16 +25,6 @@ class DoctorDashboardScreen extends ConsumerWidget {
     final userId = ref.watch(currentUserIdProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Doctor dashboard'),
-        actions: [
-          NotificationBell(
-            count: ref.watch(unreadNotificationCountProvider),
-            onPressed: () => context.push('/doctor/notifications'),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
       body: SafeArea(
         child: profileAsync.when(
           loading: () => const LoadingView(),
@@ -50,6 +41,18 @@ class DoctorDashboardScreen extends ConsumerWidget {
   }
 }
 
+/// "Dr Jane" from however the name was saved.
+String _doctorName(String name) {
+  final clean = name
+      .replaceFirst(RegExp(r'^(dr\.?|doctor)\s+', caseSensitive: false), '')
+      .trim();
+  final first = clean
+      .split(RegExp(r'\s+'))
+      .where((p) => p.isNotEmpty)
+      .firstOrNull;
+  return first == null ? 'Doctor' : 'Dr $first';
+}
+
 class _DashboardBody extends ConsumerWidget {
   const _DashboardBody({required this.profile, required this.doctorId});
 
@@ -64,22 +67,45 @@ class _DashboardBody extends ConsumerWidget {
         ref.invalidate(currentDoctorProfileProvider);
       },
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          _AvailabilityCard(status: profile.status),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            children: profile.specialties
-                .map((s) => Chip(label: Text(s)))
-                .toList(),
+          FadeSlideIn(
+            child: GreetingHeader(
+              name: _doctorName(profile.name),
+              subtitle: switch (profile.status) {
+                DoctorStatus.busy => 'You\'re with a patient right now.',
+                DoctorStatus.available =>
+                  'You\'re online. Patients can choose you now.',
+                _ =>
+                  'You\'re offline. Go online when you\'re ready to see patients.',
+              },
+              avatarPath: ref
+                  .watch(currentAppUserProvider)
+                  .valueOrNull
+                  ?.avatarUrl,
+              onAvatarTap: () => context.go('/doctor/profile'),
+              actions: [
+                NotificationBell(
+                  count: ref.watch(unreadNotificationCountProvider),
+                  onPressed: () => context.push('/doctor/notifications'),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
-          const DoctorTodayCard(),
+          FadeSlideIn(
+            index: 1,
+            child: _AvailabilityCard(status: profile.status),
+          ),
+          const SizedBox(height: 12),
+          const FadeSlideIn(index: 2, child: DoctorTodayCard()),
           const SizedBox(height: 20),
-          ActivePatientSection(doctorId: doctorId),
+          FadeSlideIn(
+            index: 3,
+            child: ActivePatientSection(doctorId: doctorId),
+          ),
           const SizedBox(height: 20),
-          const DoctorAppointmentsSection(),
+          const FadeSlideIn(index: 4, child: DoctorAppointmentsSection()),
         ],
       ),
     );

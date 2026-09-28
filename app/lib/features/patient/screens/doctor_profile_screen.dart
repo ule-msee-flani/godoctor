@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/profile_hero.dart';
 import '../../../core/widgets/skeleton.dart';
+import '../../../data/models/public_chemist.dart';
 import '../../../data/models/public_doctor.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../consult/consult_flow.dart';
+import '../specialties/specialty_registry.dart';
+import '../widgets/specialty_tiles.dart';
 import '../widgets/doctor_widgets.dart';
 
 final publicDoctorProvider = FutureProvider.autoDispose
@@ -23,6 +29,14 @@ final doctorReviewsProvider = FutureProvider.autoDispose
       (ref, id) => ref.watch(doctorDirectoryRepositoryProvider).reviews(id),
     );
 
+final doctorStatsProvider = FutureProvider.autoDispose
+    .family<DoctorPublicStats, String>(
+      (ref, id) => ref.watch(doctorDirectoryRepositoryProvider).publicStats(id),
+    );
+
+/// A doctor's page, led by their own photo: who they are, what they help
+/// with, their track record and what patients say, with booking always at
+/// hand.
 class DoctorProfileScreen extends ConsumerWidget {
   const DoctorProfileScreen({
     super.key,
@@ -40,172 +54,230 @@ class DoctorProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final doctorAsync = ref.watch(publicDoctorProvider(doctorId));
 
-    return Scaffold(
-      appBar: AppBar(title: Text(seeNow ? 'Choose a doctor' : 'Doctor')),
-      body: doctorAsync.when(
-        loading: () => const SkeletonList(itemCount: 3),
-        error: (e, _) => ErrorView(
+    return doctorAsync.when(
+      loading: () =>
+          Scaffold(appBar: AppBar(), body: const SkeletonList(itemCount: 3)),
+      error: (e, _) => Scaffold(
+        appBar: AppBar(),
+        body: ErrorView(
           message: friendlyError(e),
           onRetry: () => ref.invalidate(publicDoctorProvider(doctorId)),
         ),
-        data: (doctor) {
-          if (doctor == null) {
-            return const EmptyView(
+      ),
+      data: (doctor) {
+        if (doctor == null) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: const EmptyView(
               message: 'This doctor is not available.',
               icon: LucideIcons.userX,
-            );
-          }
-          return _ProfileBody(doctor: doctor);
-        },
-      ),
-      bottomNavigationBar: doctorAsync.valueOrNull == null
-          ? null
-          : seeNow
-          ? _SeeNowBar(doctor: doctorAsync.value!)
-          : _BookBar(doctor: doctorAsync.value!),
+            ),
+          );
+        }
+        return ProfileHeroScaffold(
+          title: doctor.name,
+          photoUrl: ref
+              .watch(doctorDirectoryRepositoryProvider)
+              .avatarUrl(doctor.avatarPath),
+          bottomBar: seeNow
+              ? _SeeNowBar(doctor: doctor)
+              : _BookBar(doctor: doctor),
+          children: _profile(context, ref, doctor),
+        );
+      },
     );
   }
-}
 
-class _ProfileBody extends ConsumerWidget {
-  const _ProfileBody({required this.doctor});
-
-  final PublicDoctor doctor;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  List<Widget> _profile(
+    BuildContext context,
+    WidgetRef ref,
+    PublicDoctor doctor,
+  ) {
     final theme = Theme.of(context).textTheme;
     final reviews = ref.watch(doctorReviewsProvider(doctor.userId));
+    final stats = ref.watch(doctorStatsProvider(doctor.userId)).valueOrNull;
+    final firstName = doctor.name
+        .split(' ')
+        .where((p) => p.isNotEmpty)
+        .take(2)
+        .join(' ');
+    final helpsWith = <String>{
+      for (final s in doctor.specialties.take(2))
+        ...?specialtyContentForSlug(
+          specialtyMetaFor(s).slug,
+        )?.commonReasons.take(4),
+    }.take(6).toList();
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-      children: [
-        Center(
-          child: DoctorAvatar(
-            name: doctor.name,
-            avatarPath: doctor.avatarPath,
-            radius: 48,
-          ),
-        ),
-        const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return [
+      FadeSlideIn(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Flexible(
-              child: Text(
-                doctor.name,
-                textAlign: TextAlign.center,
-                style: theme.headlineSmall,
-              ),
-            ),
-            const SizedBox(width: 6),
-            const VerifiedBadge(size: 20),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          doctor.specialties.isEmpty
-              ? 'General Practice'
-              : doctor.specialties.join(' · '),
-          textAlign: TextAlign.center,
-          style: theme.bodyLarge,
-        ),
-        const SizedBox(height: 4),
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(LucideIcons.shieldCheck, size: 14, color: AppColors.success),
-            SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                'Licence verified by GoDoctor',
-                style: TextStyle(color: AppColors.success, fontSize: 12.5),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(
-              child: _Stat(
-                icon: LucideIcons.briefcaseMedical,
-                value: doctor.yearsExperience == null
-                    ? '—'
-                    : '${doctor.yearsExperience}+ yrs',
-                label: 'Experience',
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _Stat(
-                icon: LucideIcons.star,
-                value: doctor.ratingCount == 0
-                    ? '—'
-                    : doctor.ratingAvg.toStringAsFixed(1),
-                label: 'Rating',
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _Stat(
-                icon: LucideIcons.messageSquareText,
-                value: '${doctor.ratingCount}',
-                label: 'Reviews',
-              ),
-            ),
-          ],
-        ),
-        if ((doctor.bio ?? '').trim().isNotEmpty) ...[
-          const SizedBox(height: 22),
-          Text('About', style: theme.titleMedium),
-          const SizedBox(height: 8),
-          _ExpandableText(text: doctor.bio!.trim()),
-        ],
-        const SizedBox(height: 22),
-        Text('Details', style: theme.titleMedium),
-        const SizedBox(height: 10),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+            Row(
               children: [
-                _DetailRow(
-                  icon: LucideIcons.banknote,
-                  label: 'Consultation fee',
-                  value: formatKes(doctor.consultationFee),
-                ),
-                if (doctor.languages.isNotEmpty) ...[
-                  const Divider(height: 24),
-                  _DetailRow(
-                    icon: LucideIcons.languages,
-                    label: 'Languages',
-                    value: doctor.languages.join(', '),
+                Flexible(
+                  child: Text(
+                    doctor.name,
+                    style: theme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ],
-                const Divider(height: 24),
-                _DetailRow(
-                  icon: LucideIcons.calendarClock,
-                  label: 'Next available',
-                  value: doctor.availableNow
+                ),
+                const SizedBox(width: 6),
+                const VerifiedBadge(size: 20),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              doctor.specialties.isEmpty
+                  ? 'General Practice'
+                  : doctor.specialties.join(' · '),
+              style: theme.bodyLarge?.copyWith(color: AppColors.inkSoft),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _Pill(
+                  leading: doctor.availableNow
+                      ? const PulseDot(color: AppColors.success, size: 8)
+                      : const Icon(
+                          LucideIcons.calendarClock,
+                          size: 14,
+                          color: AppColors.ink,
+                        ),
+                  text: doctor.availableNow
                       ? 'Available now'
                       : doctor.nextSlot == null
                       ? 'No open slots'
-                      : formatRelativeSlot(doctor.nextSlot!),
+                      : 'Next: ${formatRelativeSlot(doctor.nextSlot!)}',
                 ),
+                const _Pill(
+                  leading: Icon(
+                    LucideIcons.shieldCheck,
+                    size: 14,
+                    color: AppColors.success,
+                  ),
+                  text: 'Licence verified',
+                ),
+                if (doctor.languages.isNotEmpty)
+                  _Pill(
+                    leading: const Icon(
+                      LucideIcons.languages,
+                      size: 14,
+                      color: AppColors.ink,
+                    ),
+                    text: doctor.languages.join(', '),
+                  ),
               ],
             ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 18),
+      FadeSlideIn(
+        index: 1,
+        child: ProfileStatsRow(
+          stats: [
+            ProfileStat(
+              value: doctor.yearsExperience == null
+                  ? 'New'
+                  : '${doctor.yearsExperience} yrs',
+              label: 'Experience',
+            ),
+            ProfileStat(
+              value: stats == null ? '–' : '${stats.consultations}',
+              label: 'Consultations',
+            ),
+            ProfileStat(
+              icon: LucideIcons.star,
+              value: doctor.ratingCount == 0
+                  ? 'New'
+                  : doctor.ratingAvg.toStringAsFixed(1),
+              label: doctor.ratingCount == 0
+                  ? 'No reviews yet'
+                  : '${doctor.ratingCount} reviews',
+            ),
+          ],
+        ),
+      ),
+      if ((doctor.bio ?? '').trim().isNotEmpty)
+        ProfileSection(
+          title: 'About $firstName',
+          child: _ExpandableText(text: doctor.bio!.trim()),
+        ),
+      if (helpsWith.isNotEmpty)
+        ProfileSection(
+          title: 'Can help with',
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final h in helpsWith)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySofter,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Text(
+                    h,
+                    style: theme.bodySmall?.copyWith(color: AppColors.ink),
+                  ),
+                ),
+            ],
           ),
         ),
-        const SizedBox(height: 22),
-        Text('Patient reviews', style: theme.titleMedium),
-        const SizedBox(height: 4),
-        Text(
-          'Only patients who completed a consultation can leave a review.',
-          style: theme.bodySmall,
+      ProfileSection(
+        title: 'Details',
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            children: [
+              _DetailRow(
+                icon: LucideIcons.banknote,
+                label: 'Video consultation',
+                value: formatKes(doctor.consultationFee),
+              ),
+              if (stats != null && stats.patients > 0) ...[
+                const Divider(height: 24),
+                _DetailRow(
+                  icon: LucideIcons.users,
+                  label: 'Patients helped',
+                  value: '${stats.patients}',
+                ),
+              ],
+              if (stats?.memberSince != null) ...[
+                const Divider(height: 24),
+                _DetailRow(
+                  icon: LucideIcons.calendarCheck,
+                  label: 'On GoDoctor since',
+                  value: DateFormat('MMMM yyyy').format(stats!.memberSince!),
+                ),
+              ],
+              const Divider(height: 24),
+              const _DetailRow(
+                icon: LucideIcons.badgeCheck,
+                label: 'Licence',
+                value: 'Checked against the KMPDC register',
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 10),
-        reviews.when(
+      ),
+      ProfileSection(
+        title: 'What patients say',
+        child: reviews.when(
           loading: () => const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
             child: LoadingView(),
@@ -213,13 +285,20 @@ class _ProfileBody extends ConsumerWidget {
           error: (e, _) => Text(friendlyError(e)),
           data: (list) {
             if (list.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text('No reviews yet.', style: theme.bodyMedium),
+              return Text(
+                'No reviews yet. Only patients who completed a consultation can leave one.',
+                style: theme.bodyMedium,
               );
             }
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                _RatingSummary(
+                  average: doctor.ratingAvg,
+                  count: doctor.ratingCount,
+                  reviews: list,
+                ),
+                const SizedBox(height: 12),
                 for (final r in list)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -229,34 +308,119 @@ class _ProfileBody extends ConsumerWidget {
             );
           },
         ),
-      ],
+      ),
+    ];
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.leading, required this.text});
+
+  final Widget leading;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 5, 12, 5),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          leading,
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _Stat extends StatelessWidget {
-  const _Stat({required this.icon, required this.value, required this.label});
+/// "4.8 ★ · 23 reviews" with a bar for each star count.
+class _RatingSummary extends StatelessWidget {
+  const _RatingSummary({
+    required this.average,
+    required this.count,
+    required this.reviews,
+  });
 
-  final IconData icon;
-  final String value;
-  final String label;
+  final double average;
+  final int count;
+  final List<DoctorReview> reviews;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
+    final total = reviews.length;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.primarySofter,
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.ink),
-          const SizedBox(height: 6),
-          Text(value, style: theme.titleMedium),
-          Text(label, style: theme.bodySmall),
+          Column(
+            children: [
+              Text(
+                average.toStringAsFixed(1),
+                style: theme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink,
+                ),
+              ),
+              RatingStars(rating: average, size: 14),
+              const SizedBox(height: 4),
+              Text('$count reviews', style: theme.bodySmall),
+            ],
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              children: [
+                for (var star = 5; star >= 1; star--)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 12,
+                          child: Text('$star', style: theme.bodySmall),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: total == 0
+                                  ? 0
+                                  : reviews
+                                            .where((r) => r.rating == star)
+                                            .length /
+                                        total,
+                              minHeight: 6,
+                              backgroundColor: AppColors.border,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );

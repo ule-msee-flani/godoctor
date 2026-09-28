@@ -127,6 +127,22 @@ class DrugRepository {
     return rows.map((r) => ChemistInventoryItem.fromMap(r)).toList();
   }
 
+  /// What a pharmacy has in stock, for its public page (with its name, so
+  /// "Buy" can go straight to checkout).
+  Future<List<ChemistInventoryItem>> publicStock(
+    String chemistId, {
+    int limit = 60,
+  }) async {
+    final rows = await _client
+        .from('chemist_inventory')
+        .select('*, chemist_profiles!inner(business_name), drugs(*)')
+        .eq('chemist_id', chemistId)
+        .gt('quantity', 0)
+        .order('last_updated_at', ascending: false)
+        .limit(limit);
+    return rows.map((r) => ChemistInventoryItem.fromMap(r)).toList();
+  }
+
   // --- Chemist inventory management ---
 
   Future<List<ChemistInventoryItem>> fetchChemistInventory(

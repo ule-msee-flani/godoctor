@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -91,7 +89,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const _Handshake(),
+                            const HandshakeWave(),
                           ],
                         ),
                       ],
@@ -311,55 +309,6 @@ class _PrimaryTile extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The handshake beside the greeting: a friendly little shake when the home
-/// screen opens, then still.
-class _Handshake extends StatefulWidget {
-  const _Handshake();
-
-  @override
-  State<_Handshake> createState() => _HandshakeState();
-}
-
-class _HandshakeState extends State<_Handshake>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..forward();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Hello',
-      child: AnimatedBuilder(
-        animation: _c,
-        builder: (context, child) {
-          // Three quick shakes that die away.
-          final t = _c.value;
-          final swing = math.sin(t * 3 * 2 * math.pi) * (1 - t);
-          final dy = -3 * swing.abs();
-          final angle = 0.14 * swing;
-          return Transform.translate(
-            offset: Offset(0, dy),
-            child: Transform.rotate(angle: angle, child: child),
-          );
-        },
-        child: const Icon(
-          LucideIcons.handshake,
-          size: 26,
-          color: AppColors.ink,
         ),
       ),
     );

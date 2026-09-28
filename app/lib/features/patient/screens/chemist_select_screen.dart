@@ -211,6 +211,24 @@ class _ChemistCard extends StatelessWidget {
                               ),
                           ],
                         ),
+                        const SizedBox(height: 6),
+                        // Who they'd be buying from.
+                        InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () => context.push(
+                            '/patient/chemist/${entry.item.chemistId}',
+                            extra: entry.item,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Text(
+                              'About this pharmacy',
+                              style: theme.labelLarge?.copyWith(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),

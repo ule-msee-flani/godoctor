@@ -299,7 +299,22 @@ class _ItemCard extends StatelessWidget {
                   ),
                 ),
                 if (item.chemistName != null)
-                  Text(item.chemistName!, style: theme.bodySmall),
+                  InkWell(
+                    onTap: () =>
+                        context.push('/patient/chemist/${item.chemistId}'),
+                    child: Text.rich(
+                      TextSpan(
+                        text: item.chemistName!,
+                        children: [
+                          TextSpan(
+                            text: '  ·  About',
+                            style: TextStyle(color: AppColors.primary),
+                          ),
+                        ],
+                      ),
+                      style: theme.bodySmall,
+                    ),
+                  ),
                 const SizedBox(height: 4),
                 Text(
                   '${formatKes(item.price)} each · ${item.quantity} in stock',

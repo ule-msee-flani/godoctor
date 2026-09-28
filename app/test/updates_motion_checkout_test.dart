@@ -306,7 +306,14 @@ void main() {
     expect(find.text('Prescription needed'), findsOneWidget);
     expect(find.text('Includes Amoxicillin'), findsOneWidget);
     expect(find.text('Doesn\'t include Amoxicillin'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('0712 345 678'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('0712 345 678'), findsOneWidget, reason: 'saved M-Pesa');
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 800));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('More'));
     await tester.pump();

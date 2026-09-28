@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_client.dart';
+import '../models/public_chemist.dart';
 import '../models/public_doctor.dart';
 
 /// The certified-doctor directory: search, public profiles, open slots and
@@ -8,6 +9,28 @@ import '../models/public_doctor.dart';
 /// safe columns for licence-verified doctors.
 class DoctorDirectoryRepository {
   SupabaseClient get _client => SupabaseService.client;
+
+  /// Consultations completed and patients seen, for the doctor's profile.
+  Future<DoctorPublicStats> publicStats(String doctorId) async {
+    final res = await _client.rpc(
+      'doctor_public_stats',
+      params: {'p_doctor': doctorId},
+    );
+    return DoctorPublicStats.fromMap(res as Map<String, dynamic>?);
+  }
+
+  /// A verified pharmacy's public page, or null.
+  Future<PublicChemist?> getChemist(String chemistId) async {
+    final rows =
+        await _client.rpc(
+              'chemist_public_profile',
+              params: {'p_chemist': chemistId},
+            )
+            as List;
+    return rows.isEmpty
+        ? null
+        : PublicChemist.fromMap(rows.first as Map<String, dynamic>);
+  }
 
   Future<List<PublicDoctor>> search({
     String? query,

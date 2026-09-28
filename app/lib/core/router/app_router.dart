@@ -71,6 +71,7 @@ import '../../features/patient/specialties/specialty_registry.dart';
 import '../../features/patient/visit/visit_summary_screen.dart';
 import '../../features/prescription/prescription_order_screen.dart';
 import '../../features/prescription/prescription_view_screen.dart';
+import '../../features/patient/chemist/chemist_profile_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/exit_guard.dart';
 import '../widgets/pending_verification_view.dart';
@@ -270,6 +271,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/patient/prescriptions',
         pageBuilder: (_, state) => _quiet(state, const PrescriptionsScreen()),
+      ),
+      GoRoute(
+        path: '/patient/chemist/:id',
+        builder: (context, state) => ChemistProfileScreen(
+          chemistId: state.pathParameters['id']!,
+          item: state.extra as ChemistInventoryItem?,
+        ),
       ),
       GoRoute(
         path: '/patient/prescription/:id',

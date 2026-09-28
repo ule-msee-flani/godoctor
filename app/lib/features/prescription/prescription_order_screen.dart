@@ -358,6 +358,13 @@ class _ChemistOption extends StatelessWidget {
                   ),
                 ),
                 Text(formatKes(match.total), style: theme.titleSmall),
+                IconButton(
+                  tooltip: 'About this pharmacy',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(LucideIcons.info, size: 18),
+                  onPressed: () =>
+                      context.push('/patient/chemist/${match.chemistId}'),
+                ),
               ],
             ),
           ),

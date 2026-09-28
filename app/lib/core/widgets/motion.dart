@@ -221,6 +221,63 @@ class PopBadge extends StatelessWidget {
   }
 }
 
+/// The handshake beside a greeting: a friendly little shake when the
+/// screen opens, then still.
+class HandshakeWave extends StatefulWidget {
+  const HandshakeWave({super.key, this.size = 26});
+
+  final double size;
+
+  @override
+  State<HandshakeWave> createState() => _HandshakeWaveState();
+}
+
+class _HandshakeWaveState extends State<HandshakeWave>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!reduceMotion(context) && _c.status == AnimationStatus.dismissed) {
+      _c.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Hello',
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, child) {
+          // Three quick shakes that die away.
+          final t = _c.value;
+          final swing = math.sin(t * 3 * 2 * math.pi) * (1 - t);
+          return Transform.translate(
+            offset: Offset(0, -3 * swing.abs()),
+            child: Transform.rotate(angle: 0.14 * swing, child: child),
+          );
+        },
+        child: Icon(
+          LucideIcons.handshake,
+          size: widget.size,
+          color: AppColors.ink,
+        ),
+      ),
+    );
+  }
+}
+
 /// Pops its child in (a chosen tab's icon).
 class TabPop extends StatelessWidget {
   const TabPop({super.key, required this.child});
