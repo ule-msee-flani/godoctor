@@ -18,6 +18,7 @@ class Order {
     this.confirmedAt,
     this.readyAt,
     this.fulfilledAt,
+    this.myRating,
   });
 
   final String id;
@@ -37,6 +38,11 @@ class Order {
   final DateTime? confirmedAt;
   final DateTime? readyAt;
   final DateTime? fulfilledAt;
+
+  /// The stars the patient gave the pharmacy for this order, if any.
+  final int? myRating;
+
+  bool get canRate => status == OrderStatus.fulfilled && myRating == null;
 
   factory Order.fromMap(Map<String, dynamic> map) => Order(
     id: map['id'] as String,
@@ -72,6 +78,11 @@ class Order {
     confirmedAt: _date(map['confirmed_at']),
     readyAt: _date(map['ready_at']),
     fulfilledAt: _date(map['fulfilled_at']),
+    myRating: switch (map['reviews']) {
+      [final Map<String, dynamic> r, ...] => (r['rating'] as num?)?.toInt(),
+      final Map<String, dynamic> r => (r['rating'] as num?)?.toInt(),
+      _ => null,
+    },
   );
 }
 

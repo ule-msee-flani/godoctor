@@ -103,4 +103,14 @@ class AppointmentRepository {
         .limit(1);
     return rows.isNotEmpty;
   }
+
+  /// The stars I gave this consultation, or null if I haven't rated it.
+  Future<int?> myRating(String consultationId) async {
+    final rows = await _client
+        .from('reviews')
+        .select('rating')
+        .eq('consultation_id', consultationId)
+        .limit(1);
+    return rows.isEmpty ? null : (rows.first['rating'] as num?)?.toInt();
+  }
 }

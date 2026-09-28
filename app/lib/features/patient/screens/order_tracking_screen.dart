@@ -13,6 +13,7 @@ import '../../../data/models/order.dart' as model;
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../../../services/live_updates.dart';
+import '../widgets/review_sheet.dart';
 
 /// One order, updated live as the pharmacy confirms and prepares it.
 final orderLiveProvider = StreamProvider.autoDispose
@@ -80,6 +81,14 @@ class _OrderDetail extends ConsumerWidget {
           _Timeline(order: order),
         const SizedBox(height: 16),
         _ItemsCard(order: order),
+        if (status == OrderStatus.fulfilled) ...[
+          const SizedBox(height: 16),
+          InlineRateCard(
+            question: 'How was ${order.chemistName ?? 'the pharmacy'}?',
+            rated: order.myRating,
+            onPick: (stars) => _ratePharmacy(context, ref, stars),
+          ),
+        ],
         const SizedBox(height: 20),
         if (status == OrderStatus.ready)
           FilledButton.icon(
@@ -129,12 +138,28 @@ class _OrderDetail extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await _run(
+    final confirmed = await _run(
       context,
       ref,
       () => ref.read(orderRepositoryProvider).patientConfirmReceipt(order.id),
       done: 'Thanks! Payment released to the pharmacy.',
     );
+    // While it's fresh: how was the pharmacy?
+    if (confirmed && context.mounted) await _ratePharmacy(context, ref, 0);
+  }
+
+  Future<void> _ratePharmacy(
+    BuildContext context,
+    WidgetRef ref,
+    int stars,
+  ) async {
+    final done = await showPharmacyReviewSheet(
+      context,
+      orderId: order.id,
+      pharmacyName: order.chemistName ?? 'the pharmacy',
+      initialRating: stars,
+    );
+    if (done) ref.invalidate(orderLiveProvider(order.id));
   }
 
   Future<void> _reportProblem(BuildContext context, WidgetRef ref) async {
@@ -153,7 +178,8 @@ class _OrderDetail extends ConsumerWidget {
     );
   }
 
-  Future<void> _run(
+  /// Runs [action]; true when it worked.
+  Future<bool> _run(
     BuildContext context,
     WidgetRef ref,
     Future<void> Function() action, {
@@ -165,8 +191,10 @@ class _OrderDetail extends ConsumerWidget {
       ref.invalidate(orderLiveProvider(order.id));
       refreshAllLive(ref);
       messenger.showSnackBar(SnackBar(content: Text(done)));
+      return true;
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(friendlyError(e))));
+      return false;
     }
   }
 }

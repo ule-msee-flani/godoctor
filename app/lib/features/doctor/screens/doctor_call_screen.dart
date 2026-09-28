@@ -16,6 +16,7 @@ import '../../patient/family/family_providers.dart';
 import '../widgets/prescribing.dart';
 import '../widgets/visit_summary_editor.dart';
 import '../widgets/voice_note_player.dart';
+import '../../patient_card/patient_card_sheet.dart';
 
 final _consultationDetailProvider = FutureProvider.autoDispose
     .family<
@@ -441,14 +442,17 @@ class _PatientSummary extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              (p?.name.isNotEmpty ?? false) ? p!.name : 'Patient',
-              style: theme.titleMedium,
+            PatientRow(
+              patientId: consultation.patientId,
+              fallbackName: (p?.name.isNotEmpty ?? false) ? p!.name : 'Patient',
             ),
             if (p?.dateOfBirth != null)
-              Text(
-                '${_age(p!.dateOfBirth!)} years old',
-                style: theme.bodySmall,
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  '${_age(p!.dateOfBirth!)} years old',
+                  style: theme.bodySmall,
+                ),
               ),
             if (!consultation.doctorVideoPreferred) ...[
               const SizedBox(height: 10),

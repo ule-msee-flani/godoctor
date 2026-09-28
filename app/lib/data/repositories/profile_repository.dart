@@ -7,6 +7,7 @@ import '../models/app_user.dart';
 import '../models/chemist_profile.dart';
 import '../models/doctor_profile.dart';
 import '../models/patient_profile.dart';
+import '../models/patient_card.dart';
 
 class ProfileRepository {
   SupabaseClient get _client => SupabaseService.client;
@@ -137,6 +138,17 @@ class ProfileRepository {
   }
 
   /// Public URL of a photo in the `avatars` bucket.
+  /// A patient's card for their doctor or pharmacy (the server checks the
+  /// relationship).
+  Future<PatientCard?> patientCard(String patientId) async {
+    final rows =
+        await _client.rpc('patient_card', params: {'p_patient': patientId})
+            as List;
+    return rows.isEmpty
+        ? null
+        : PatientCard.fromMap(rows.first as Map<String, dynamic>);
+  }
+
   String? avatarUrl(String? path) => (path == null || path.isEmpty)
       ? null
       : _client.storage.from('avatars').getPublicUrl(path);

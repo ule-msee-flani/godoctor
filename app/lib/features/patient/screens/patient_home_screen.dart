@@ -212,7 +212,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                 const SizedBox(height: 12),
                 FadeSlideIn(
                   index: 4,
-                  child: SpecialtyRow(
+                  child: SpecialtyCarousel(
                     onSelected: (meta) =>
                         context.push('/patient/specialty/${meta.slug}'),
                   ),

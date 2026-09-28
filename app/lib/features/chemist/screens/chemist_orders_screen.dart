@@ -6,7 +6,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
-import '../../../core/widgets/greeting_header.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/models/enums.dart';
 import '../../../data/models/order.dart' as model;
@@ -22,6 +21,7 @@ import '../../patient/widgets/medicine_image.dart';
 import '../../prescription/digital_prescription.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../services/live_updates.dart';
+import '../../patient_card/patient_card_sheet.dart';
 
 /// Live orders for the signed-in chemist (newest first).
 final chemistOrdersProvider = StreamProvider.autoDispose<List<model.Order>>((
@@ -104,8 +104,6 @@ class _ChemistOrdersScreenState extends ConsumerState<ChemistOrdersScreen> {
     final ordersAsync = ref.watch(chemistOrdersProvider);
     ref.watch(clockTickProvider); // keeps the waiting times current
 
-    final pharmacy = ref.watch(currentChemistProfileProvider).valueOrNull;
-
     return Scaffold(
       body: SafeArea(
         child: ordersAsync.when(
@@ -139,20 +137,12 @@ class _ChemistOrdersScreenState extends ConsumerState<ChemistOrdersScreen> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                   child: FadeSlideIn(
-                    child: GreetingHeader(
-                      name: (pharmacy?.businessName ?? '').trim().isEmpty
-                          ? 'Welcome'
-                          : pharmacy!.businessName,
+                    child: _OrdersHeader(
                       subtitle: waiting > 0
                           ? '$waiting new ${waiting == 1 ? 'order is' : 'orders are'} waiting for you.'
                           : preparing > 0
                           ? '$preparing ${preparing == 1 ? 'order' : 'orders'} being prepared.'
                           : 'All caught up. New orders appear here straight away.',
-                      avatarPath: ref
-                          .watch(currentAppUserProvider)
-                          .valueOrNull
-                          ?.avatarUrl,
-                      onAvatarTap: () => context.go('/chemist/account'),
                       actions: [
                         NotificationBell(
                           count: ref.watch(unreadNotificationCountProvider),
@@ -272,6 +262,42 @@ class _ChemistOrdersScreenState extends ConsumerState<ChemistOrdersScreen> {
     OrderLane.ready => 'Ready',
     OrderLane.done => 'Done',
   };
+}
+
+/// "Orders" with a one-line status and the notification bell.
+class _OrdersHeader extends StatelessWidget {
+  const _OrdersHeader({required this.subtitle, this.actions = const []});
+
+  final String subtitle;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Orders',
+                style: text.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: text.bodyMedium?.copyWith(color: AppColors.inkSoft),
+              ),
+            ],
+          ),
+        ),
+        ...actions,
+      ],
+    );
+  }
 }
 
 class _OrderTicket extends ConsumerWidget {
@@ -396,6 +422,8 @@ class _OrderTicket extends ConsumerWidget {
                   ),
               ],
             ),
+            const SizedBox(height: 10),
+            PatientRow(patientId: order.patientId, forPharmacy: true),
             const Divider(height: 22),
             for (final i in order.items)
               Padding(

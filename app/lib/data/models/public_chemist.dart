@@ -11,6 +11,8 @@ class PublicChemist {
     this.memberSince,
     this.medicinesInStock = 0,
     this.ordersFilled = 0,
+    this.ratingAvg = 0,
+    this.ratingCount = 0,
   });
 
   final String userId;
@@ -25,6 +27,10 @@ class PublicChemist {
   final DateTime? memberSince;
   final int medicinesInStock;
   final int ordersFilled;
+
+  /// Average of every patient's rating (0 when there are none).
+  final double ratingAvg;
+  final int ratingCount;
 
   bool get hasLocation => lat != null && lng != null;
 
@@ -43,6 +49,8 @@ class PublicChemist {
         : DateTime.tryParse(m['member_since'] as String),
     medicinesInStock: (m['medicines_in_stock'] as num?)?.toInt() ?? 0,
     ordersFilled: (m['orders_filled'] as num?)?.toInt() ?? 0,
+    ratingAvg: (m['rating_avg'] as num?)?.toDouble() ?? 0,
+    ratingCount: (m['rating_count'] as num?)?.toInt() ?? 0,
   );
 }
 

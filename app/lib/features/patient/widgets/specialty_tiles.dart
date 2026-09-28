@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/app_assets.dart';
+import '../../../core/widgets/motion.dart';
 
 class SpecialtyMeta {
   const SpecialtyMeta(this.name, this.label, this.slug, this.icon);
@@ -19,6 +20,20 @@ class SpecialtyMeta {
 
   /// Only shown until a picture has been supplied.
   final IconData icon;
+
+  /// Title on the big picture cards (home).
+  String get title => switch (slug) {
+    'general' => 'General Practice',
+    'children' => 'Children\'s Health',
+    'obgyn' => 'Women\'s Health',
+    'internal' => 'Internal Medicine',
+    'skin' => 'Skin Care',
+    'mental-health' => 'Mental Health',
+    'heart' => 'Heart Health',
+    'ent' => 'Ear, Nose & Throat',
+    'bones' => 'Bones & Joints',
+    _ => name,
+  };
 
   String get imageBase => 'assets/images/specialties/$slug';
 
@@ -210,27 +225,196 @@ class SpecialtyTile extends StatelessWidget {
   }
 }
 
-/// Horizontally scrolling row (home screen).
-class SpecialtyRow extends StatelessWidget {
-  const SpecialtyRow({super.key, required this.onSelected});
+/// Home: specialties as big picture cards, two to a page. Swipe sideways
+/// for the next two; the dashes underneath show where you are.
+class SpecialtyCarousel extends StatefulWidget {
+  const SpecialtyCarousel({super.key, required this.onSelected});
 
   final ValueChanged<SpecialtyMeta> onSelected;
 
   @override
+  State<SpecialtyCarousel> createState() => _SpecialtyCarouselState();
+}
+
+class _SpecialtyCarouselState extends State<SpecialtyCarousel> {
+  final _pages = PageController();
+  int _page = 0;
+
+  static final _pairs = [
+    for (var i = 0; i < kSpecialtyMeta.length; i += 2)
+      kSpecialtyMeta.sublist(
+        i,
+        i + 2 > kSpecialtyMeta.length ? kSpecialtyMeta.length : i + 2,
+      ),
+  ];
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 122,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: kSpecialtyMeta.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, i) => SpecialtyTile(
-          meta: kSpecialtyMeta[i],
-          index: i,
-          onTap: () => onSelected(kSpecialtyMeta[i]),
+    return LayoutBuilder(
+      builder: (context, c) {
+        final width = (c.maxWidth.isFinite ? c.maxWidth : 400) - 40;
+        final cardHeight = (width / 2.25).clamp(120.0, 190.0);
+        const gap = 14.0;
+        return Column(
+          children: [
+            SizedBox(
+              height: cardHeight * 2 + gap,
+              child: PageView.builder(
+                controller: _pages,
+                itemCount: _pairs.length,
+                onPageChanged: (p) => setState(() => _page = p),
+                itemBuilder: (context, p) {
+                  final pair = _pairs[p];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < pair.length; i++) ...[
+                          if (i > 0) const SizedBox(height: gap),
+                          SizedBox(
+                            height: cardHeight,
+                            child: SpecialtyCard(
+                              meta: pair[i],
+                              onTap: () => widget.onSelected(pair[i]),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 14),
+            PageDashes(count: _pairs.length, current: _page),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// One specialty as a picture card: its photo filling the card, the icon
+/// top-left, the name bottom-left and an arrow on the right.
+class SpecialtyCard extends StatelessWidget {
+  const SpecialtyCard({super.key, required this.meta, required this.onTap});
+
+  final SpecialtyMeta meta;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final photo = AppAssets.find(meta.imageBase);
+    return Semantics(
+      button: true,
+      label: meta.name,
+      child: Pressable(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (photo != null)
+                Image.asset(
+                  photo,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _fallback(),
+                )
+              else
+                _fallback(),
+              // Darker towards the bottom-left so the white text reads on
+              // any photo.
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                    colors: [Color(0x14000000), Color(0x9E000000)],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 18,
+                top: 16,
+                child: Icon(meta.icon, color: Colors.white, size: 30),
+              ),
+              Positioned(
+                left: 18,
+                right: 56,
+                bottom: 16,
+                child: Text(
+                  meta.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 23,
+                    height: 1.15,
+                    fontWeight: FontWeight.w700,
+                    shadows: [Shadow(color: Color(0x66000000), blurRadius: 8)],
+                  ),
+                ),
+              ),
+              const Positioned(
+                right: 16,
+                bottom: 18,
+                child: Icon(
+                  LucideIcons.chevronRight,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+              Material(
+                type: MaterialType.transparency,
+                child: InkWell(onTap: onTap),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _fallback() => DecoratedBox(
+    decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+    child: Align(
+      alignment: const Alignment(0.8, -0.2),
+      child: Icon(meta.icon, size: 96, color: const Color(0x22FFFFFF)),
+    ),
+  );
+}
+
+/// Page dashes: a long dark one for the current page, short grey ones for
+/// the rest.
+class PageDashes extends StatelessWidget {
+  const PageDashes({super.key, required this.count, required this.current});
+
+  final int count;
+  final int current;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (var i = 0; i < count; i++)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            width: i == current ? 30 : 14,
+            height: 3,
+            decoration: BoxDecoration(
+              color: i == current ? AppColors.ink : AppColors.borderStrong,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+      ],
     );
   }
 }

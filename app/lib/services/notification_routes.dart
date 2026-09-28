@@ -83,7 +83,8 @@ String? routeForNotification({
         'order_new' ||
         'order_completed' ||
         'order_disputed' ||
-        'order_refunded' => '/chemist',
+        'order_refunded' => '/chemist/orders',
+        'review_new' => '/chemist',
         'verification_approved' || 'verification_removed' => '/chemist/account',
         _ => null,
       };

@@ -198,6 +198,27 @@ class _OrderCard extends StatelessWidget {
                           color: AppColors.inkFaint,
                         ),
                       ),
+                      if (order.canRate)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            '★ Rate this pharmacy',
+                            style: text.labelMedium?.copyWith(
+                              color: AppColors.warning,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        )
+                      else if (order.myRating != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'You rated ${order.myRating}/5',
+                            style: text.labelSmall?.copyWith(
+                              color: AppColors.inkSoft,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),

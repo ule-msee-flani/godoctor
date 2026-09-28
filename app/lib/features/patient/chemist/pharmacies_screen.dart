@@ -262,6 +262,12 @@ class PharmacyCard extends ConsumerWidget {
                           spacing: 10,
                           runSpacing: 2,
                           children: [
+                            if (c.ratingCount > 0)
+                              _Meta(
+                                icon: LucideIcons.star,
+                                text:
+                                    '${c.ratingAvg.toStringAsFixed(1)} (${c.ratingCount})',
+                              ),
                             if (km != null)
                               _Meta(
                                 icon: LucideIcons.mapPin,

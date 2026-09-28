@@ -18,6 +18,7 @@ import '../consult/consult_flow.dart';
 import '../specialties/specialty_registry.dart';
 import '../widgets/specialty_tiles.dart';
 import '../widgets/doctor_widgets.dart';
+import '../../reviews/review_widgets.dart';
 
 final publicDoctorProvider = FutureProvider.autoDispose
     .family<PublicDoctor?, String>(
@@ -277,36 +278,12 @@ class DoctorProfileScreen extends ConsumerWidget {
       ),
       ProfileSection(
         title: 'What patients say',
-        child: reviews.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: LoadingView(),
-          ),
-          error: (e, _) => Text(friendlyError(e)),
-          data: (list) {
-            if (list.isEmpty) {
-              return Text(
-                'No reviews yet. Only patients who completed a consultation can leave one.',
-                style: theme.bodyMedium,
-              );
-            }
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _RatingSummary(
-                  average: doctor.ratingAvg,
-                  count: doctor.ratingCount,
-                  reviews: list,
-                ),
-                const SizedBox(height: 12),
-                for (final r in list)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _ReviewCard(review: r),
-                  ),
-              ],
-            );
-          },
+        child: ReviewsBlock(
+          reviews: reviews,
+          average: doctor.ratingAvg,
+          count: doctor.ratingCount,
+          emptyText:
+              'No reviews yet. Only patients who completed a consultation can leave one.',
         ),
       ),
     ];
@@ -339,86 +316,6 @@ class _Pill extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelMedium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// "4.8 ★ · 23 reviews" with a bar for each star count.
-class _RatingSummary extends StatelessWidget {
-  const _RatingSummary({
-    required this.average,
-    required this.count,
-    required this.reviews,
-  });
-
-  final double average;
-  final int count;
-  final List<DoctorReview> reviews;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
-    final total = reviews.length;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primarySofter,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Column(
-            children: [
-              Text(
-                average.toStringAsFixed(1),
-                style: theme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.ink,
-                ),
-              ),
-              RatingStars(rating: average, size: 14),
-              const SizedBox(height: 4),
-              Text('$count reviews', style: theme.bodySmall),
-            ],
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              children: [
-                for (var star = 5; star >= 1; star--)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 12,
-                          child: Text('$star', style: theme.bodySmall),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: total == 0
-                                  ? 0
-                                  : reviews
-                                            .where((r) => r.rating == star)
-                                            .length /
-                                        total,
-                              minHeight: 6,
-                              backgroundColor: AppColors.border,
-                              color: AppColors.warning,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
             ),
           ),
         ],
@@ -497,50 +394,6 @@ class _ExpandableTextState extends State<_ExpandableText> {
             child: Text(_expanded ? 'Show less' : 'Read more'),
           ),
       ],
-    );
-  }
-}
-
-class _ReviewCard extends StatelessWidget {
-  const _ReviewCard({required this.review});
-
-  final DoctorReview review;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                RatingStars(rating: review.rating.toDouble(), size: 15),
-                const Spacer(),
-                Text(formatDayShort(review.createdAt), style: theme.bodySmall),
-              ],
-            ),
-            if ((review.comment ?? '').isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(review.comment!, style: theme.bodyMedium),
-            ],
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(
-                  LucideIcons.badgeCheck,
-                  size: 13,
-                  color: AppColors.ink,
-                ),
-                const SizedBox(width: 4),
-                Text('Verified patient', style: theme.bodySmall),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

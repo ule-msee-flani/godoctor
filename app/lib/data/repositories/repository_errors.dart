@@ -140,7 +140,16 @@ String friendlyError(Object error) {
     return 'This appointment can no longer be rescheduled.';
   }
   if (text.contains('already reviewed')) {
-    return 'You have already reviewed this consultation.';
+    return 'You\'ve already left a review for this.';
+  }
+  if (text.contains('order_not_fulfilled')) {
+    return 'You can rate the pharmacy once you\'ve confirmed you got your order.';
+  }
+  if (text.contains('invalid_rating')) {
+    return 'Choose between 1 and 5 stars.';
+  }
+  if (text.contains('not_your_patient')) {
+    return 'You can only view patients you have seen or served.';
   }
   if (text.contains('only after it is completed')) {
     return 'You can leave a review once the consultation is completed.';

@@ -79,6 +79,7 @@ import '../theme/app_theme.dart';
 import '../widgets/exit_guard.dart';
 import '../widgets/pending_verification_view.dart';
 import '../widgets/role_shell.dart';
+import '../../features/chemist/screens/chemist_dashboard_screen.dart';
 
 /// A screen with nothing to go back to: back asks before leaving the app.
 Widget _top(Widget child) => ExitGuard(child: child);
@@ -432,6 +433,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, ref, _) => RoleShell(
               navigationShell: navigationShell,
               tabs: [
+                const ShellTab(LucideIcons.layoutDashboard, 'Home'),
                 ShellTab(
                   LucideIcons.receipt,
                   'Orders',
@@ -444,7 +446,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ),
         branches: [
-          _branch('/chemist', const ChemistOrdersScreen()),
+          _branch('/chemist', const ChemistDashboardScreen()),
+          _branch('/chemist/orders', const ChemistOrdersScreen()),
           _branch('/chemist/stock', const ChemistInventoryScreen()),
           _branch('/chemist/account', const ChemistAccountScreen()),
         ],

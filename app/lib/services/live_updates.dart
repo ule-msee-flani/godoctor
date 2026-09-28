@@ -78,6 +78,7 @@ final liveUpdatesProvider = Provider<void>((ref) {
       UserRole.chemist => [
         (LiveTable.orders, 'chemist_id'),
         (LiveTable.inventory, 'chemist_id'),
+        (LiveTable.reviews, null),
         (LiveTable.payments, null),
       ],
       UserRole.admin => const <(String, String?)>[],

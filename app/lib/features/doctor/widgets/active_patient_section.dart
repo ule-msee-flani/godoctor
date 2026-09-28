@@ -11,6 +11,7 @@ import '../../../data/models/enums.dart';
 import '../../../data/models/patient_profile.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
+import '../../patient_card/patient_card_sheet.dart';
 
 final _activeConsultsProvider = StreamProvider.autoDispose
     .family<List<Consultation>, String>(
@@ -135,25 +136,8 @@ class _PatientCard extends ConsumerWidget {
                 ],
               ),
             ],
-            if ((patient?.allergies ?? '').isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  const Icon(
-                    LucideIcons.triangleAlert,
-                    size: 14,
-                    color: AppColors.danger,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Allergies: ${patient!.allergies}',
-                      style: theme.bodySmall?.copyWith(color: AppColors.danger),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            const SizedBox(height: 10),
+            PatientRow(patientId: c.patientId, fallbackName: name),
             const SizedBox(height: 12),
             if (paying)
               Text(

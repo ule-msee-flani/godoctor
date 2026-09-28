@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_client.dart';
 import '../models/order.dart';
+import '../models/chemist_dashboard.dart';
 
 class CartLine {
   const CartLine({
@@ -21,7 +22,8 @@ class OrderRepository {
   SupabaseClient get _client => SupabaseService.client;
 
   static const _patientSelect =
-      '*, order_items(*, drugs(generic_name)), chemist_profiles(business_name)';
+      '*, order_items(*, drugs(generic_name)), chemist_profiles(business_name), '
+      'reviews(rating)';
 
   /// Places an order in one step on the server: prices come from the
   /// chemist's stock list, stock is checked and set aside, a prescription is
@@ -95,6 +97,22 @@ class OrderRepository {
         .stream(primaryKey: ['id'])
         .eq('id', orderId)
         .asyncMap((_) => fetchOne(orderId));
+  }
+
+  /// Rate the pharmacy after a completed order (once).
+  Future<void> reviewPharmacy({
+    required String orderId,
+    required int rating,
+    String? comment,
+  }) => _client.rpc(
+    'submit_order_review',
+    params: {'p_order': orderId, 'p_rating': rating, 'p_comment': comment},
+  );
+
+  /// The signed-in pharmacy's dashboard numbers.
+  Future<ChemistDashboard> chemistDashboard() async {
+    final res = await _client.rpc('chemist_dashboard');
+    return ChemistDashboard.fromJson((res as Map).cast<String, dynamic>());
   }
 
   Future<void> chemistConfirm(String orderId) => _advance(orderId, 'confirmed');

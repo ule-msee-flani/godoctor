@@ -521,8 +521,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(find.text('HOME'), findsOneWidget);
-    expect(find.textContaining('has ended'), findsOneWidget);
-    await tester.tap(find.text('See summary'));
+    expect(find.text('How was your visit?'), findsOneWidget);
+    expect(find.text('Listened well'), findsOneWidget);
+    await tester.tap(find.text('Not now — see the visit summary'));
     for (var i = 0; i < 6; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }

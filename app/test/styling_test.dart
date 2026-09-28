@@ -82,13 +82,33 @@ void main() {
     testWidgets('fall back to an icon until a picture is supplied', (
       tester,
     ) async {
+      tester.view.physicalSize = const Size(412, 915);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      SpecialtyMeta? picked;
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(body: SpecialtyRow(onSelected: (_) {})),
+          home: Scaffold(
+            body: SpecialtyCarousel(onSelected: (m) => picked = m),
+          ),
         ),
       );
-      expect(find.text('ENT'), findsOneWidget);
+      // Two big cards per page.
+      expect(find.text('General Practice'), findsOneWidget);
+      expect(find.text("Children's Health"), findsOneWidget);
+      expect(find.text("Women's Health"), findsNothing);
       expect(find.byType(Image), findsNothing);
+      expect(find.byType(SpecialtyCard), findsNWidgets(2));
+
+      // Swipe for the next two.
+      await tester.drag(find.byType(PageView), const Offset(-400, 0));
+      await tester.pumpAndSettle();
+      expect(find.text("Women's Health"), findsOneWidget);
+      expect(find.text('Internal Medicine'), findsOneWidget);
+      await tester.tap(find.widgetWithText(SpecialtyCard, 'Internal Medicine'));
+      await tester.pumpAndSettle();
+      expect(picked?.slug, 'internal');
     });
   });
 }

@@ -19,6 +19,20 @@ class DoctorDirectoryRepository {
     return DoctorPublicStats.fromMap(res as Map<String, dynamic>?);
   }
 
+  /// What patients said about a pharmacy, newest first (no names).
+  Future<List<DoctorReview>> chemistReviews(
+    String chemistId, {
+    int limit = 20,
+  }) async {
+    final rows = await _client.rpc(
+      'chemist_reviews',
+      params: {'p_chemist': chemistId, 'p_limit': limit},
+    );
+    return (rows as List)
+        .map((r) => DoctorReview.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Every verified pharmacy, for patients to browse.
   Future<List<PublicChemist>> listChemists() async {
     final rows = await _client.rpc('public_chemists') as List;

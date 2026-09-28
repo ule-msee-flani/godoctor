@@ -78,7 +78,28 @@ class _Directory extends DoctorDirectoryRepository {
     memberSince: DateTime(2026, 5),
     medicinesInStock: 42,
     ordersFilled: 310,
+    ratingAvg: 3.5,
+    ratingCount: 2,
   );
+
+  @override
+  Future<List<DoctorReview>> chemistReviews(
+    String chemistId, {
+    int limit = 20,
+  }) async => [
+    DoctorReview(
+      id: 'r1',
+      rating: 5,
+      comment: 'Quick service · Helpful pharmacist',
+      createdAt: DateTime(2026, 9, 20),
+    ),
+    DoctorReview(
+      id: 'r2',
+      rating: 2,
+      comment: 'Had to wait long',
+      createdAt: DateTime(2026, 9, 18),
+    ),
+  ];
 }
 
 class _Drugs extends DrugRepository {
@@ -206,6 +227,17 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Paracetamol (Panadol)'), findsNWidgets(2));
+
+    // The average of everyone's ratings, and what they said.
+    expect(find.text('3.5 ★'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Had to wait long'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('What patients say'), findsOneWidget);
+    expect(find.text('Quick service · Helpful pharmacist'), findsOneWidget);
+    expect(find.text('2 reviews'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }

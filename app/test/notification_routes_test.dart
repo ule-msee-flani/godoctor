@@ -49,7 +49,8 @@ void main() {
 
   test('chemist', () {
     const ch = UserRole.chemist;
-    expect(go('order_new', ch, {'order_id': 'o1'}), '/chemist');
+    expect(go('order_new', ch, {'order_id': 'o1'}), '/chemist/orders');
+    expect(go('review_new', ch, {'order_id': 'o1'}), '/chemist');
     expect(go('verification_approved', ch), '/chemist/account');
   });
 

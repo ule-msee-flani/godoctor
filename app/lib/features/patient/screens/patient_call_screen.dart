@@ -23,6 +23,7 @@ import '../family/family_providers.dart';
 import '../family/family_session_panel.dart';
 import '../widgets/doctor_widgets.dart';
 import 'doctor_profile_screen.dart' show publicDoctorProvider;
+import '../widgets/review_sheet.dart';
 
 /// The patient's side of the consultation. Until the doctor opens the call
 /// the patient waits in a calm waiting room (with a camera / data choice);
@@ -63,29 +64,38 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
   void _visitEnded() {
     if (!mounted) return;
     final router = GoRouter.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final doctorId = ref.read(appointmentProvider(_id)).valueOrNull?.doctorId;
     final doctor = doctorId == null
         ? null
         : ref.read(publicDoctorProvider(doctorId)).valueOrNull?.name;
     HapticFeedback.lightImpact();
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          duration: const Duration(seconds: 8),
-          content: Text(
-            doctor == null
-                ? 'Your visit has ended. Get well soon!'
-                : 'Your visit with $doctor has ended. Get well soon!',
-          ),
-          action: SnackBarAction(
-            label: 'See summary',
-            onPressed: () => router.push('/patient/visit/$_id'),
-          ),
+    router.go('/patient');
+    // On Home, ask how it went while it's fresh; the summary is one tap
+    // away (and stays on Home under "Your visits").
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final home = router.routerDelegate.navigatorKey.currentContext;
+      if (home == null || !home.mounted) return;
+      final rated = await showReviewSheet(
+        home,
+        consultationId: _id,
+        doctorName: doctor ?? 'your doctor',
+        extra: (
+          label: 'Not now — see the visit summary',
+          onTap: () => router.push('/patient/visit/$_id'),
         ),
       );
-    router.go('/patient');
+      if (rated && home.mounted) {
+        ScaffoldMessenger.of(home).showSnackBar(
+          SnackBar(
+            content: const Text('Thanks for your review. Get well soon!'),
+            action: SnackBarAction(
+              label: 'Summary',
+              onPressed: () => router.push('/patient/visit/$_id'),
+            ),
+          ),
+        );
+      }
+    });
   }
 
   Future<void> _leave(BuildContext context) async {

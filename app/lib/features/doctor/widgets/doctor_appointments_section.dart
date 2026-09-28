@@ -12,6 +12,7 @@ import '../../../data/models/patient_profile.dart';
 import '../../../data/providers/appointment_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
+import '../../patient_card/patient_card_sheet.dart';
 
 final _patientNameProvider = FutureProvider.autoDispose
     .family<PatientProfile?, String>(
@@ -189,6 +190,35 @@ class _AppointmentCardState extends ConsumerState<_AppointmentCard> {
                       style: theme.bodyMedium,
                     ),
                   ],
+                  const SizedBox(height: 4),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => showPatientCard(context, c.patientId),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            LucideIcons.circleUserRound,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Patient profile',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.labelLarge?.copyWith(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

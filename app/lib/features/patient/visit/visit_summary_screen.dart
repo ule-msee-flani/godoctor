@@ -19,6 +19,8 @@ import '../../../data/repositories/repository_errors.dart';
 import '../../chat/chats_screen.dart' show chatWindowLabel;
 import '../../medications/dose_reminder_sheet.dart';
 import '../screens/doctor_profile_screen.dart' show publicDoctorProvider;
+import '../widgets/review_sheet.dart';
+import '../../../data/models/enums.dart';
 
 /// After a consultation: what the doctor said, the medicines, the warning
 /// signs and when to come back, as one card the patient can keep or share
@@ -103,6 +105,10 @@ class _VisitSummaryScreenState extends ConsumerState<VisitSummaryScreen> {
                   items: items,
                 ),
               ),
+              if (c.status == ConsultationStatus.completed) ...[
+                const SizedBox(height: 14),
+                DoctorRateCard(consultationId: c.id, doctorName: doctorName),
+              ],
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: _sharing

@@ -22,10 +22,19 @@ import '../../location/location_picker_screen.dart'
     show mapTilesEnabledProvider;
 import '../widgets/doctor_widgets.dart' show VerifiedBadge;
 import '../widgets/medicine_image.dart';
+import '../../../data/models/public_doctor.dart' show DoctorReview;
+import '../../reviews/review_widgets.dart';
 
 final publicChemistProvider = FutureProvider.autoDispose
     .family<PublicChemist?, String>(
       (ref, id) => ref.watch(doctorDirectoryRepositoryProvider).getChemist(id),
+    );
+
+/// What patients said about a pharmacy.
+final chemistReviewsProvider = FutureProvider.autoDispose
+    .family<List<DoctorReview>, String>(
+      (ref, id) =>
+          ref.watch(doctorDirectoryRepositoryProvider).chemistReviews(id),
     );
 
 final chemistStockProvider = FutureProvider.autoDispose
@@ -160,12 +169,18 @@ class ChemistProfileScreen extends ConsumerWidget {
         index: 1,
         child: ProfileStatsRow(
           stats: [
+            ProfileStat(
+              value: c.ratingCount == 0
+                  ? 'New'
+                  : '${c.ratingAvg.toStringAsFixed(1)} ★',
+              label: c.ratingCount == 0
+                  ? 'No reviews yet'
+                  : c.ratingCount == 1
+                  ? '1 review'
+                  : '${c.ratingCount} reviews',
+            ),
             ProfileStat(value: '${c.ordersFilled}', label: 'Orders filled'),
             ProfileStat(value: '${c.medicinesInStock}', label: 'Medicines'),
-            ProfileStat(
-              value: c.memberSince == null ? 'New' : '${c.memberSince!.year}',
-              label: 'On GoDoctor since',
-            ),
           ],
         ),
       ),
@@ -208,6 +223,25 @@ class ChemistProfileScreen extends ConsumerWidget {
           },
         ),
       ),
+      ProfileSection(
+        title: 'What patients say',
+        child: ReviewsBlock(
+          reviews: ref.watch(chemistReviewsProvider(chemistId)),
+          average: c.ratingAvg,
+          count: c.ratingCount,
+          emptyText:
+              'No reviews yet. Patients can rate a pharmacy after an order.',
+        ),
+      ),
+      if (c.memberSince != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            'On GoDoctor since ${c.memberSince!.year}',
+            textAlign: TextAlign.center,
+            style: theme.bodySmall?.copyWith(color: AppColors.inkFaint),
+          ),
+        ),
     ];
   }
 }

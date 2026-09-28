@@ -279,6 +279,8 @@ class PushService {
     '/doctor/chats',
     '/doctor/profile',
     '/chemist',
+    '/chemist/orders',
+    '/chemist/stock',
     '/chemist/account',
   };
 
