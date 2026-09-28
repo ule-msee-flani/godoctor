@@ -1,0 +1,7 @@
+Orders update live: see when the pharmacy confirms, prepares and has your medicine ready, without refreshing
+Pull down to refresh now works on every screen
+Health is organised into Overview, Visits, Prescriptions and Orders, grouped by month, and Home shows your recent visits
+When your visit ends you're taken Home, with the doctor's summary a tap away
+Browse pharmacies near you and open their profiles, just like doctors
+Safer checkout: prices and stock are checked for you, with clear messages if something is out of stock or needs a prescription
+Pharmacies can import their whole stock from a CSV or spreadsheet, or connect their pharmacy system
