@@ -15,6 +15,7 @@ import '../repositories/notification_repository.dart';
 import '../repositories/order_repository.dart';
 import '../repositories/prescription_repository.dart';
 import '../repositories/profile_repository.dart';
+import '../repositories/stock_sync_repository.dart';
 import '../repositories/support_repository.dart';
 
 final authRepositoryProvider = Provider((ref) => AuthRepository());
@@ -45,3 +46,4 @@ final supportRepositoryProvider = Provider((ref) => SupportRepository());
 final adminRepositoryProvider = Provider((ref) => AdminRepository());
 final chatRepositoryProvider = Provider((ref) => ChatRepository());
 final medicationRepositoryProvider = Provider((ref) => MedicationRepository());
+final stockSyncRepositoryProvider = Provider((ref) => StockSyncRepository());

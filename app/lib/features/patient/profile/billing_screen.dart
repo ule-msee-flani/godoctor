@@ -10,6 +10,7 @@ import '../../../core/widgets/skeleton.dart';
 import '../../../data/models/billing.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
+import '../../../services/live_updates.dart';
 
 final paymentMethodsProvider = FutureProvider.autoDispose<List<PaymentMethod>>(
   (ref) => ref.watch(billingRepositoryProvider).methods(),
@@ -19,9 +20,10 @@ final _settingsProvider = FutureProvider.autoDispose<BillingSettings>(
   (ref) => ref.watch(billingRepositoryProvider).settings(),
 );
 
-final _historyProvider = FutureProvider.autoDispose<List<PaymentRecord>>(
-  (ref) => ref.watch(billingRepositoryProvider).history(),
-);
+final _historyProvider = FutureProvider.autoDispose<List<PaymentRecord>>((ref) {
+  ref.watch(liveTick(LiveTable.payments));
+  return ref.watch(billingRepositoryProvider).history();
+});
 
 /// Profile › Billing information: M-Pesa numbers and cards, payment
 /// preferences and past payments.

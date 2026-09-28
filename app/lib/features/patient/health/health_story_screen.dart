@@ -16,6 +16,10 @@ import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../../medications/medicines_taking_section.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../services/live_updates.dart';
+import '../screens/order_history_screen.dart';
+import '../screens/prescriptions_screen.dart';
+import '../visits/visit_widgets.dart';
 
 enum HealthFilter { all, consultations, prescriptions, orders }
 
@@ -86,7 +90,7 @@ List<HealthEvent> buildHealthStory({
             ? 'Photo of a prescription'
             : p.items.map((i) => i.displayName).join(', '),
         icon: LucideIcons.fileText,
-        route: p.items.isEmpty ? null : '/patient/prescription/${p.id}/order',
+        route: '/patient/prescription/${p.id}',
       ),
     for (final o in orders)
       HealthEvent(
@@ -116,6 +120,9 @@ final _healthStoryProvider = FutureProvider.autoDispose<List<HealthEvent>>((
   ref,
 ) async {
   final userId = ref.watch(currentUserIdProvider);
+  ref.watch(liveTick(LiveTable.orders));
+  ref.watch(liveTick(LiveTable.prescriptions));
+  ref.watch(liveTick(LiveTable.consultations));
   if (userId == null) return const [];
   final results = await Future.wait([
     ref.watch(consultationRepositoryProvider).fetchHistoryForPatient(userId),
@@ -129,24 +136,52 @@ final _healthStoryProvider = FutureProvider.autoDispose<List<HealthEvent>>((
   );
 });
 
-/// Health: my key health facts, the medicines I'm taking, and my health
-/// story -- every consultation, prescription and order on one timeline.
+/// The Health tab's sections, in order. `/patient/health?tab=visits` opens
+/// straight on one.
+enum HealthTab { overview, visits, prescriptions, orders }
+
+/// Health: my key health facts and the medicines I'm taking, then my visits,
+/// prescriptions and orders -- each in its own section, grouped by month.
 class HealthStoryScreen extends ConsumerStatefulWidget {
-  const HealthStoryScreen({super.key});
+  const HealthStoryScreen({super.key, this.initialTab});
+
+  /// A [HealthTab] name, e.g. "visits".
+  final String? initialTab;
 
   @override
   ConsumerState<HealthStoryScreen> createState() => _HealthStoryScreenState();
 }
 
-class _HealthStoryScreenState extends ConsumerState<HealthStoryScreen> {
-  HealthFilter _filter = HealthFilter.all;
+class _HealthStoryScreenState extends ConsumerState<HealthStoryScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs = TabController(
+    length: HealthTab.values.length,
+    vsync: this,
+    initialIndex: _indexOf(widget.initialTab) ?? 0,
+  );
+
+  static int? _indexOf(String? name) {
+    for (final t in HealthTab.values) {
+      if (t.name == name) return t.index;
+    }
+    return null;
+  }
+
+  @override
+  void didUpdateWidget(HealthStoryScreen old) {
+    super.didUpdateWidget(old);
+    final i = _indexOf(widget.initialTab);
+    if (widget.initialTab != old.initialTab && i != null) _tabs.animateTo(i);
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
-    final story = ref.watch(_healthStoryProvider);
-    final patient = ref.watch(currentPatientProfileProvider).valueOrNull;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Health'),
@@ -157,88 +192,195 @@ class _HealthStoryScreenState extends ConsumerState<HealthStoryScreen> {
             onPressed: () => context.push('/patient/prescriptions/upload'),
           ),
         ],
+        bottom: TabBar(
+          controller: _tabs,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          tabs: const [
+            Tab(text: 'Overview'),
+            Tab(text: 'Visits'),
+            Tab(text: 'Prescriptions'),
+            Tab(text: 'Orders'),
+          ],
+        ),
       ),
-      body: RefreshIndicator(
-        onRefresh: () => ref.refresh(_healthStoryProvider.future),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-          children: [
-            _HealthFacts(
-              allergies: patient?.allergies,
-              bloodGroup: patient?.bloodGroup,
-              conditions: patient?.chronicConditions,
-              onEdit: () => context.push('/patient/profile/health'),
+      body: TabBarView(
+        controller: _tabs,
+        children: [
+          _Overview(onOpen: (tab) => _tabs.animateTo(tab.index)),
+          const VisitsList(),
+          const PrescriptionsList(),
+          const OrderHistoryList(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Facts, shortcuts into each section, medicines, and the whole story on
+/// one timeline grouped by month.
+class _Overview extends ConsumerWidget {
+  const _Overview({required this.onOpen});
+
+  final ValueChanged<HealthTab> onOpen;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context).textTheme;
+    final story = ref.watch(_healthStoryProvider);
+    final patient = ref.watch(currentPatientProfileProvider).valueOrNull;
+    final events = story.valueOrNull ?? const <HealthEvent>[];
+    int count(HealthFilter k) => events.where((e) => e.kind == k).length;
+
+    return LiveRefresh(
+      onRefresh: () => ref.refresh(_healthStoryProvider.future),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        children: [
+          _HealthFacts(
+            allergies: patient?.allergies,
+            bloodGroup: patient?.bloodGroup,
+            conditions: patient?.chronicConditions,
+            onEdit: () => context.push('/patient/profile/health'),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _Shortcut(
+                icon: LucideIcons.stethoscope,
+                count: count(HealthFilter.consultations),
+                noun: ('visit', 'visits'),
+                color: AppColors.primary,
+                onTap: () => onOpen(HealthTab.visits),
+              ),
+              const SizedBox(width: 10),
+              _Shortcut(
+                icon: LucideIcons.fileText,
+                count: count(HealthFilter.prescriptions),
+                noun: ('prescription', 'prescriptions'),
+                color: AppColors.accentTeal,
+                onTap: () => onOpen(HealthTab.prescriptions),
+              ),
+              const SizedBox(width: 10),
+              _Shortcut(
+                icon: LucideIcons.shoppingBag,
+                count: count(HealthFilter.orders),
+                noun: ('order', 'orders'),
+                color: AppColors.warning,
+                onTap: () => onOpen(HealthTab.orders),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const MedicinesTakingSection(),
+          const SizedBox(height: 10),
+          Text('Your health story', style: theme.titleMedium),
+          const SizedBox(height: 2),
+          Text(
+            'Everything, newest first.',
+            style: theme.bodySmall?.copyWith(color: AppColors.inkSoft),
+          ),
+          story.when(
+            skipLoadingOnRefresh: true,
+            skipLoadingOnReload: true,
+            loading: () => const SizedBox(
+              height: 300,
+              child: SkeletonList(itemCount: 4, padding: EdgeInsets.zero),
             ),
-            const SizedBox(height: 20),
-            const MedicinesTakingSection(),
-            const SizedBox(height: 10),
-            Text('Your health story', style: theme.titleMedium),
-            const SizedBox(height: 10),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
+            error: (e, _) => ErrorView(
+              message: friendlyError(e),
+              onRetry: () => ref.invalidate(_healthStoryProvider),
+            ),
+            data: (all) {
+              if (all.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Text(
+                    'Your visits, prescriptions and orders will appear here.',
+                    textAlign: TextAlign.center,
+                    style: theme.bodyMedium,
+                  ),
+                );
+              }
+              var i = 0;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (final f in HealthFilter.values) ...[
-                    ChoiceChip(
-                      label: Text(switch (f) {
-                        HealthFilter.all => 'All',
-                        HealthFilter.consultations => 'Consultations',
-                        HealthFilter.prescriptions => 'Prescriptions',
-                        HealthFilter.orders => 'Orders',
-                      }),
-                      selected: _filter == f,
-                      onSelected: (_) => setState(() => _filter = f),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            story.when(
-              loading: () => const SizedBox(
-                height: 300,
-                child: SkeletonList(itemCount: 4, padding: EdgeInsets.zero),
-              ),
-              error: (e, _) => ErrorView(
-                message: friendlyError(e),
-                onRetry: () => ref.invalidate(_healthStoryProvider),
-              ),
-              data: (all) {
-                final list = _filter == HealthFilter.all
-                    ? all
-                    : all.where((e) => e.kind == _filter).toList();
-                if (list.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32),
-                    child: Text(
-                      _filter == HealthFilter.all
-                          ? 'Your consultations, prescriptions and orders will appear here.'
-                          : 'Nothing here yet.',
-                      textAlign: TextAlign.center,
-                      style: theme.bodyMedium,
-                    ),
-                  );
-                }
-                return Column(
-                  children: [
-                    for (var i = 0; i < list.length; i++)
+                  for (final (label, group) in groupByMonth(
+                    all,
+                    (e) => e.at,
+                  )) ...[
+                    MonthHeader(label),
+                    for (var j = 0; j < group.length; j++)
                       FadeSlideIn(
-                        key: ValueKey('${_filter.name}-$i'),
-                        index: i,
+                        index: i++,
                         child: _TimelineTile(
-                          event: list[i],
-                          first: i == 0,
-                          last: i == list.length - 1,
-                          showYear:
-                              i == 0 || list[i - 1].at.year != list[i].at.year,
+                          event: group[j],
+                          first: j == 0,
+                          last: j == group.length - 1,
                         ),
                       ),
                   ],
-                );
-              },
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "3 visits" — a tap opens that section.
+class _Shortcut extends StatelessWidget {
+  const _Shortcut({
+    required this.icon,
+    required this.count,
+    required this.noun,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final int count;
+  final (String, String) noun;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Expanded(
+      child: Pressable(
+        child: Material(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, size: 20, color: color),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$count',
+                    style: text.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    count == 1 ? noun.$1 : noun.$2,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: text.labelMedium?.copyWith(color: AppColors.inkSoft),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -323,13 +465,11 @@ class _TimelineTile extends StatelessWidget {
     required this.event,
     required this.first,
     required this.last,
-    required this.showYear,
   });
 
   final HealthEvent event;
   final bool first;
   final bool last;
-  final bool showYear;
 
   @override
   Widget build(BuildContext context) {
@@ -339,11 +479,6 @@ class _TimelineTile extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (showYear && e.at.year != now.year)
-          Padding(
-            padding: const EdgeInsets.only(left: 52, bottom: 6, top: 4),
-            child: Text('${e.at.year}', style: theme.labelLarge),
-          ),
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,

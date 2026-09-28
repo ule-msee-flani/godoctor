@@ -6,6 +6,7 @@ import '../models/chemist_profile.dart';
 import '../models/doctor_profile.dart';
 import '../models/patient_profile.dart';
 import 'repository_providers.dart';
+import '../../services/live_updates.dart';
 
 /// Emits every auth state change (sign in/out/token refresh) so the router
 /// can redirect reactively.
@@ -42,6 +43,7 @@ final currentDoctorProfileProvider = FutureProvider<DoctorProfile?>((
   ref,
 ) async {
   final userId = ref.watch(currentUserIdProvider);
+  ref.watch(liveTick(LiveTable.doctors));
   if (userId == null) return null;
   return ref.watch(profileRepositoryProvider).fetchDoctorProfile(userId);
 });

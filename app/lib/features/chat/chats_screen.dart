@@ -12,6 +12,7 @@ import '../../data/models/chat.dart';
 import '../../data/repositories/repository_errors.dart';
 import 'chat_providers.dart';
 import '../../core/widgets/motion.dart';
+import '../../services/live_updates.dart';
 
 /// "Closes in 5 h" / "Closes in 20 min" / "Closed".
 String chatWindowLabel(DateTime? closesAt, {DateTime? now}) {
@@ -59,7 +60,7 @@ class ChatsScreen extends ConsumerWidget {
           }
           final open = list.where((c) => c.isOpen).toList();
           final closed = list.where((c) => !c.isOpen).toList();
-          return RefreshIndicator(
+          return LiveRefresh(
             onRefresh: () => ref.refresh(myChatsProvider.future),
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 8),

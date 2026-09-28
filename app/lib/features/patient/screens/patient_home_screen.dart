@@ -19,6 +19,8 @@ import '../widgets/emergency_stop_view.dart' show launchDialer;
 import '../widgets/promo_banner_carousel.dart';
 import '../widgets/specialty_tiles.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../services/live_updates.dart';
+import '../visits/visit_widgets.dart';
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
@@ -59,168 +61,173 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.only(top: 8, bottom: 24),
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          LocalTouch.greeting(DateTime.now()),
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                name.isNotEmpty
-                                    ? name.split(' ').first
-                                    : LocalTouch.welcome,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.headlineMedium,
+        child: LiveRefresh(
+          child: ListView(
+            padding: const EdgeInsets.only(top: 8, bottom: 24),
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            LocalTouch.greeting(DateTime.now()),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  name.isNotEmpty
+                                      ? name.split(' ').first
+                                      : LocalTouch.welcome,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.headlineMedium,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            const HandshakeWave(),
-                          ],
+                              const SizedBox(width: 8),
+                              const HandshakeWave(),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    NotificationBell(
+                      count: unread,
+                      onPressed: () => context.push('/patient/notifications'),
+                    ),
+                    const SizedBox(width: 4),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () => context.go('/patient/profile'),
+                      child: UserAvatar(
+                        name: name.isEmpty ? '?' : name,
+                        path: avatarPath,
+                        radius: 24,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: (_) => setState(() {}),
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Search a symptom or specialty',
+                    prefixIcon: const Icon(LucideIcons.search, size: 20),
+                    suffixIcon: searching
+                        ? IconButton(
+                            icon: const Icon(LucideIcons.x, size: 18),
+                            onPressed: () => setState(_searchCtrl.clear),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              if (searching)
+                _SearchResults(query: query, onPick: _startIntake)
+              else ...[
+                if (familyInvites.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: FamilyInviteBanner(consultationIds: familyInvites),
+                  ),
+                FadeSlideIn(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: SmartHomeCard(
+                      onFeeling: (specialty, symptom) =>
+                          _startIntake(specialty, symptoms: symptom),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FadeSlideIn(
+                  index: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _PrimaryTile(
+                            image: 'assets/images/home/see_doctor',
+                            fallbackIcon: LucideIcons.video,
+                            alignment: const Alignment(0, -0.6),
+                            title: 'See a Doctor',
+                            subtitle: 'Video consult now',
+                            onTap: () => context.push('/patient/intake'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _PrimaryTile(
+                            image: 'assets/images/home/order_medicine',
+                            fallbackIcon: LucideIcons.pill,
+                            title: 'Order Medicine',
+                            subtitle: 'From chemists near you',
+                            onTap: () =>
+                                context.push('/patient/medicine-search'),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  NotificationBell(
-                    count: unread,
-                    onPressed: () => context.push('/patient/notifications'),
-                  ),
-                  const SizedBox(width: 4),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(24),
-                    onTap: () => context.go('/patient/profile'),
-                    child: UserAvatar(
-                      name: name.isEmpty ? '?' : name,
-                      path: avatarPath,
-                      radius: 24,
+                ),
+                // The latest visits, right on home.
+                const FadeSlideIn(index: 2, child: RecentVisitsSection()),
+                const SizedBox(height: 22),
+                const FadeSlideIn(index: 2, child: PromoBannerCarousel()),
+                const SizedBox(height: 22),
+                FadeSlideIn(
+                  index: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Specialties',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => context.go('/patient/doctors'),
+                          child: const Text('Browse doctors'),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
-                controller: _searchCtrl,
-                onChanged: (_) => setState(() {}),
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: 'Search a symptom or specialty',
-                  prefixIcon: const Icon(LucideIcons.search, size: 20),
-                  suffixIcon: searching
-                      ? IconButton(
-                          icon: const Icon(LucideIcons.x, size: 18),
-                          onPressed: () => setState(_searchCtrl.clear),
-                        )
-                      : null,
                 ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            if (searching)
-              _SearchResults(query: query, onPick: _startIntake)
-            else ...[
-              if (familyInvites.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: FamilyInviteBanner(consultationIds: familyInvites),
-                ),
-              FadeSlideIn(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SmartHomeCard(
-                    onFeeling: (specialty, symptom) =>
-                        _startIntake(specialty, symptoms: symptom),
+                const SizedBox(height: 12),
+                FadeSlideIn(
+                  index: 4,
+                  child: SpecialtyRow(
+                    onSelected: (meta) =>
+                        context.push('/patient/specialty/${meta.slug}'),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              FadeSlideIn(
-                index: 1,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _PrimaryTile(
-                          image: 'assets/images/home/see_doctor',
-                          fallbackIcon: LucideIcons.video,
-                          alignment: const Alignment(0, -0.6),
-                          title: 'See a Doctor',
-                          subtitle: 'Video consult now',
-                          onTap: () => context.push('/patient/intake'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _PrimaryTile(
-                          image: 'assets/images/home/order_medicine',
-                          fallbackIcon: LucideIcons.pill,
-                          title: 'Order Medicine',
-                          subtitle: 'From chemists near you',
-                          onTap: () => context.push('/patient/medicine-search'),
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 24),
+                const FadeSlideIn(
+                  index: 5,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: EmergencyStrip(),
                   ),
                 ),
-              ),
-              const SizedBox(height: 22),
-              const FadeSlideIn(index: 2, child: PromoBannerCarousel()),
-              const SizedBox(height: 22),
-              FadeSlideIn(
-                index: 3,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Specialties',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => context.go('/patient/doctors'),
-                        child: const Text('Browse doctors'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              FadeSlideIn(
-                index: 4,
-                child: SpecialtyRow(
-                  onSelected: (meta) =>
-                      context.push('/patient/specialty/${meta.slug}'),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const FadeSlideIn(
-                index: 5,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: EmergencyStrip(),
-                ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

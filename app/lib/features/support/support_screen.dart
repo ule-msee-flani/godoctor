@@ -11,6 +11,7 @@ import '../../data/models/support.dart';
 import '../../data/providers/repository_providers.dart';
 import '../../data/repositories/repository_errors.dart';
 import 'rate_app_sheet.dart';
+import '../../services/live_updates.dart';
 
 final myTicketsProvider = FutureProvider.autoDispose<List<SupportTicket>>(
   (ref) => ref.watch(supportRepositoryProvider).myTickets(),
@@ -29,7 +30,7 @@ class SupportScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Support & feedback')),
-      body: RefreshIndicator(
+      body: LiveRefresh(
         onRefresh: () => ref.refresh(myTicketsProvider.future),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),

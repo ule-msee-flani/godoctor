@@ -60,6 +60,34 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
     });
   }
 
+  void _visitEnded() {
+    if (!mounted) return;
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final doctorId = ref.read(appointmentProvider(_id)).valueOrNull?.doctorId;
+    final doctor = doctorId == null
+        ? null
+        : ref.read(publicDoctorProvider(doctorId)).valueOrNull?.name;
+    HapticFeedback.lightImpact();
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 8),
+          content: Text(
+            doctor == null
+                ? 'Your visit has ended. Get well soon!'
+                : 'Your visit with $doctor has ended. Get well soon!',
+          ),
+          action: SnackBarAction(
+            label: 'See summary',
+            onPressed: () => router.push('/patient/visit/$_id'),
+          ),
+        ),
+      );
+    router.go('/patient');
+  }
+
   Future<void> _leave(BuildContext context) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -91,6 +119,12 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
       final was = prev?.valueOrNull?.doctorJoinedAt;
       final now = next.valueOrNull?.doctorJoinedAt;
       if (prev?.hasValue == true && was == null && now != null) _doctorJoined();
+      // The doctor just ended the visit: back to Home, with the summary a
+      // tap away (it's also the first card under "Your visits").
+      final ended = next.valueOrNull?.status == ConsultationStatus.completed;
+      final wasEnded =
+          prev?.valueOrNull?.status == ConsultationStatus.completed;
+      if (prev?.hasValue == true && ended && !wasEnded) _visitEnded();
     });
     final consultation = ref.watch(appointmentProvider(_id)).value;
     final doctor = consultation?.doctorId == null

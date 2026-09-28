@@ -20,69 +20,40 @@ class CartLine {
 class OrderRepository {
   SupabaseClient get _client => SupabaseService.client;
 
-  /// Creates an order + its line items, then immediately writes a
-  /// `payments` row with `is_simulated = true` and flips escrow to `held`.
+  static const _patientSelect =
+      '*, order_items(*, drugs(generic_name)), chemist_profiles(business_name)';
+
+  /// Places an order in one step on the server: prices come from the
+  /// chemist's stock list, stock is checked and set aside, a prescription is
+  /// required where the medicine needs one, and the (simulated) M-Pesa
+  /// payment is held until the patient confirms they got their medicine.
   ///
-  /// The real M-Pesa Daraja integration (STK push, callback handling,
-  /// actual escrow hold/release timing) is deferred per spec -- this is the
-  /// documented seam: swap this method's payment half for a call to an Edge
-  /// Function that talks to Daraja, keep everything else the same.
+  /// The real M-Pesa Daraja integration (STK push, callback handling) is the
+  /// documented seam: `place_order` records a simulated payment today.
   Future<String> placeOrder({
     required String chemistId,
     String? prescriptionId,
     required List<CartLine> lines,
     required String fulfillmentType, // 'pickup' | 'delivery'
   }) async {
-    final patientId = _client.auth.currentUser!.id;
-    final total = lines.fold<double>(0, (sum, l) => sum + l.subtotal);
-
-    final orderRow = await _client
-        .from('orders')
-        .insert({
-          'patient_id': patientId,
-          'chemist_id': chemistId,
-          'prescription_id': prescriptionId,
-          'total_amount': total,
-          'escrow_status': 'held',
-          'fulfillment_type': fulfillmentType,
-        })
-        .select()
-        .single();
-    final orderId = orderRow['id'] as String;
-
-    await _client
-        .from('order_items')
-        .insert(
-          lines
-              .map(
-                (l) => OrderItem(
-                  orderId: orderId,
-                  drugId: l.drugId,
-                  quantity: l.quantity,
-                  unitPrice: l.unitPrice,
-                ).toInsertMap(),
-              )
-              .toList(),
-        );
-
-    // --- Mock payment step (M-Pesa STK push simulated) ---
-    await _client.from('payments').insert({
-      'order_id': orderId,
-      'amount': total,
-      'provider': 'mpesa',
-      'status': 'succeeded',
-      'is_simulated': true,
-    });
-
-    return orderId;
+    final id = await _client.rpc(
+      'place_order',
+      params: {
+        'p_chemist': chemistId,
+        'p_prescription': prescriptionId,
+        'p_fulfillment': fulfillmentType,
+        'p_lines': [
+          for (final l in lines) {'drug_id': l.drugId, 'quantity': l.quantity},
+        ],
+      },
+    );
+    return id as String;
   }
 
   Future<List<Order>> fetchForPatient(String patientId) async {
     final rows = await _client
         .from('orders')
-        .select(
-          '*, order_items(*, drugs(generic_name)), chemist_profiles(business_name)',
-        )
+        .select(_patientSelect)
         .eq('patient_id', patientId)
         .order('created_at', ascending: false);
     return rows.map((r) => Order.fromMap(r)).toList();
@@ -107,51 +78,43 @@ class OrderRepository {
         .asyncMap((_) => fetchForChemist(chemistId));
   }
 
-  Future<void> chemistConfirm(String orderId) async {
-    await _client
+  /// One order with its items and pharmacy, or null if it isn't visible.
+  Future<Order?> fetchOne(String orderId) async {
+    final row = await _client
         .from('orders')
-        .update({
-          'status': 'confirmed',
-          'confirmed_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', orderId);
+        .select(_patientSelect)
+        .eq('id', orderId)
+        .maybeSingle();
+    return row == null ? null : Order.fromMap(row);
   }
 
-  Future<void> chemistMarkReady(String orderId) async {
-    await _client
+  /// One order, kept up to date as the pharmacy moves it along.
+  Stream<Order?> watchOrder(String orderId) {
+    return _client
         .from('orders')
-        .update({
-          'status': 'ready',
-          'ready_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', orderId);
+        .stream(primaryKey: ['id'])
+        .eq('id', orderId)
+        .asyncMap((_) => fetchOne(orderId));
   }
 
-  /// Patient confirms receipt: order -> fulfilled, escrow -> released.
-  Future<void> patientConfirmReceipt(String orderId) async {
-    await _client
-        .from('orders')
-        .update({
-          'status': 'fulfilled',
-          'escrow_status': 'released',
-          'fulfilled_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', orderId);
-    await _client
-        .from('payments')
-        .update({
-          'status': 'succeeded',
-          'escrow_release_at': DateTime.now().toIso8601String(),
-        })
-        .eq('order_id', orderId);
-  }
+  Future<void> chemistConfirm(String orderId) => _advance(orderId, 'confirmed');
 
-  /// Dispute/timeout path: exact auto-resolution policy is still TBD per
-  /// spec -- for now this just flags the order for manual follow-up.
-  Future<void> flagDisputed(String orderId) async {
-    await _client
-        .from('orders')
-        .update({'status': 'disputed'})
-        .eq('id', orderId);
-  }
+  Future<void> chemistMarkReady(String orderId) => _advance(orderId, 'ready');
+
+  Future<void> _advance(String orderId, String status) => _client.rpc(
+    'chemist_advance_order',
+    params: {'p_order': orderId, 'p_status': status},
+  );
+
+  /// Patient confirms receipt: order -> fulfilled, payment released to the
+  /// pharmacy. Only once the pharmacy has confirmed the order.
+  Future<void> patientConfirmReceipt(String orderId) =>
+      _client.rpc('confirm_order_received', params: {'p_order': orderId});
+
+  /// Something went wrong: the order is flagged and our team follows up with
+  /// the payment still held. [note] is what the patient tells us.
+  Future<void> flagDisputed(String orderId, {String? note}) => _client.rpc(
+    'dispute_order',
+    params: {'p_order': orderId, 'p_note': note},
+  );
 }

@@ -14,6 +14,10 @@ class Order {
     required this.createdAt,
     this.items = const [],
     this.chemistName,
+    this.problemNote,
+    this.confirmedAt,
+    this.readyAt,
+    this.fulfilledAt,
   });
 
   final String id;
@@ -27,6 +31,12 @@ class Order {
   final DateTime createdAt;
   final List<OrderItem> items;
   final String? chemistName;
+
+  /// What the patient said went wrong, when they reported a problem.
+  final String? problemNote;
+  final DateTime? confirmedAt;
+  final DateTime? readyAt;
+  final DateTime? fulfilledAt;
 
   factory Order.fromMap(Map<String, dynamic> map) => Order(
     id: map['id'] as String,
@@ -58,8 +68,14 @@ class Order {
     chemistName:
         (map['chemist_profiles'] as Map<String, dynamic>?)?['business_name']
             as String?,
+    problemNote: map['problem_note'] as String?,
+    confirmedAt: _date(map['confirmed_at']),
+    readyAt: _date(map['ready_at']),
+    fulfilledAt: _date(map['fulfilled_at']),
   );
 }
+
+DateTime? _date(Object? v) => v is String ? DateTime.tryParse(v) : null;
 
 class OrderItem {
   const OrderItem({

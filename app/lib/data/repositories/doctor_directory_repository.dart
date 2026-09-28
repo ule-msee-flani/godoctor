@@ -19,6 +19,14 @@ class DoctorDirectoryRepository {
     return DoctorPublicStats.fromMap(res as Map<String, dynamic>?);
   }
 
+  /// Every verified pharmacy, for patients to browse.
+  Future<List<PublicChemist>> listChemists() async {
+    final rows = await _client.rpc('public_chemists') as List;
+    return [
+      for (final r in rows) PublicChemist.fromMap(r as Map<String, dynamic>),
+    ];
+  }
+
   /// A verified pharmacy's public page, or null.
   Future<PublicChemist?> getChemist(String chemistId) async {
     final rows =

@@ -13,6 +13,7 @@ import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../widgets/doctor_widgets.dart';
 import '../widgets/specialty_tiles.dart';
+import '../../../services/live_updates.dart';
 
 const _unset = Object();
 
@@ -263,7 +264,7 @@ class _DoctorsScreenState extends ConsumerState<DoctorsScreen> {
                           ),
                   );
                 }
-                return RefreshIndicator(
+                return LiveRefresh(
                   onRefresh: () async =>
                       ref.refresh(doctorSearchProvider.future),
                   child: ListView.separated(

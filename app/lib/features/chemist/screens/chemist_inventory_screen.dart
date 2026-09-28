@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -14,10 +15,12 @@ import '../../../data/repositories/repository_errors.dart';
 import '../../medicine/medicine_gallery.dart';
 import '../../patient/widgets/medicine_image.dart';
 import '../widgets/pack_photo.dart';
+import '../../../services/live_updates.dart';
 
 final _inventoryProvider =
     FutureProvider.autoDispose<List<ChemistInventoryItem>>((ref) async {
       final userId = ref.watch(currentUserIdProvider);
+      ref.watch(liveTick(LiveTable.inventory));
       if (userId == null) return const [];
       return ref.watch(drugRepositoryProvider).fetchChemistInventory(userId);
     });
@@ -64,6 +67,12 @@ class _ChemistInventoryScreenState
       appBar: AppBar(
         title: const Text('Stock'),
         actions: [
+          // Bring stock from a pharmacy system or Excel in one go.
+          TextButton.icon(
+            icon: const Icon(LucideIcons.fileUp, size: 18),
+            label: const Text('Import'),
+            onPressed: () => context.push('/chemist/import'),
+          ),
           IconButton(
             tooltip: 'Sign out',
             icon: const Icon(LucideIcons.logOut),

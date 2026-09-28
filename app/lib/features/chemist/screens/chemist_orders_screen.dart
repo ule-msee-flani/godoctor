@@ -21,6 +21,7 @@ import '../../patient/screens/doctor_profile_screen.dart'
 import '../../patient/widgets/medicine_image.dart';
 import '../../prescription/digital_prescription.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../services/live_updates.dart';
 
 /// Live orders for the signed-in chemist (newest first).
 final chemistOrdersProvider = StreamProvider.autoDispose<List<model.Order>>((
@@ -183,62 +184,79 @@ class _ChemistOrdersScreenState extends ConsumerState<ChemistOrdersScreen> {
                   ),
                 ),
                 Expanded(
-                  child: orders.isEmpty
-                      ? const EmptyView(
-                          message:
-                              'No orders yet.\nWhen a patient orders from you, it appears here straight away.',
-                          icon: LucideIcons.receipt,
-                        )
-                      : list.isEmpty
-                      ? EmptyView(
-                          message: switch (lane) {
-                            OrderLane.fresh => 'No new orders right now.',
-                            OrderLane.preparing => 'Nothing being prepared.',
-                            OrderLane.ready => 'No orders waiting for pickup.',
-                            OrderLane.done => 'No finished orders yet.',
-                          },
-                          icon: LucideIcons.inbox,
-                        )
-                      : LayoutBuilder(
-                          builder: (context, c) {
-                            final cols = c.maxWidth >= 1100
-                                ? 3
-                                : c.maxWidth >= 700
-                                ? 2
-                                : 1;
-                            if (cols == 1) {
-                              return ListView.builder(
+                  child: LiveRefresh(
+                    onRefresh: () async =>
+                        ref.invalidate(chemistOrdersProvider),
+                    child: orders.isEmpty
+                        ? const PullableFill(
+                            child: EmptyView(
+                              message:
+                                  'No orders yet.\nWhen a patient orders from you, it appears here straight away.',
+                              icon: LucideIcons.receipt,
+                            ),
+                          )
+                        : list.isEmpty
+                        ? PullableFill(
+                            child: EmptyView(
+                              message: switch (lane) {
+                                OrderLane.fresh => 'No new orders right now.',
+                                OrderLane.preparing =>
+                                  'Nothing being prepared.',
+                                OrderLane.ready =>
+                                  'No orders waiting for pickup.',
+                                OrderLane.done => 'No finished orders yet.',
+                              },
+                              icon: LucideIcons.inbox,
+                            ),
+                          )
+                        : LayoutBuilder(
+                            builder: (context, c) {
+                              final cols = c.maxWidth >= 1100
+                                  ? 3
+                                  : c.maxWidth >= 700
+                                  ? 2
+                                  : 1;
+                              if (cols == 1) {
+                                return ListView.builder(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    4,
+                                    16,
+                                    16,
+                                  ),
+                                  itemCount: list.length,
+                                  itemBuilder: (context, i) => FadeSlideIn(
+                                    key: ValueKey(list[i].id),
+                                    index: i,
+                                    child: _OrderTicket(order: list[i]),
+                                  ),
+                                );
+                              }
+                              return SingleChildScrollView(
                                 padding: const EdgeInsets.fromLTRB(
                                   16,
                                   4,
                                   16,
                                   16,
                                 ),
-                                itemCount: list.length,
-                                itemBuilder: (context, i) => FadeSlideIn(
-                                  key: ValueKey(list[i].id),
-                                  index: i,
-                                  child: _OrderTicket(order: list[i]),
+                                child: Wrap(
+                                  spacing: 12,
+                                  children: [
+                                    for (final o in list)
+                                      SizedBox(
+                                        width:
+                                            (c.maxWidth -
+                                                32 -
+                                                12 * (cols - 1)) /
+                                            cols,
+                                        child: _OrderTicket(order: o),
+                                      ),
+                                  ],
                                 ),
                               );
-                            }
-                            return SingleChildScrollView(
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                              child: Wrap(
-                                spacing: 12,
-                                children: [
-                                  for (final o in list)
-                                    SizedBox(
-                                      width:
-                                          (c.maxWidth - 32 - 12 * (cols - 1)) /
-                                          cols,
-                                      child: _OrderTicket(order: o),
-                                    ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                            },
+                          ),
+                  ),
                 ),
               ],
             );

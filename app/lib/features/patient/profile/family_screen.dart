@@ -10,6 +10,7 @@ import '../../../data/models/family.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../family/family_providers.dart';
+import '../../../services/live_updates.dart';
 
 const kRelationships = [
   'Parent',
@@ -69,7 +70,7 @@ class FamilyScreen extends ConsumerWidget {
         icon: const Icon(LucideIcons.userPlus),
         label: const Text('Invite family'),
       ),
-      body: RefreshIndicator(
+      body: LiveRefresh(
         onRefresh: () => ref.refresh(familyProvider.future),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),

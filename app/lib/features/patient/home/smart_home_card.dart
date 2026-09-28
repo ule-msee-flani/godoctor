@@ -18,6 +18,7 @@ import '../../../data/providers/repository_providers.dart';
 import '../../chat/chat_providers.dart';
 import '../../medications/medication_providers.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../services/live_updates.dart';
 
 /// My on-demand consultation that's still under way, live.
 final activeConsultationProvider = StreamProvider.autoDispose<Consultation?>((
@@ -33,6 +34,7 @@ final ordersInProgressProvider = FutureProvider.autoDispose<List<model.Order>>((
   ref,
 ) async {
   final id = ref.watch(currentUserIdProvider);
+  ref.watch(liveTick(LiveTable.orders));
   if (id == null) return const [];
   final orders = await ref.watch(orderRepositoryProvider).fetchForPatient(id);
   return [

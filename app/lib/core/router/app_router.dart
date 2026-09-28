@@ -10,6 +10,8 @@ import '../../features/chat/chat_prescribe_screen.dart';
 import '../../features/chat/chat_providers.dart';
 import '../../features/chat/chat_screen.dart';
 import '../../features/chat/chats_screen.dart';
+import '../../features/chemist/import/connect_system_screen.dart';
+import '../../features/chemist/import/stock_import_screen.dart';
 import '../../features/chemist/screens/chemist_account_screen.dart';
 import '../../features/location/location_picker_screen.dart';
 import '../../features/notifications/notification_settings_screen.dart';
@@ -72,6 +74,7 @@ import '../../features/patient/visit/visit_summary_screen.dart';
 import '../../features/prescription/prescription_order_screen.dart';
 import '../../features/prescription/prescription_view_screen.dart';
 import '../../features/patient/chemist/chemist_profile_screen.dart';
+import '../../features/patient/chemist/pharmacies_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/exit_guard.dart';
 import '../widgets/pending_verification_view.dart';
@@ -155,7 +158,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/patient/health',
-                builder: (_, _) => const HealthStoryScreen(),
+                builder: (_, state) => HealthStoryScreen(
+                  initialTab: state.uri.queryParameters['tab'],
+                ),
               ),
             ],
           ),
@@ -271,6 +276,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/patient/prescriptions',
         pageBuilder: (_, state) => _quiet(state, const PrescriptionsScreen()),
+      ),
+      GoRoute(
+        path: '/patient/pharmacies',
+        builder: (context, state) => const PharmaciesScreen(),
       ),
       GoRoute(
         path: '/patient/chemist/:id',
@@ -499,6 +508,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/account/notifications',
         builder: (_, _) => const NotificationSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/chemist/import',
+        builder: (_, _) => _pro(const StockImportScreen()),
+      ),
+      GoRoute(
+        path: '/chemist/connect',
+        builder: (_, _) => _pro(const ConnectSystemScreen()),
       ),
       GoRoute(
         path: '/chemist/notifications',

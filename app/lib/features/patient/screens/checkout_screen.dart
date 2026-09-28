@@ -16,10 +16,12 @@ import '../../../data/repositories/repository_errors.dart';
 import '../../payments/fulfillment_picker.dart';
 import '../../payments/mpesa_checkout.dart';
 import '../widgets/medicine_image.dart';
+import '../../../services/live_updates.dart';
 
 final _validPrescriptionsProvider =
     FutureProvider.autoDispose<List<Prescription>>((ref) async {
       final userId = ref.watch(currentUserIdProvider);
+      ref.watch(liveTick(LiveTable.prescriptions));
       if (userId == null) return [];
       final all = await ref
           .watch(prescriptionRepositoryProvider)
@@ -86,7 +88,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (mounted) {
         setState(() {
           _paying = false;
-          _error = friendlyError(e);
+          // Nothing is charged unless the order goes through.
+          _error = '${friendlyError(e)} You haven\'t been charged.';
         });
       }
     }
@@ -231,11 +234,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     includesThis: _includes(p),
                     drugName: _item.drug?.genericName,
                     selected: _prescriptionId == p.id,
-                    onTap: () => setState(() {
-                      _prescriptionId = p.id;
-                      _pickedPrescription = true;
-                      _error = null;
-                    }),
+                    // A consultation prescription only covers what's on it.
+                    onTap:
+                        p.source != PrescriptionSource.externalUpload &&
+                            !_includes(p)
+                        ? null
+                        : () => setState(() {
+                            _prescriptionId = p.id;
+                            _pickedPrescription = true;
+                            _error = null;
+                          }),
                   ),
                 OutlinedButton.icon(
                   icon: const Icon(LucideIcons.upload, size: 18),
@@ -394,70 +402,73 @@ class _PrescriptionOption extends StatelessWidget {
   final bool includesThis;
   final String? drugName;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
     final p = prescription;
     final uploaded = p.source == PrescriptionSource.externalUpload;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: selected ? AppColors.primarySofter : AppColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: selected ? AppColors.primary : AppColors.border,
-            width: selected ? 1.6 : 1,
+    return Opacity(
+      opacity: onTap == null ? 0.55 : 1,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: selected ? AppColors.primarySofter : AppColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: selected ? AppColors.primary : AppColors.border,
+              width: selected ? 1.6 : 1,
+            ),
           ),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Icon(
-                  selected ? LucideIcons.circleCheck : LucideIcons.circle,
-                  size: 20,
-                  color: selected ? AppColors.primary : AppColors.inkFaint,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${uploaded ? 'Uploaded photo' : 'From your consultation'} · '
-                        '${formatDayShort(p.issuedAt.toLocal())}',
-                        style: theme.titleSmall,
-                      ),
-                      Text(
-                        uploaded
-                            ? 'The chemist reads the photo'
-                            : p.items.map((i) => i.displayName).join(', '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.bodySmall,
-                      ),
-                      if (!uploaded)
-                        Text(
-                          includesThis
-                              ? 'Includes ${drugName ?? 'this medicine'}'
-                              : 'Doesn\'t include ${drugName ?? 'this medicine'}',
-                          style: theme.bodySmall?.copyWith(
-                            color: includesThis
-                                ? AppColors.success
-                                : AppColors.warning,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                    ],
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Icon(
+                    selected ? LucideIcons.circleCheck : LucideIcons.circle,
+                    size: 20,
+                    color: selected ? AppColors.primary : AppColors.inkFaint,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${uploaded ? 'Uploaded photo' : 'From your consultation'} · '
+                          '${formatDayShort(p.issuedAt.toLocal())}',
+                          style: theme.titleSmall,
+                        ),
+                        Text(
+                          uploaded
+                              ? 'The chemist reads the photo'
+                              : p.items.map((i) => i.displayName).join(', '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.bodySmall,
+                        ),
+                        if (!uploaded)
+                          Text(
+                            includesThis
+                                ? 'Includes ${drugName ?? 'this medicine'}'
+                                : 'Doesn\'t include ${drugName ?? 'this medicine'}',
+                            style: theme.bodySmall?.copyWith(
+                              color: includesThis
+                                  ? AppColors.success
+                                  : AppColors.warning,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/consultation.dart';
 import 'auth_providers.dart';
 import 'repository_providers.dart';
+import '../../services/live_updates.dart';
 
 /// The signed-in patient's upcoming (and in-progress) scheduled appointments.
 final upcomingAppointmentsProvider =
     FutureProvider.autoDispose<List<Consultation>>((ref) async {
       final userId = ref.watch(currentUserIdProvider);
+      ref.watch(liveTick(LiveTable.consultations));
       if (userId == null) return const [];
       return ref
           .watch(appointmentRepositoryProvider)
@@ -20,6 +22,7 @@ final upcomingAppointmentsProvider =
 final doctorUpcomingAppointmentsProvider =
     FutureProvider.autoDispose<List<Consultation>>((ref) async {
       final userId = ref.watch(currentUserIdProvider);
+      ref.watch(liveTick(LiveTable.consultations));
       if (userId == null) return const [];
       return ref.watch(appointmentRepositoryProvider).upcomingForDoctor(userId);
     });

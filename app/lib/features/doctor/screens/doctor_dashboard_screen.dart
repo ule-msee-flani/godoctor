@@ -15,6 +15,7 @@ import '../widgets/today_card.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../services/live_updates.dart';
 
 class DoctorDashboardScreen extends ConsumerWidget {
   const DoctorDashboardScreen({super.key});
@@ -61,7 +62,7 @@ class _DashboardBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return RefreshIndicator(
+    return LiveRefresh(
       onRefresh: () async {
         ref.invalidate(doctorTodayProvider);
         ref.invalidate(currentDoctorProfileProvider);

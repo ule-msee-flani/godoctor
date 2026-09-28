@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/config/supabase_client.dart';
 import '../models/consultation.dart';
 import '../models/enums.dart';
+import '../models/visit.dart';
 
 /// Consultation lifecycle: intake -> matching -> offer/accept -> in-progress.
 ///
@@ -170,6 +171,13 @@ class ConsultationRepository {
         .eq('id', consultationId)
         .maybeSingle();
     return row == null ? null : Consultation.fromMap(row);
+  }
+
+  /// My visits with the doctor's name and photo, how many prescriptions
+  /// came out of each, and whether I've rated it. Newest first.
+  Future<List<Visit>> myVisits() async {
+    final rows = await _client.rpc('patient_visits') as List<dynamic>;
+    return [for (final r in rows) Visit.fromMap(r as Map<String, dynamic>)];
   }
 
   Future<List<Consultation>> fetchHistoryForPatient(String patientId) async {

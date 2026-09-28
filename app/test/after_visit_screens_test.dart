@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:godoctor_app/core/theme/app_theme.dart';
 import 'package:godoctor_app/core/widgets/video_call_panel.dart';
 import 'package:godoctor_app/data/models/chat.dart';
@@ -16,6 +17,7 @@ import 'package:godoctor_app/data/models/order.dart' as model;
 import 'package:godoctor_app/data/models/patient_profile.dart';
 import 'package:godoctor_app/data/models/prescription.dart';
 import 'package:godoctor_app/data/models/public_doctor.dart';
+import 'package:godoctor_app/data/models/visit.dart';
 import 'package:godoctor_app/data/providers/auth_providers.dart';
 import 'package:godoctor_app/data/providers/repository_providers.dart';
 import 'package:godoctor_app/data/repositories/chat_repository.dart';
@@ -103,6 +105,22 @@ class _Consultations extends ConsultationRepository {
   @override
   Future<List<Consultation>> fetchHistoryForPatient(String patientId) async => [
     _consultation(),
+  ];
+  @override
+  Future<List<Visit>> myVisits() async => [
+    Visit(
+      consultationId: 'c1',
+      doctorId: 'd1',
+      doctorName: 'Dr Jane Wanjiru',
+      specialty: 'General Practice',
+      symptoms: 'Headache and fever since Monday',
+      status: ConsultationStatus.completed,
+      mode: ConsultationMode.onDemand,
+      at: _now.subtract(const Duration(hours: 2)),
+      prescriptions: 1,
+      hasSummary: true,
+      chatClosesAt: _now.add(const Duration(hours: 22)),
+    ),
   ];
 }
 
@@ -206,6 +224,7 @@ Future<void> _render(
   Stream<Consultation?>? consultation,
   _Chats? chats,
   List<Prescription>? prescriptions,
+  GoRouter? router,
 }) async {
   tester.view.physicalSize = const Size(412, 915);
   tester.view.devicePixelRatio = 1;
@@ -236,7 +255,12 @@ Future<void> _render(
         medicationRepositoryProvider.overrideWithValue(_Medications()),
         familyRepositoryProvider.overrideWithValue(FakeFamily()),
       ],
-      child: MaterialApp(theme: AppTheme.patientTheme, home: screen),
+      child: router == null
+          ? MaterialApp(theme: AppTheme.patientTheme, home: screen)
+          : MaterialApp.router(
+              theme: AppTheme.patientTheme,
+              routerConfig: router,
+            ),
     ),
   );
   for (var i = 0; i < 5; i++) {
@@ -426,12 +450,83 @@ void main() {
     );
     expect(find.textContaining('Medicine order'), findsOneWidget);
     expect(find.textContaining('Prescription · 1 medicine'), findsOneWidget);
+    expect(find.text('THIS MONTH'), findsWidgets, reason: 'grouped by month');
 
-    await tester.ensureVisible(find.text('Orders'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Orders'));
-    await tester.pump();
+    // Each kind has its own section.
+    await tester.tap(find.widgetWithText(Tab, 'Visits'));
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     expect(find.text('General Practice consultation'), findsNothing);
+    expect(find.text('Dr Jane Wanjiru'), findsOneWidget);
+    expect(find.text('1 prescription'), findsOneWidget);
+    expect(find.text('Doctor\'s notes'), findsOneWidget);
+    expect(find.text('Chat open'), findsOneWidget);
+    expect(find.text('Rate this visit'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _close(tester);
+  });
+
+  testWidgets('health opens on the section asked for', (tester) async {
+    await _render(tester, const HealthStoryScreen(initialTab: 'visits'));
+    expect(find.text('Dr Jane Wanjiru'), findsOneWidget);
+    expect(find.text('Your health story'), findsNothing);
+    await _close(tester);
+  });
+
+  testWidgets('when the doctor ends the visit, the patient goes home', (
+    tester,
+  ) async {
+    final live = StreamController<Consultation?>();
+    addTearDown(live.close);
+    final router = GoRouter(
+      initialLocation: '/patient/call/c1',
+      routes: [
+        GoRoute(
+          path: '/patient',
+          builder: (_, _) => const Scaffold(body: Text('HOME')),
+        ),
+        GoRoute(
+          path: '/patient/call/:id',
+          builder: (_, state) =>
+              PatientCallScreen(consultationId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/patient/visit/:id',
+          builder: (_, state) =>
+              Scaffold(body: Text('SUMMARY ${state.pathParameters['id']}')),
+        ),
+      ],
+    );
+    await _render(
+      tester,
+      const SizedBox(),
+      consultation: live.stream,
+      prescriptions: const [],
+      router: router,
+    );
+    live.add(
+      _consultation(
+        status: ConsultationStatus.inProgress,
+        doctorJoinedAt: _now,
+      ),
+    );
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byType(VideoCallPanel), findsOneWidget);
+
+    live.add(_consultation(doctorJoinedAt: _now));
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('HOME'), findsOneWidget);
+    expect(find.textContaining('has ended'), findsOneWidget);
+    await tester.tap(find.text('See summary'));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('SUMMARY c1'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _close(tester);
   });

@@ -88,9 +88,11 @@ class _PrescriptionOrderScreenState
     } catch (e) {
       if (mounted) {
         setState(() => _placing = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(friendlyError(e))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${friendlyError(e)} You haven\'t been charged.'),
+          ),
+        );
       }
     }
   }

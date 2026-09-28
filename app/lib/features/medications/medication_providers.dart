@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/medication.dart';
 import '../../data/providers/auth_providers.dart';
 import '../../data/providers/repository_providers.dart';
+import '../../services/live_updates.dart';
 
 /// My medicine courses with reminders switched on.
 final activeSchedulesProvider =
     FutureProvider.autoDispose<List<MedicationSchedule>>((ref) {
+      ref.watch(liveTick(LiveTable.schedules));
+      ref.watch(liveTick(LiveTable.doses));
       if (ref.watch(currentUserIdProvider) == null) return const [];
       return ref
           .watch(medicationRepositoryProvider)

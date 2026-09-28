@@ -13,6 +13,7 @@ import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../../../services/chemist_matching.dart';
 import '../../location/match_location_bar.dart';
+import '../../../services/live_updates.dart';
 
 final _stockForDrugProvider = FutureProvider.autoDispose
     .family<List<ChemistInventoryItem>, String>(
@@ -77,7 +78,7 @@ class _ChemistSelectScreenState extends ConsumerState<ChemistSelectScreen> {
               child: _ChemistCard(entry: r, best: best),
             );
 
-            return RefreshIndicator(
+            return LiveRefresh(
               onRefresh: () =>
                   ref.refresh(_stockForDrugProvider(widget.drugId).future),
               child: ListView(
@@ -221,11 +222,26 @@ class _ChemistCard extends StatelessWidget {
                           ),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Text(
-                              'About this pharmacy',
-                              style: theme.labelLarge?.copyWith(
-                                color: AppColors.primary,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  LucideIcons.store,
+                                  size: 14,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(width: 5),
+                                Flexible(
+                                  child: Text(
+                                    'Pharmacy profile',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.labelLarge?.copyWith(
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

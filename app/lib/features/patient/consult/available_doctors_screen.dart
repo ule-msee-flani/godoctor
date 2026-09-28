@@ -14,6 +14,7 @@ import '../../../data/repositories/repository_errors.dart';
 import '../widgets/doctor_widgets.dart';
 import '../widgets/specialty_tiles.dart';
 import 'consult_flow.dart';
+import '../../../services/live_updates.dart';
 
 /// Verified doctors who are online right now for [specialty].
 final onlineDoctorsProvider = FutureProvider.autoDispose
@@ -88,7 +89,7 @@ class _AvailableDoctorsScreenState
 
     return Scaffold(
       appBar: AppBar(title: const Text('Choose a doctor')),
-      body: RefreshIndicator(
+      body: LiveRefresh(
         onRefresh: () => ref.refresh(onlineDoctorsProvider(specialty).future),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),

@@ -10,6 +10,7 @@ import 'core/theme/app_theme.dart';
 import 'core/widgets/splash_gate.dart';
 import 'features/update/update_sheet.dart';
 import 'services/app_update.dart';
+import 'services/live_updates.dart';
 import 'services/push_service.dart';
 
 Future<void> main() async {
@@ -36,6 +37,8 @@ class GoDoctorApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
     // Push notifications for whoever is signed in.
     ref.watch(pushServiceProvider);
+    // Screens refresh themselves when their data changes.
+    ref.watch(liveUpdatesProvider);
     // A newer APK published? Offer it once per launch, after the intro.
     ref.listen(availableUpdateProvider, (_, next) async {
       final release = next.valueOrNull;

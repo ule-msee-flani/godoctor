@@ -6,9 +6,12 @@ import '../../../data/models/consultation.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
+import '../../../services/live_updates.dart';
 
 final _doctorHistoryProvider = FutureProvider<List<Consultation>>((ref) async {
   final userId = ref.watch(currentUserIdProvider);
+  ref.watch(liveTick(LiveTable.consultations));
+  ref.watch(liveTick(LiveTable.reviews));
   if (userId == null) return const [];
   return ref
       .watch(consultationRepositoryProvider)

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/format.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../data/models/prescription.dart';
@@ -11,11 +12,14 @@ import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../medications/dose_reminder_sheet.dart';
 import '../../../data/repositories/repository_errors.dart';
+import '../../../services/live_updates.dart';
+import '../visits/visit_widgets.dart' show MonthHeader, groupByMonth;
 
 final _patientPrescriptionsProvider = FutureProvider<List<Prescription>>((
   ref,
 ) async {
   final userId = ref.watch(currentUserIdProvider);
+  ref.watch(liveTick(LiveTable.prescriptions));
   if (userId == null) return [];
   return ref.watch(prescriptionRepositoryProvider).fetchForPatient(userId);
 });
@@ -30,46 +34,73 @@ class PrescriptionsScreen extends StatelessWidget {
   );
 }
 
-/// The list itself (with an upload action on top), reused by the Activity tab.
+/// The list itself (with an upload action on top), reused by the Health tab:
+/// prescriptions you can still use first, then older ones by month.
 class PrescriptionsList extends ConsumerWidget {
   const PrescriptionsList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prescriptions = ref.watch(_patientPrescriptionsProvider);
+    final upload = OutlinedButton.icon(
+      icon: const Icon(LucideIcons.upload, size: 18),
+      label: const Text('Upload an external prescription'),
+      onPressed: () => context.push('/patient/prescriptions/upload'),
+    );
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: OutlinedButton.icon(
-            icon: const Icon(LucideIcons.upload, size: 18),
-            label: const Text('Upload an external prescription'),
-            onPressed: () => context.push('/patient/prescriptions/upload'),
-          ),
-        ),
-        Expanded(
-          child: prescriptions.when(
-            loading: () => const SkeletonList(),
-            error: (e, _) => ErrorView(message: friendlyError(e)),
-            data: (list) {
-              if (list.isEmpty) {
-                return const EmptyView(
-                  message: 'No prescriptions yet.',
-                  icon: LucideIcons.fileText,
-                );
-              }
-              return ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: list.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (context, i) =>
-                    _PrescriptionCard(prescription: list[i]),
-              );
-            },
-          ),
-        ),
-      ],
+    return LiveRefresh(
+      onRefresh: () => ref.refresh(_patientPrescriptionsProvider.future),
+      child: prescriptions.when(
+        loading: () => const SkeletonList(),
+        error: (e, _) =>
+            PullableFill(child: ErrorView(message: friendlyError(e))),
+        data: (list) {
+          if (list.isEmpty) {
+            return PullableFill(
+              child: EmptyView(
+                message:
+                    'No prescriptions yet.\nPrescriptions from your visits '
+                    'appear here. You can also upload a paper one.',
+                icon: LucideIcons.fileText,
+                action: upload,
+              ),
+            );
+          }
+          final valid = [
+            for (final p in list)
+              if (p.isValid) p,
+          ];
+          final older = [
+            for (final p in list)
+              if (!p.isValid) p,
+          ];
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            children: [
+              upload,
+              if (valid.isNotEmpty) ...[
+                MonthHeader('Valid now', count: valid.length),
+                for (final p in valid)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _PrescriptionCard(prescription: p),
+                  ),
+              ],
+              for (final (label, group) in groupByMonth(
+                older,
+                (p) => p.issuedAt.toLocal(),
+              )) ...[
+                MonthHeader(label, count: group.length),
+                for (final p in group)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _PrescriptionCard(prescription: p),
+                  ),
+              ],
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -123,7 +154,7 @@ class _PrescriptionCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    prescription.issuedAt.toLocal().toString().split(' ').first,
+                    formatDate(prescription.issuedAt.toLocal()),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(width: 4),

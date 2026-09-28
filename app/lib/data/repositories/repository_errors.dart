@@ -68,6 +68,62 @@ String friendlyError(Object error) {
   if (text.contains('prescription_too_long')) {
     return 'A prescription can have at most 20 medicines.';
   }
+  // Orders (place_order and friends). Some carry the medicine's name after
+  // the code, e.g. "out_of_stock: Amoxicillin".
+  final named = RegExp(
+    r'(out_of_stock|prescription_required|prescription_mismatch): *([^\n]+)',
+  ).firstMatch(raw);
+  if (named != null) {
+    final drug = named.group(2)!.trim();
+    return switch (named.group(1)) {
+      'out_of_stock' =>
+        'The pharmacy no longer has enough $drug. Lower the quantity or choose another pharmacy.',
+      'prescription_required' =>
+        '$drug needs a prescription. Attach a valid prescription to order it.',
+      _ =>
+        'The prescription you attached doesn\'t include $drug. Attach the right prescription or remove it.',
+    };
+  }
+  if (text.contains('prescription_expired')) {
+    return 'That prescription has expired. Ask a doctor for a new one.';
+  }
+  if (text.contains('prescription_not_found')) {
+    return 'We couldn\'t find that prescription on your account.';
+  }
+  if (text.contains('chemist_unavailable')) {
+    return 'This pharmacy isn\'t taking orders right now. Please choose another.';
+  }
+  if (text.contains('order_empty')) {
+    return 'Add at least one medicine to your order.';
+  }
+  if (text.contains('order_too_long')) {
+    return 'An order can have at most 30 different medicines.';
+  }
+  if (text.contains('invalid_quantity')) {
+    return 'Quantities must be between 1 and 100.';
+  }
+  if (text.contains('invalid_fulfillment')) {
+    return 'Choose pickup or delivery.';
+  }
+  if (text.contains('order_not_ready')) {
+    return 'You can confirm receipt once the pharmacy has confirmed your order.';
+  }
+  if (text.contains('order_cannot_be_disputed')) {
+    return 'This order is already closed. Contact support if something is wrong.';
+  }
+  if (text.contains('order_status_changed') ||
+      text.contains('invalid_status')) {
+    return 'This order was already updated. Pull down to refresh.';
+  }
+  if (text.contains('chemists_only')) {
+    return 'Only pharmacy accounts can do this.';
+  }
+  if (text.contains('import_too_large')) {
+    return 'That file is too big. Import up to 2,000 medicines at a time.';
+  }
+  if (text.contains('too_many_keys')) {
+    return 'You can have up to 5 active connection keys. Revoke one first.';
+  }
   if (text.contains('slot_unavailable')) {
     return 'That time was just taken. Please pick another slot.';
   }

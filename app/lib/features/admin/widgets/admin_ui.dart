@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../data/repositories/repository_errors.dart';
+import '../../../services/live_updates.dart';
 
 /// Chart + chrome colours for the admin console. Categorical slots follow
 /// the validated reference order (blue, orange, aqua, yellow -- adjacent
@@ -137,7 +138,7 @@ class AdminPage extends StatelessWidget {
       color: AdminColors.page,
       child: onRefresh == null
           ? list
-          : RefreshIndicator(onRefresh: onRefresh!, child: list),
+          : LiveRefresh(onRefresh: onRefresh!, child: list),
     );
   }
 }

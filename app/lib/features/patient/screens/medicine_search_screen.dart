@@ -11,6 +11,7 @@ import '../../../data/models/drug.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../../medicine/medicine_gallery.dart';
+import '../chemist/pharmacies_screen.dart';
 
 /// Stock at verified chemists for the medicine being showcased.
 final _stockProvider = FutureProvider.autoDispose
@@ -82,11 +83,22 @@ class _MedicineSearchScreenState extends ConsumerState<MedicineSearchScreen> {
           message: friendlyError(e),
           onRetry: () => ref.invalidate(medicineCatalogProvider),
         ),
-        data: (drugs) => MedicineGallery(
-          drugs: drugs,
-          query: _searching ? _searchCtrl.text : '',
-          emptyMessage: 'The medicine catalogue is empty.',
-          footerBuilder: (context, drug) => _WhereToBuy(drug: drug),
+        data: (drugs) => Column(
+          children: [
+            if (!_searching)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 4, 16, 4),
+                child: PharmaciesBanner(),
+              ),
+            Expanded(
+              child: MedicineGallery(
+                drugs: drugs,
+                query: _searching ? _searchCtrl.text : '',
+                emptyMessage: 'The medicine catalogue is empty.',
+                footerBuilder: (context, drug) => _WhereToBuy(drug: drug),
+              ),
+            ),
+          ],
         ),
       ),
     );
