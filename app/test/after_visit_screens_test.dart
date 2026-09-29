@@ -454,7 +454,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('General Practice consultation'),
       200,
-      scrollable: find.byType(Scrollable).first,
+      // The page's own (vertical) list, not the tab pager around it.
+      scrollable: find
+          .byWidgetPredicate(
+            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+          )
+          .first,
     );
     expect(find.textContaining('Medicine order'), findsOneWidget);
     expect(find.textContaining('Prescription · 1 medicine'), findsOneWidget);

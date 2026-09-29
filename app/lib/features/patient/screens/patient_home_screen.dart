@@ -24,6 +24,7 @@ import '../../../core/widgets/motion.dart';
 import '../../../services/live_updates.dart';
 import '../visits/visit_widgets.dart';
 import '../appointments/appointments.dart';
+import '../../selfcare/selfcare_screens.dart';
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
@@ -224,6 +225,13 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                         ),
                       ],
                     ),
+                  ),
+                ),
+                // Now and then, a small self-care practice for the moment.
+                const FadeSlideIn(
+                  index: 2,
+                  child: SelfCareSuggestionCard(
+                    padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
                   ),
                 ),
                 // The latest visits, right on home.

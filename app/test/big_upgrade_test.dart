@@ -334,7 +334,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('mood check-in: low gets a way to talk to someone', (
+  testWidgets('mood check-in: sad gets a way to talk to someone', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -343,17 +343,22 @@ void main() {
     await _host(tester, MoodCheckIn(onUnwell: (_, s) => unwell = s), [
       profileRepositoryProvider.overrideWithValue(profiles),
     ]);
-    expect(find.text('How are you feeling today?'), findsOneWidget);
-    await tester.tap(find.bySemanticsLabel('Low'));
+    expect(find.text('How do you feel today?'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Sad'));
     await _pump(tester);
     expect(find.text('We\'re here for you.'), findsOneWidget);
     expect(find.text('Talk to someone'), findsOneWidget);
-    expect(profiles.mood, 'low');
+    expect(find.text('Lift your mood'), findsOneWidget);
+    expect(profiles.mood, 'sad');
 
     await tester.tap(find.text('Change'));
     await _pump(tester);
-    await tester.tap(find.bySemanticsLabel('Unwell'));
+    // The row scrolls sideways to the last feelings.
+    await tester.drag(find.byType(ListView).first, const Offset(-300, 0));
     await _pump(tester);
+    await tester.tap(find.bySemanticsLabel('Under the weather'));
+    await _pump(tester);
+    expect(profiles.mood, 'under_the_weather');
     await tester.tap(find.text('Fever'));
     expect(unwell, 'Fever');
     expect(tester.takeException(), isNull);
