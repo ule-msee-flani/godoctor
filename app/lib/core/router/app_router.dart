@@ -81,6 +81,7 @@ import '../widgets/pending_verification_view.dart';
 import '../widgets/role_shell.dart';
 import '../../features/chemist/screens/chemist_dashboard_screen.dart';
 import '../../features/patient/health/well_guide.dart';
+import '../../features/onboarding/welcome_path_screen.dart';
 
 /// A screen with nothing to go back to: back asks before leaving the app.
 Widget _top(Widget child) => ExitGuard(child: child);
@@ -280,6 +281,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => _quiet(state, const PrescriptionsScreen()),
       ),
       GoRoute(
+        path: '/welcome',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const WelcomePathScreen(),
+          transitionsBuilder: (context, animation, _, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
+      ),
+      GoRoute(
         path: '/patient/well-guide',
         builder: (context, state) => const WellGuideScreen(),
       ),
@@ -351,10 +361,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => _top(
           _pro(
             const PendingVerificationView(
-              title: 'Your license is under review',
+              title: 'Awaiting verification',
               description:
-                  'An admin manually checks the public KMPDC register before you can start '
-                  'accepting consultations. This usually takes 1-2 business days.',
+                  'Thanks for registering! Before you can see patients, our '
+                  'team checks your licence on the KMPDC register.',
             ),
           ),
         ),
@@ -424,10 +434,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => _top(
           _pro(
             const PendingVerificationView(
-              title: 'Your registration is under review',
+              title: 'Awaiting verification',
               description:
-                  'An admin verifies your pharmacy registration before your inventory is '
-                  'listed publicly. This usually takes 1-2 business days.',
+                  'Thanks for registering! Before patients can order from you, '
+                  'our team checks your registration with the Pharmacy and '
+                  'Poisons Board.',
+              what: 'registration',
             ),
           ),
         ),
@@ -591,6 +603,11 @@ Future<String?> _redirect(Ref ref, GoRouterState state) async {
     return state.matchedLocation == '/suspended' ? null : '/suspended';
   }
   if (state.matchedLocation == '/suspended') return '/';
+
+  // New here: a few welcome questions before anything else.
+  if (appUser.needsWelcome) {
+    return state.matchedLocation == '/welcome' ? null : '/welcome';
+  }
 
   switch (appUser.role) {
     case UserRole.patient:

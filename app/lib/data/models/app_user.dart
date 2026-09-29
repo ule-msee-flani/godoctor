@@ -10,6 +10,7 @@ class AppUser {
     required this.createdAt,
     this.avatarUrl,
     this.contactPhone,
+    this.onboardedAt,
   });
 
   final String id;
@@ -25,6 +26,11 @@ class AppUser {
   /// A number people can reach them on (separate from the login phone).
   final String? contactPhone;
 
+  /// When they finished the welcome path (null: show it first).
+  final DateTime? onboardedAt;
+
+  bool get needsWelcome => onboardedAt == null && role != UserRole.admin;
+
   factory AppUser.fromMap(Map<String, dynamic> map) => AppUser(
     id: map['id'] as String,
     phone: map['phone'] as String?,
@@ -38,5 +44,8 @@ class AppUser {
     createdAt: DateTime.parse(map['created_at'] as String),
     avatarUrl: map['avatar_url'] as String?,
     contactPhone: map['contact_phone'] as String?,
+    onboardedAt: map['onboarded_at'] == null
+        ? null
+        : DateTime.tryParse(map['onboarded_at'] as String),
   );
 }

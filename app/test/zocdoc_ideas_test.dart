@@ -227,9 +227,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('my doctors: saved first, book again or see now', (
-    tester,
-  ) async {
+  testWidgets('my doctors: saved first, book again or see now', (tester) async {
     await _host(
       tester,
       const Padding(padding: EdgeInsets.all(16), child: MyDoctorsRow()),

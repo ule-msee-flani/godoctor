@@ -8,6 +8,7 @@ import '../../../data/models/doctor_profile.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
+import '../../onboarding/registration_declaration.dart';
 
 class DoctorOnboardingScreen extends ConsumerStatefulWidget {
   const DoctorOnboardingScreen({super.key});
@@ -24,7 +25,25 @@ class _DoctorOnboardingScreenState
   final _specialties = <String>{};
   XFile? _document;
   bool _saving = false;
+  bool _declared = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // What they told us on the welcome path.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final d = await ref.read(currentDoctorProfileProvider.future);
+      if (!mounted || d == null) return;
+      setState(() {
+        if (_nameCtrl.text.isEmpty) _nameCtrl.text = d.name;
+        if (_specialties.isEmpty) _specialties.addAll(d.specialties);
+        if (_licenseCtrl.text.isEmpty) {
+          _licenseCtrl.text = d.licenseNumber ?? '';
+        }
+      });
+    });
+  }
 
   Future<void> _pickDocument() async {
     final file = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -39,6 +58,16 @@ class _DoctorOnboardingScreenState
         () => _error =
             'Please fill in all fields and pick at least one specialty.',
       );
+      return;
+    }
+    if (!_declared) {
+      setState(() => _error = 'Please confirm your details are genuine.');
+      return;
+    }
+    if (!await confirmSubmission(
+      context,
+      checking: 'your licence on the KMPDC register',
+    )) {
       return;
     }
     setState(() {
@@ -70,6 +99,7 @@ class _DoctorOnboardingScreenState
             licenseNumber: _licenseCtrl.text.trim(),
             verificationDocuments: docs,
           );
+      await ref.read(profileRepositoryProvider).attestRegistration();
       ref.invalidate(currentDoctorProfileProvider);
     } catch (e) {
       setState(() => _error = friendlyError(e));
@@ -134,9 +164,18 @@ class _DoctorOnboardingScreenState
               ),
               onPressed: _pickDocument,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            DeclarationTile(
+              value: _declared,
+              regulator: 'the KMPDC',
+              onChanged: (v) => setState(() {
+                _declared = v;
+                _error = null;
+              }),
+            ),
+            const SizedBox(height: 20),
             FilledButton(
-              onPressed: _saving ? null : _submit,
+              onPressed: _saving || !_declared ? null : _submit,
               child: _saving
                   ? const SizedBox(
                       height: 20,

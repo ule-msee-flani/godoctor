@@ -11,6 +11,7 @@ import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../../../services/geocoding.dart';
+import '../../onboarding/registration_declaration.dart';
 
 class ChemistOnboardingScreen extends ConsumerStatefulWidget {
   const ChemistOnboardingScreen({super.key});
@@ -27,7 +28,29 @@ class _ChemistOnboardingScreenState
   Place? _place;
   XFile? _document;
   bool _saving = false;
+  bool _declared = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // What they told us on the welcome path.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final c = await ref.read(currentChemistProfileProvider.future);
+      if (!mounted || c == null) return;
+      setState(() {
+        if (_nameCtrl.text.isEmpty) _nameCtrl.text = c.businessName;
+        if (_regCtrl.text.isEmpty) _regCtrl.text = c.registrationNumber ?? '';
+        if (_place == null && c.locationLat != null && c.locationLng != null) {
+          _place = Place(
+            name: c.locationName ?? 'Pharmacy location',
+            lat: c.locationLat!,
+            lng: c.locationLng!,
+          );
+        }
+      });
+    });
+  }
 
   Future<void> _pickLocation() async {
     final picked = await context.push<Place>(
@@ -48,6 +71,16 @@ class _ChemistOnboardingScreenState
         () => _error =
             'Please fill in your business name and registration number.',
       );
+      return;
+    }
+    if (!_declared) {
+      setState(() => _error = 'Please confirm your details are genuine.');
+      return;
+    }
+    if (!await confirmSubmission(
+      context,
+      checking: 'your registration with the Pharmacy and Poisons Board',
+    )) {
       return;
     }
     setState(() {
@@ -81,6 +114,7 @@ class _ChemistOnboardingScreenState
             locationName: _place?.name,
             verificationDocuments: docs,
           );
+      await ref.read(profileRepositoryProvider).attestRegistration();
       ref.invalidate(currentChemistProfileProvider);
     } catch (e) {
       setState(() => _error = friendlyError(e));
@@ -147,9 +181,18 @@ class _ChemistOnboardingScreenState
               ),
               onPressed: _pickDocument,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            DeclarationTile(
+              value: _declared,
+              regulator: 'the Pharmacy and Poisons Board',
+              onChanged: (v) => setState(() {
+                _declared = v;
+                _error = null;
+              }),
+            ),
+            const SizedBox(height: 20),
             FilledButton(
-              onPressed: _saving ? null : _submit,
+              onPressed: _saving || !_declared ? null : _submit,
               child: _saving
                   ? const SizedBox(
                       height: 20,

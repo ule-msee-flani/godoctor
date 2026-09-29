@@ -138,6 +138,15 @@ class ProfileRepository {
   }
 
   /// Public URL of a photo in the `avatars` bucket.
+  /// Saves the welcome path's answers for the caller's role and marks it
+  /// done. Keys the server doesn't know for the role are ignored.
+  Future<void> completeOnboarding(Map<String, Object?> answers) =>
+      _client.rpc('complete_onboarding', params: {'p': answers});
+
+  /// "The details I've given are genuine" on a doctor's or pharmacy's
+  /// registration.
+  Future<void> attestRegistration() => _client.rpc('attest_registration');
+
   /// A patient's card for their doctor or pharmacy (the server checks the
   /// relationship).
   Future<PatientCard?> patientCard(String patientId) async {
