@@ -48,6 +48,15 @@ android {
         }
     }
 
+    // Store the native libraries compressed in the APK (they're unpacked on
+    // install). The APK is sideloaded, so download size matters most: this
+    // roughly halves it.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     buildTypes {
         release {
             // The GoDoctor release key when available (so every version

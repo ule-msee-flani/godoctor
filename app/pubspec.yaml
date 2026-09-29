@@ -153,16 +153,16 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-# App icon: put your artwork in assets/logo/ (see assets/README.md), then fan it
+# App icon: the artwork lives in branding/ (not bundled in the app), fan it
 # out to every platform size with `dart run flutter_launcher_icons`.
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: assets/logo/app_icon.png
+  image_path: branding/app_icon.png
   adaptive_icon_background: "#00174C"
-  adaptive_icon_foreground: assets/logo/app_icon_foreground.png
+  adaptive_icon_foreground: branding/app_icon_foreground.png
   web:
     generate: true
-    image_path: assets/logo/app_icon.png
+    image_path: branding/app_icon.png
     background_color: "#0B1730"
     theme_color: "#1B63F2"

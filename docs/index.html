@@ -255,9 +255,11 @@
         return;
       }
 
-      var apk = (rel.assets || []).filter(function (a) {
+      var apks = (rel.assets || []).filter(function (a) {
         return /\.apk$/i.test(a.name);
-      })[0];
+      });
+      // Most phones are 64-bit; the "-32bit" APK is for older ones.
+      var apk = apks.filter(function (a) { return !/32bit/i.test(a.name); })[0] || apks[0];
 
       if (!apk) {
         fallback('<strong>' + (rel.name || rel.tag_name) + '</strong> has no Android package attached yet.');

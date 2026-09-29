@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'device_abi.dart';
+
 /// Published next to every APK by the release workflow
 /// (.github/workflows/release-apk.yml). GitHub redirects "latest" to the
 /// newest release, so this never needs the (rate-limited) GitHub API.
@@ -39,10 +41,19 @@ class AppRelease {
       ? ''
       : '${(sizeBytes! / (1024 * 1024)).toStringAsFixed(0)} MB';
 
-  static AppRelease? tryParse(String body) {
+  /// [abi] is this phone's CPU type; releases carry one APK per type
+  /// ("apks") and the phone downloads only its own. "apk" is the fallback
+  /// (and what older app versions read).
+  static AppRelease? tryParse(String body, {String? abi}) {
     try {
       final m = jsonDecode(body) as Map<String, dynamic>;
-      final url = m['apk'] as String?;
+      var url = m['apk'] as String?;
+      var size = (m['size'] as num?)?.toInt();
+      final mine = (m['apks'] as Map?)?[abi ?? currentAndroidAbi()];
+      if (mine is Map && mine['url'] is String) {
+        url = mine['url'] as String;
+        size = (mine['size'] as num?)?.toInt();
+      }
       final build = (m['build'] as num?)?.toInt();
       if (url == null || build == null || !url.startsWith('https://')) {
         return null;
@@ -51,7 +62,7 @@ class AppRelease {
         version: (m['version'] as String?) ?? '',
         build: build,
         apkUrl: url,
-        sizeBytes: (m['size'] as num?)?.toInt(),
+        sizeBytes: size,
         notes: [
           for (final n in (m['notes'] as List?) ?? const [])
             if ('$n'.trim().isNotEmpty) '$n'.trim(),
@@ -91,13 +102,21 @@ final availableUpdateProvider = FutureProvider.autoDispose<AppRelease?>((
   if (!inAppUpdatesSupported) return null;
   final installed = await ref.watch(installedVersionProvider.future);
   final latest = await ref.watch(latestReleaseProvider.future);
-  return isNewerRelease(latest, int.tryParse(installed.buildNumber) ?? 0)
+  return isNewerRelease(
+        latest,
+        releaseNumber(int.tryParse(installed.buildNumber) ?? 0),
+      )
       ? latest
       : null;
 });
 
 bool isNewerRelease(AppRelease? release, int installedBuild) =>
     release != null && release.build > installedBuild;
+
+/// The release number inside an Android versionCode. APKs built per CPU
+/// type carry it with the type in front (arm64: 2000 + n, 32-bit: 1000 + n),
+/// so compare only the last three digits.
+int releaseNumber(int versionCode) => versionCode % 1000;
 
 /// "Later" hides the prompt for that version for a day.
 class UpdateSnooze {

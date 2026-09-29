@@ -91,17 +91,22 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Build APK
-        # Phones only (32- and 64-bit ARM): leaving out the x86_64 emulator
-        # build makes the download noticeably smaller.
+      - name: Build APKs
+        # One APK per phone type, so each phone downloads only its own code:
+        # 64-bit ARM (nearly every phone) and 32-bit ARM (older ones). Their
+        # versionCodes get the type in front (2000 + n, 1000 + n); the app
+        # compares only the release number (n).
         run: >
-          flutter build apk --release
+          flutter build apk --release --split-per-abi
           --target-platform android-arm,android-arm64
           --build-name=${{ steps.v.outputs.version }}
           --build-number=${{ github.run_number }}
 
-      - name: Name the file
-        run: cp build/app/outputs/flutter-apk/app-release.apk "GoDoctor-${{ steps.v.outputs.version }}.apk"
+      - name: Name the files
+        run: |
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "GoDoctor-${{ steps.v.outputs.version }}.apk"
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "GoDoctor-${{ steps.v.outputs.version }}-32bit.apk"
+          ls -la GoDoctor-*.apk
 
       - name: Version file for in-app updates
         env:
@@ -117,10 +122,17 @@ jobs:
             git log --no-merges --pretty=format:'%s' "$RANGE" | grep -v '^Version ' | head -8 > notes.txt || true
           fi
           SIZE=$(stat -c%s "GoDoctor-$V.apk")
+          SIZE32=$(stat -c%s "GoDoctor-$V-32bit.apk")
+          BASE="https://github.com/$REPO/releases/download/v$V"
+          # "apk" is the 64-bit one (what older app versions download);
+          # "apks" lets the app pick the one for its phone.
           jq -n --arg v "$V" --argjson b "$BUILD" --argjson size "$SIZE" \
-            --arg url "https://github.com/$REPO/releases/download/v$V/GoDoctor-$V.apk" \
+            --arg url "$BASE/GoDoctor-$V.apk" \
+            --arg url32 "$BASE/GoDoctor-$V-32bit.apk" --argjson size32 "$SIZE32" \
             --rawfile notes notes.txt \
             '{version: $v, build: $b, apk: $url, size: $size,
+              apks: {"arm64-v8a": {url: $url, size: $size},
+                     "armeabi-v7a": {url: $url32, size: $size32}},
               notes: ($notes | split("\n") | map(select(length > 0)))}' > version.json
           cat version.json
 
@@ -131,6 +143,7 @@ jobs:
           name: GoDoctor ${{ steps.v.outputs.version }}
           files: |
             app/GoDoctor-${{ steps.v.outputs.version }}.apk
+            app/GoDoctor-${{ steps.v.outputs.version }}-32bit.apk
             app/version.json
           generate_release_notes: true
           make_latest: true

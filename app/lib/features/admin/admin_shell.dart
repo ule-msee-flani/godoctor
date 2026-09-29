@@ -140,7 +140,7 @@ class _Sidebar extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.asset(
-                      'assets/logo/app_icon.png',
+                      'assets/logo/app_icon.webp',
                       width: 32,
                       height: 32,
                       errorBuilder: (_, _, _) => const SizedBox(width: 32),
