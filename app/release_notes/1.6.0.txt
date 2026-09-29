@@ -1,0 +1,5 @@
+Specialties on Home are now big picture cards, two at a time; swipe for more
+Rate your doctor after a visit and your pharmacy after an order, with quick remarks
+Doctor and pharmacy profiles show their average rating and what patients say
+Pharmacies get a Home dashboard: sales, orders to handle, stock running low, out of stock, best sellers and reviews
+Doctors and pharmacies can see a patient's card (photo, allergies, conditions, medicines) for their own patients
