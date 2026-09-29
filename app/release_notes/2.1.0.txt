@@ -1,0 +1,5 @@
+New video call screen: your doctor full screen, with the prescription in a panel you pull up
+Leave the call screen and it keeps going in a floating window you can move or tuck away
+After paying you go straight to the waiting room, or wait on Home if it's slow
+Self-care practices: sleep, calm, mood, breathing exercises and more
+"How do you feel today?" with new feelings like Under the weather and Moody
