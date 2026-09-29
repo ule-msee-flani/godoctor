@@ -19,6 +19,7 @@ import '../../chat/chat_providers.dart';
 import '../../medications/medication_providers.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../services/live_updates.dart';
+import 'mood_check_in.dart';
 
 /// My on-demand consultation that's still under way, live.
 final activeConsultationProvider = StreamProvider.autoDispose<Consultation?>((
@@ -128,7 +129,14 @@ HomeFocus pickHomeFocus({
 /// in progress, an appointment starting, a dose due, a reply from the
 /// doctor, an order on its way... or simply "How are you feeling today?".
 class SmartHomeCard extends ConsumerWidget {
-  const SmartHomeCard({super.key, required this.onFeeling});
+  const SmartHomeCard({
+    super.key,
+    required this.onFeeling,
+    this.showAppointments = true,
+  });
+
+  /// Off when Home shows appointments in their own card.
+  final bool showAppointments;
 
   /// Start a consultation about [symptom] in [specialty].
   final void Function(String specialty, String symptom) onFeeling;
@@ -139,7 +147,9 @@ class SmartHomeCard extends ConsumerWidget {
     final focus = pickHomeFocus(
       now: DateTime.now(),
       active: ref.watch(activeConsultationProvider).valueOrNull,
-      upcoming: ref.watch(upcomingAppointmentsProvider).valueOrNull ?? const [],
+      upcoming: showAppointments
+          ? ref.watch(upcomingAppointmentsProvider).valueOrNull ?? const []
+          : const [],
       schedules: ref.watch(activeSchedulesProvider).valueOrNull ?? const [],
       chats: ref.watch(myChatsProvider).valueOrNull ?? const [],
       orders: ref.watch(ordersInProgressProvider).valueOrNull ?? const [],
@@ -190,7 +200,7 @@ class SmartHomeCard extends ConsumerWidget {
         ].join(' · '),
         onTap: () => context.go('/patient/health'),
       ),
-      FocusFeeling() => _FeelingCard(onPick: onFeeling),
+      FocusFeeling() => MoodCheckIn(onUnwell: onFeeling),
     };
 
     return AnimatedSwitcher(
@@ -513,51 +523,3 @@ class _OrderCard extends StatelessWidget {
   }
 }
 
-class _FeelingCard extends StatelessWidget {
-  const _FeelingCard({required this.onPick});
-
-  final void Function(String specialty, String symptom) onPick;
-
-  static const _options = [
-    ('Headache', 'General Practice'),
-    ('Fever', 'General Practice'),
-    ('Cough or cold', 'General Practice'),
-    ('Stomach upset', 'General Practice'),
-    ('Skin problem', 'Dermatology'),
-    ('My child is unwell', 'Pediatrics'),
-    ('Feeling low', 'Psychiatry/Mental Health'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('How are you feeling today?', style: theme.titleMedium),
-          const SizedBox(height: 2),
-          Text('Tap one to talk to a doctor about it.', style: theme.bodySmall),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final (label, specialty) in _options)
-                ActionChip(
-                  label: Text(label),
-                  onPressed: () => onPick(specialty, label),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -13,14 +13,18 @@ import 'package:intl/intl.dart';
 class DoctorAvatar extends ConsumerWidget {
   const DoctorAvatar({
     super.key,
-    required this.name,
+        required this.name,
     this.avatarPath,
     this.radius = 28,
+    this.square = false,
   });
 
   final String name;
   final String? avatarPath;
   final double radius;
+
+  /// A rounded square photo (doctor cards) instead of a circle.
+  final bool square;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,20 +32,48 @@ class DoctorAvatar extends ConsumerWidget {
         .watch(doctorDirectoryRepositoryProvider)
         .avatarUrl(avatarPath);
 
-    Widget fallback() => CircleAvatar(
-      radius: radius,
-      backgroundColor: AppColors.primarySoft,
-      child: Text(
-        initialsOf(name),
-        style: TextStyle(
-          color: AppColors.primary,
-          fontWeight: FontWeight.w700,
-          fontSize: radius * 0.7,
-        ),
+        final initials = Text(
+      initialsOf(name),
+      style: TextStyle(
+        color: AppColors.primary,
+        fontWeight: FontWeight.w700,
+        fontSize: radius * 0.7,
       ),
     );
+    Widget fallback() => square
+        ? Container(
+            width: radius * 2,
+            height: radius * 2,
+            decoration: BoxDecoration(
+              gradient: AppColors.skyGradient,
+              borderRadius: BorderRadius.circular(radius * 0.45),
+            ),
+            alignment: Alignment.center,
+            child: initials,
+          )
+        : CircleAvatar(
+            radius: radius,
+            backgroundColor: AppColors.primarySoft,
+            child: initials,
+          );
 
     if (url == null) return fallback();
+    if (square) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(radius * 0.45),
+        child: Container(
+          decoration: const BoxDecoration(gradient: AppColors.skyGradient),
+          child: Image.network(
+            url,
+            width: radius * 2,
+            height: radius * 2,
+            fit: BoxFit.cover,
+            alignment: const Alignment(0, -0.5),
+            errorBuilder: (_, _, _) => fallback(),
+          ),
+        ),
+      );
+    }
     return ClipOval(
       child: Image.network(
         url,
@@ -148,11 +180,12 @@ class DoctorCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DoctorAvatar(
-                    name: doctor.name,
-                    avatarPath: doctor.avatarPath,
-                    radius: 30,
-                  ),
+                                DoctorAvatar(
+                name: doctor.name,
+                avatarPath: doctor.avatarPath,
+                radius: 40,
+                square: true,
+              ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(

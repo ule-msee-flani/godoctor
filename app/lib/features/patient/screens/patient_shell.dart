@@ -5,26 +5,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../chat/chat_providers.dart';
 import '../family/family_providers.dart';
-import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/exit_guard.dart';
+import '../../../core/widgets/floating_nav_bar.dart';
 
 /// Bottom-navigation frame for the patient's top-level tabs. Every other
 /// patient route (intake, call, checkout...) is pushed full-screen on top,
 /// so focused flows don't show the tab bar.
-/// A bottom-bar tab whose icon pops when chosen and, with a [badge],
-/// floats gently until it's read.
-NavigationDestination _tab(IconData icon, String label, {int badge = 0}) =>
-    NavigationDestination(
-      icon: Bobbing(
-        active: badge > 0,
-        child: PopBadge(count: badge, child: Icon(icon)),
-      ),
-      selectedIcon: TabPop(
-        child: PopBadge(count: badge, child: Icon(icon)),
-      ),
-      label: label,
-    );
-
 class PatientShell extends ConsumerWidget {
   const PatientShell({super.key, required this.navigationShell});
 
@@ -44,18 +30,23 @@ class PatientShell extends ConsumerWidget {
       },
       child: Scaffold(
         body: navigationShell,
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: (i) => navigationShell.goBranch(
+        // A floating pill: the chosen tab grows into a capsule with its name.
+        bottomNavigationBar: FloatingNavBar(
+          currentIndex: navigationShell.currentIndex,
+          onTap: (i) => navigationShell.goBranch(
             i,
             initialLocation: i == navigationShell.currentIndex,
           ),
-          destinations: [
-            _tab(LucideIcons.house, 'Home'),
-            _tab(LucideIcons.stethoscope, 'Doctors'),
-            _tab(LucideIcons.messagesSquare, 'Chats', badge: unreadChats),
-            _tab(LucideIcons.heartPulse, 'Health'),
-            _tab(LucideIcons.user, 'Profile'),
+          items: [
+            const FloatingNavItem(LucideIcons.house, 'Home'),
+            const FloatingNavItem(LucideIcons.stethoscope, 'Doctors'),
+            FloatingNavItem(
+              LucideIcons.messagesSquare,
+              'Chats',
+              badge: unreadChats,
+            ),
+            const FloatingNavItem(LucideIcons.heartPulse, 'Health'),
+            const FloatingNavItem(LucideIcons.user, 'Profile'),
           ],
         ),
       ),

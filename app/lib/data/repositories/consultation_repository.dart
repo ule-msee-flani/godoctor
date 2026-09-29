@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_client.dart';
 import '../models/consultation.dart';
+import '../models/appointment_item.dart';
 import '../models/enums.dart';
 import '../models/visit.dart';
 
@@ -171,6 +172,15 @@ class ConsultationRepository {
         .eq('id', consultationId)
         .maybeSingle();
     return row == null ? null : Consultation.fromMap(row);
+  }
+
+  /// Every appointment and visit (upcoming, completed, cancelled), newest
+  /// first, with the doctor's name, photo and hospital.
+  Future<List<AppointmentItem>> myAppointments() async {
+    final rows = await _client.rpc('patient_appointments') as List<dynamic>;
+    return [
+      for (final r in rows) AppointmentItem.fromMap(r as Map<String, dynamic>),
+    ];
   }
 
   /// My visits with the doctor's name and photo, how many prescriptions

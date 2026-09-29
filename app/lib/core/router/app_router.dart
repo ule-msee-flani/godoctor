@@ -82,6 +82,7 @@ import '../widgets/role_shell.dart';
 import '../../features/chemist/screens/chemist_dashboard_screen.dart';
 import '../../features/patient/health/well_guide.dart';
 import '../../features/onboarding/welcome_path_screen.dart';
+import '../../features/patient/appointments/appointments.dart';
 
 /// A screen with nothing to go back to: back asks before leaving the app.
 Widget _top(Widget child) => ExitGuard(child: child);
@@ -228,6 +229,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => BookAppointmentScreen(
           doctorId: state.pathParameters['doctorId']!,
           rescheduleId: state.uri.queryParameters['reschedule'],
+          initialStart: DateTime.tryParse(
+            state.uri.queryParameters['at'] ?? '',
+          )?.toLocal(),
         ),
       ),
       GoRoute(
@@ -288,6 +292,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           transitionsBuilder: (context, animation, _, child) =>
               FadeTransition(opacity: animation, child: child),
         ),
+      ),
+      GoRoute(
+        path: '/patient/appointments',
+        builder: (context, state) => const AppointmentsScreen(),
       ),
       GoRoute(
         path: '/patient/well-guide',

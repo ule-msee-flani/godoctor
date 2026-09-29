@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +23,7 @@ import '../widgets/specialty_tiles.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../services/live_updates.dart';
 import '../visits/visit_widgets.dart';
+import '../appointments/appointments.dart';
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
@@ -95,6 +98,34 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                               const HandshakeWave(),
                             ],
                           ),
+                          if ((profile?.locationName ?? '').trim().isNotEmpty)
+                            InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () =>
+                                  context.push('/patient/profile/location'),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    LucideIcons.mapPin,
+                                    size: 13,
+                                    color: AppColors.inkSoft,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Flexible(
+                                    child: Text(
+                                      shortPlace(profile!.locationName!),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(color: AppColors.inkSoft),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -123,7 +154,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                   onChanged: (_) => setState(() {}),
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
-                    hintText: 'Search a symptom or specialty',
+                    hint: const RotatingHint(),
                     prefixIcon: const Icon(LucideIcons.search, size: 20),
                     suffixIcon: searching
                         ? IconButton(
@@ -143,10 +174,14 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: FamilyInviteBanner(consultationIds: familyInvites),
                   ),
+                // Booked appointments, like a ticket with the doctor's photo.
+                const FadeSlideIn(child: UpcomingAppointmentsHero()),
+                const SizedBox(height: 16),
                 FadeSlideIn(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: SmartHomeCard(
+                      showAppointments: false,
                       onFeeling: (specialty, symptom) =>
                           _startIntake(specialty, symptoms: symptom),
                     ),
@@ -229,6 +264,78 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// "Ruiru, Kiambu, Kenya" -> "Ruiru, Kiambu".
+String shortPlace(String place) {
+  final parts = [
+    for (final p in place.split(','))
+      if (p.trim().isNotEmpty && p.trim().toLowerCase() != 'kenya') p.trim(),
+  ];
+  return parts.take(2).join(', ');
+}
+
+/// The search hint that keeps suggesting things to try.
+class RotatingHint extends StatefulWidget {
+  const RotatingHint({super.key});
+
+  static const terms = [
+    'headache',
+    'skin rash',
+    'cough',
+    'back pain',
+    'Orthopedics',
+    'my child has a fever',
+    'stomach ache',
+  ];
+
+  @override
+  State<RotatingHint> createState() => _RotatingHintState();
+}
+
+class _RotatingHintState extends State<RotatingHint> {
+  int _i = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(milliseconds: 2600), (_) {
+      if (mounted) setState(() => _i = (_i + 1) % RotatingHint.terms.length);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      transitionBuilder: (child, a) => FadeTransition(
+        opacity: a,
+        child: SlideTransition(
+          position: Tween(
+            begin: const Offset(0, 0.4),
+            end: Offset.zero,
+          ).animate(a),
+          child: child,
+        ),
+      ),
+      child: Text(
+        'Try "${RotatingHint.terms[_i]}"',
+        key: ValueKey(_i),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyLarge?.copyWith(color: AppColors.inkFaint),
       ),
     );
   }

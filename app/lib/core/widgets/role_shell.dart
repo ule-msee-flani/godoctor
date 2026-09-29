@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
 import 'motion.dart';
 import 'exit_guard.dart';
+import 'floating_nav_bar.dart';
 
 /// One tab in a [RoleShell].
 class ShellTab {
@@ -85,16 +86,11 @@ class RoleShell extends StatelessWidget {
     }
     return Scaffold(
       body: _body,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: _go,
-        destinations: [
-          for (final t in tabs)
-            NavigationDestination(
-              icon: _icon(t),
-              selectedIcon: _icon(t, selected: true),
-              label: t.label,
-            ),
+      bottomNavigationBar: FloatingNavBar(
+        currentIndex: navigationShell.currentIndex,
+        onTap: _go,
+        items: [
+          for (final t in tabs) FloatingNavItem(t.icon, t.label, badge: t.badge),
         ],
       ),
     );

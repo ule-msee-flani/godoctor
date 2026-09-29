@@ -49,4 +49,30 @@ class AppColors {
     end: Alignment.bottomCenter,
     colors: [primaryDark, primary],
   );
+
+  // Soft pastel card backgrounds (appointment, availability, readings...).
+  static const mintGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFEFFAF6), Color(0xFFD5F1EA)],
+  );
+  static const skyGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFF0F5FF), Color(0xFFDCE7FF)],
+  );
+  static const lavenderGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFF6F2FF), Color(0xFFE6DDFC)],
+  );
+  static const peachGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFFF6EE), Color(0xFFFCE3D2)],
+  );
+
+  static const mint = Color(0xFF12A58A);
+  static const lavender = Color(0xFF7B5CE6);
+  static const peach = Color(0xFFE9804C);
 }

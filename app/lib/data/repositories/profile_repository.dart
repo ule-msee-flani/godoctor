@@ -158,6 +158,12 @@ class ProfileRepository {
         : PatientCard.fromMap(rows.first as Map<String, dynamic>);
   }
 
+  /// "How are you feeling today?" (great / good / okay / low / unwell).
+  Future<void> logMood(String mood) => _client.from('mood_checkins').insert({
+    'patient_id': _client.auth.currentUser!.id,
+    'mood': mood,
+  });
+
   /// Well guide: when I last had each preventive check (key -> date).
   Future<Map<String, DateTime>> preventiveChecks() async {
     final rows = await _client

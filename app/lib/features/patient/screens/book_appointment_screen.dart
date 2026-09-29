@@ -37,12 +37,16 @@ DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 class BookAppointmentScreen extends ConsumerStatefulWidget {
   const BookAppointmentScreen({
     super.key,
-    required this.doctorId,
+        required this.doctorId,
     this.rescheduleId,
+    this.initialStart,
   });
 
   final String doctorId;
   final String? rescheduleId;
+
+  /// A time already chosen on the doctor's profile.
+  final DateTime? initialStart;
 
   @override
   ConsumerState<BookAppointmentScreen> createState() =>
@@ -50,8 +54,9 @@ class BookAppointmentScreen extends ConsumerStatefulWidget {
 }
 
 class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
-  DateTime? _day;
+    DateTime? _day;
   TimeSlot? _slot;
+  bool _preselected = false;
   final _reasonCtrl = TextEditingController();
   bool _submitting = false;
   String? _error;
@@ -184,6 +189,19 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
       for (var i = 0; i < _horizonDays; i++) today.add(Duration(days: i)),
     ];
 
+        // The time picked on the profile, if it's still free.
+    if (!_preselected) {
+      _preselected = true;
+      final at = widget.initialStart;
+      if (at != null) {
+        for (final s in slots) {
+          if (s.start.isAtSameMomentAs(at)) {
+            _day = _dateOnly(s.start);
+            _slot = s;
+          }
+        }
+      }
+    }
     // Default to the first day that has any slot.
     _day ??= days.firstWhere(byDay.containsKey, orElse: () => today);
     final daySlots = byDay[_day] ?? const <TimeSlot>[];

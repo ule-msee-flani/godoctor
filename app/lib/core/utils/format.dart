@@ -1,6 +1,13 @@
 import 'package:intl/intl.dart';
 
 /// "KES 1,500", "Free", or "Fee not set".
+/// 950 -> "950", 2500 -> "2.5k", 12000 -> "12k".
+String compactCount(num n) {
+  if (n < 1000) return '${n.round()}';
+  final k = n / 1000;
+  return k >= 10 ? '${k.round()}k' : '${k.toStringAsFixed(1).replaceAll('.0', '')}k';
+}
+
 String formatKes(double? amount) {
   if (amount == null) return 'Fee not set';
   if (amount == 0) return 'Free';

@@ -20,6 +20,8 @@ import '../widgets/specialty_tiles.dart';
 import '../widgets/doctor_widgets.dart';
 import '../../reviews/review_widgets.dart';
 import '../doctors/my_doctors.dart';
+import '../../../core/widgets/design_kit.dart';
+import '../doctors/inline_booking.dart';
 
 final publicDoctorProvider = FutureProvider.autoDispose
     .family<PublicDoctor?, String>(
@@ -181,30 +183,57 @@ class DoctorProfileScreen extends ConsumerWidget {
       const SizedBox(height: 18),
       FadeSlideIn(
         index: 1,
-        child: ProfileStatsRow(
-          stats: [
-            ProfileStat(
-              value: doctor.yearsExperience == null
-                  ? 'New'
-                  : '${doctor.yearsExperience} yrs',
-              label: 'Experience',
+        child: Row(
+          children: [
+            Expanded(
+              child: StatPill(
+                value: doctor.yearsExperience == null
+                    ? 'New'
+                    : '${doctor.yearsExperience}y+',
+                label: 'Experience',
+                gradient: AppColors.skyGradient,
+              ),
             ),
-            ProfileStat(
-              value: stats == null ? '–' : '${stats.consultations}',
-              label: 'Consultations',
+            const SizedBox(width: 8),
+            Expanded(
+              child: StatPill(
+                value: stats == null ? '–' : compactCount(stats.patients),
+                label: 'Patients',
+                gradient: AppColors.mintGradient,
+              ),
             ),
-            ProfileStat(
-              icon: LucideIcons.star,
-              value: doctor.ratingCount == 0
-                  ? 'New'
-                  : doctor.ratingAvg.toStringAsFixed(1),
-              label: doctor.ratingCount == 0
-                  ? 'No reviews yet'
-                  : '${doctor.ratingCount} reviews',
+            const SizedBox(width: 8),
+            Expanded(
+              child: StatPill(
+                icon: Icons.star_rounded,
+                value: doctor.ratingCount == 0
+                    ? 'New'
+                    : doctor.ratingAvg.toStringAsFixed(1),
+                label: doctor.ratingCount == 0
+                    ? 'No reviews'
+                    : '${compactCount(doctor.ratingCount)} reviews',
+                gradient: AppColors.peachGradient,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: StatPill(
+                value: formatKes(doctor.consultationFee).replaceFirst('KES ', ''),
+                label: 'Fee (KES)',
+                gradient: AppColors.lavenderGradient,
+              ),
             ),
           ],
         ),
       ),
+      if (doctor.nextSlot != null) ...[
+        const SizedBox(height: 14),
+        FadeSlideIn(index: 2, child: EarliestAvailabilityCard(doctor: doctor)),
+        ProfileSection(
+          title: 'Pick a time',
+          child: InlineBooking(doctor: doctor),
+        ),
+      ],
       if ((doctor.bio ?? '').trim().isNotEmpty)
         ProfileSection(
           title: 'About $firstName',
