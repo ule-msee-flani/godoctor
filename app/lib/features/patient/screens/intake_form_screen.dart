@@ -14,6 +14,7 @@ import '../consult/voice_note_recorder.dart';
 import '../home/emergency_strip.dart';
 import '../widgets/emergency_stop_view.dart';
 import '../widgets/specialty_tiles.dart';
+import '../intake/body_map.dart';
 
 /// "See a doctor", step 1 of 3: pick the kind of problem and describe it in
 /// your own words. Then step 2 lists the doctors who are online for it.
@@ -34,6 +35,31 @@ class IntakeFormScreen extends ConsumerStatefulWidget {
 
 class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
   String? _specialty;
+
+  /// Body areas tapped on the map, in order.
+  final List<String> _areas = [];
+  bool _showMap = false;
+  bool _specialtyChosen = false;
+
+  /// What the doctor reads: where it hurts, then their own words.
+  String get _symptomText => [
+    if (_areas.isNotEmpty) 'Where: ${describeAreas(_areas)}.',
+    _symptomsCtrl.text.trim(),
+  ].where((s) => s.isNotEmpty).join(' ');
+
+  void _areasChanged(List<String> next) {
+    setState(() {
+      _areas
+        ..clear()
+        ..addAll(next);
+      var s = specialtyForAreas(next);
+      final gender = ref.read(currentPatientProfileProvider).valueOrNull?.gender;
+      if (s == 'Obstetrics & Gynaecology' && gender == 'male') {
+        s = 'General Practice';
+      }
+      if (s != null && !_specialtyChosen) _specialty = s;
+    });
+  }
   late final _symptomsCtrl = TextEditingController(
     text: widget.initialSymptoms,
   );
@@ -59,10 +85,11 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
   }
 
   bool get _canContinue =>
-      _specialty != null && _symptomsCtrl.text.trim().length >= 3;
+      _specialty != null &&
+      (_symptomsCtrl.text.trim().length >= 3 || _areas.isNotEmpty);
 
   Future<void> _findDoctor() async {
-    final symptoms = _symptomsCtrl.text.trim();
+    final symptoms = _symptomText;
     final emergency = checkForEmergency([symptoms]);
 
     if (emergency.flagged) {
@@ -142,6 +169,13 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const ConsultSteps(current: 1),
+                    const SizedBox(height: 20),
+                    _WhereItHurts(
+                      open: _showMap,
+                      picked: _areas,
+                      onOpen: () => setState(() => _showMap = !_showMap),
+                      onChanged: _areasChanged,
+                    ),
                     const SizedBox(height: 24),
                     Text(
                       'What do you need help with?',
@@ -155,7 +189,10 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
                     const SizedBox(height: 14),
                     SpecialtyGrid(
                       selected: _specialty ?? '',
-                      onSelected: (v) => setState(() => _specialty = v),
+                      onSelected: (v) => setState(() {
+                        _specialty = v;
+                        _specialtyChosen = true;
+                      }),
                     ),
                     const SizedBox(height: 26),
                     Row(
@@ -220,6 +257,96 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// "Where does it hurt?" — folded until opened; shows what's picked.
+class _WhereItHurts extends StatelessWidget {
+  const _WhereItHurts({
+    required this.open,
+    required this.picked,
+    required this.onOpen,
+    required this.onChanged,
+  });
+
+  final bool open;
+  final List<String> picked;
+  final VoidCallback onOpen;
+  final ValueChanged<List<String>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppColors.lavenderGradient,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: onOpen,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+              child: Row(
+                children: [
+                  const Icon(
+                    LucideIcons.personStanding,
+                    color: AppColors.lavender,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Where does it hurt?',
+                          style: text.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          picked.isEmpty
+                              ? 'Show me on the body (optional)'
+                              : describeAreas(picked),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.bodySmall?.copyWith(
+                            color: picked.isEmpty
+                                ? AppColors.inkSoft
+                                : AppColors.lavender,
+                            fontWeight: picked.isEmpty
+                                ? FontWeight.normal
+                                : FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: open ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(LucideIcons.chevronDown, size: 18),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+            child: open
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                    child: BodyMap(picked: picked, onChanged: onChanged),
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
+        ],
       ),
     );
   }

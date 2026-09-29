@@ -14,6 +14,8 @@ import '../../../services/chemist_matching.dart';
 import '../../../services/distance.dart';
 import '../../../services/live_updates.dart';
 import '../../location/match_location_bar.dart';
+import '../../../services/pharmacy_hours.dart';
+import 'pharmacy_map.dart';
 
 /// Every verified pharmacy.
 final publicChemistsProvider = FutureProvider.autoDispose<List<PublicChemist>>(
@@ -62,6 +64,7 @@ class PharmaciesScreen extends ConsumerStatefulWidget {
 
 class _PharmaciesScreenState extends ConsumerState<PharmaciesScreen> {
   final _search = TextEditingController();
+  bool _onMap = false;
 
   @override
   void initState() {
@@ -81,9 +84,55 @@ class _PharmaciesScreenState extends ConsumerState<PharmaciesScreen> {
   Widget build(BuildContext context) {
     final async = ref.watch(publicChemistsProvider);
     final at = ref.watch(matchingLocationProvider);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Pharmacies')),
-      body: LiveRefresh(
+        return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pharmacies'),
+        actions: [
+          // List or map.
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: SegmentedButton<bool>(
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+              ),
+              segments: const [
+                ButtonSegment(
+                  value: false,
+                  icon: Icon(LucideIcons.list, size: 16),
+                  tooltip: 'List',
+                ),
+                ButtonSegment(
+                  value: true,
+                  icon: Icon(LucideIcons.map, size: 16),
+                  tooltip: 'Map',
+                ),
+              ],
+              selected: {_onMap},
+              onSelectionChanged: (s) => setState(() => _onMap = s.first),
+            ),
+          ),
+        ],
+      ),
+      body: _onMap
+          ? Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: MatchLocationBar(),
+                ),
+                Expanded(
+                  child: PharmacyMap(
+                    pharmacies: rankPharmacies(
+                      async.valueOrNull ?? const [],
+                      at,
+                    ),
+                    at: at,
+                  ),
+                ),
+              ],
+            )
+          : LiveRefresh(
         onRefresh: () => ref.refresh(publicChemistsProvider.future),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -148,7 +197,7 @@ class _PharmaciesScreenState extends ConsumerState<PharmaciesScreen> {
           ],
         ),
       ),
-    );
+        );
   }
 }
 
@@ -262,6 +311,20 @@ class PharmacyCard extends ConsumerWidget {
                           spacing: 10,
                           runSpacing: 2,
                           children: [
+                            if (isOpenNow(c.openDays, c.openingHours, DateTime.now())
+                                case final open?)
+                              _Meta(
+                                icon: LucideIcons.clock,
+                                text: open ? 'Open now' : 'Closed',
+                                color: open ? AppColors.success : AppColors.danger,
+                              ),
+                            if (c.deliversTo(km))
+                              _Meta(
+                                icon: LucideIcons.bike,
+                                text: km == null
+                                    ? 'Delivers'
+                                    : 'Delivers ${deliveryEstimate(km!)}',
+                              ),
                             if (c.ratingCount > 0)
                               _Meta(
                                 icon: LucideIcons.star,
@@ -305,23 +368,25 @@ class PharmacyCard extends ConsumerWidget {
 }
 
 class _Meta extends StatelessWidget {
-  const _Meta({required this.icon, required this.text});
+  const _Meta({required this.icon, required this.text, this.color});
 
   final IconData icon;
   final String text;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: AppColors.inkFaint),
+                Icon(icon, size: 13, color: color ?? AppColors.inkFaint),
         const SizedBox(width: 4),
         Text(
           text,
-          style: Theme.of(
-            context,
-          ).textTheme.labelSmall?.copyWith(color: AppColors.inkSoft),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: color ?? AppColors.inkSoft,
+            fontWeight: color == null ? null : FontWeight.w700,
+          ),
         ),
       ],
     );

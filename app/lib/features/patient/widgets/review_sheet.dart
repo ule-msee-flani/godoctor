@@ -269,7 +269,21 @@ class _RateSheetState extends State<_RateSheet> {
               style: theme.bodyMedium,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
+            // A face that follows the stars.
+            SizedBox(
+              height: 56,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                transitionBuilder: (c, a) => ScaleTransition(scale: a, child: c),
+                child: Text(
+                  const ['🤔', '😞', '🙁', '😐', '🙂', '😍'][_rating],
+                  key: ValueKey(_rating),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 44),
+                ),
+              ),
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

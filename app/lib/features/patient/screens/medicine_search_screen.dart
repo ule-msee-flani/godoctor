@@ -11,7 +11,8 @@ import '../../../data/models/drug.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../../medicine/medicine_gallery.dart';
-import '../chemist/pharmacies_screen.dart';
+import '../../medicine/shop_by_symptom.dart';
+
 
 /// Stock at verified chemists for the medicine being showcased.
 final _stockProvider = FutureProvider.autoDispose
@@ -32,6 +33,7 @@ class MedicineSearchScreen extends ConsumerStatefulWidget {
 
 class _MedicineSearchScreenState extends ConsumerState<MedicineSearchScreen> {
   bool _searching = false;
+  SymptomShelf? _shelf;
   final _searchCtrl = TextEditingController();
 
   @override
@@ -86,13 +88,16 @@ class _MedicineSearchScreenState extends ConsumerState<MedicineSearchScreen> {
         data: (drugs) => Column(
           children: [
             if (!_searching)
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 4, 16, 4),
-                child: PharmaciesBanner(),
+              ShopHeader(
+                shelf: _shelf,
+                onShelf: (s) => setState(() => _shelf = s),
               ),
             Expanded(
               child: MedicineGallery(
-                drugs: drugs,
+                key: ValueKey(_shelf?.label),
+                drugs: _shelf == null || _searching
+                    ? drugs
+                    : drugsForShelf(drugs, _shelf!),
                 query: _searching ? _searchCtrl.text : '',
                 emptyMessage: 'The medicine catalogue is empty.',
                 footerBuilder: (context, drug) => _WhereToBuy(drug: drug),

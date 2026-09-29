@@ -27,8 +27,10 @@ class VideoCallPanel extends StatefulWidget {
     this.onMinimize,
     this.onExpand,
     this.listeners = const [],
-    this.remoteCameraOff = false,
+        this.remoteCameraOff = false,
     this.startWithCameraOff = false,
+    this.otherPhotoUrl,
+    this.selfPhotoUrl,
   });
 
   final String otherPartyName;
@@ -55,8 +57,15 @@ class VideoCallPanel extends StatefulWidget {
   /// doctor to, to save data): their tile shows their initials only.
   final bool remoteCameraOff;
 
-  /// Start with my own camera off (data saver). Still switchable.
+    /// Start with my own camera off (data saver). Still switchable.
   final bool startWithCameraOff;
+
+  /// The other person's photo: fills their tile until real video is wired
+  /// in (then the SDK's view replaces it).
+  final String? otherPhotoUrl;
+
+  /// My photo for the self-view bubble.
+  final String? selfPhotoUrl;
 
   @override
   State<VideoCallPanel> createState() => _VideoCallPanelState();
@@ -112,7 +121,41 @@ class _VideoCallPanelState extends State<VideoCallPanel>
     return widget.compact ? _buildCompact() : _buildFull();
   }
 
-  Widget _remoteTile({required double avatar}) {
+    Widget _remoteTile({required double avatar}) {
+    final photo = widget.otherPhotoUrl;
+    if (photo != null && !widget.remoteCameraOff) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            photo,
+            fit: BoxFit.cover,
+            alignment: const Alignment(0, -0.35),
+            errorBuilder: (_, _, _) => _initialsTile(avatar),
+          ),
+          // Darker at the top and bottom so the controls read.
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x66000000),
+                  Color(0x00000000),
+                  Color(0x00000000),
+                  Color(0x99000000),
+                ],
+                stops: [0, 0.25, 0.6, 1],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return _initialsTile(avatar);
+  }
+
+  Widget _initialsTile(double avatar) {
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -171,8 +214,8 @@ class _VideoCallPanelState extends State<VideoCallPanel>
   }
 
   Widget _buildFull() {
-    final body = ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+        final body = ClipRRect(
+      borderRadius: BorderRadius.circular(26),
       child: LayoutBuilder(
         builder: (context, c) {
           final small = c.maxHeight < 220;
@@ -262,19 +305,34 @@ class _VideoCallPanelState extends State<VideoCallPanel>
                   ],
                 ),
               ),
-              // Self view.
+                            // Self view.
               Positioned(
                 right: 12,
-                bottom: small ? 60 : 72,
-                child: _SelfView(cameraOff: _cameraOff, small: small),
+                top: widget.onMinimize != null ? 56 : 12,
+                child: _SelfView(
+                  cameraOff: _cameraOff,
+                  small: small,
+                  photoUrl: widget.selfPhotoUrl,
+                ),
               ),
-              // Controls.
+              // Controls: a floating frosted pill.
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: 12,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                bottom: 14,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.42),
+                      borderRadius: BorderRadius.circular(40),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     _RoundButton(
                       icon: _muted ? LucideIcons.micOff : LucideIcons.mic,
@@ -293,19 +351,22 @@ class _VideoCallPanelState extends State<VideoCallPanel>
                       active: _cameraOff,
                       onTap: () => setState(() => _cameraOff = !_cameraOff),
                     ),
-                    if (widget.onEndCall != null) ...[
+                                        if (widget.onEndCall != null) ...[
                       const SizedBox(width: 12),
                       _RoundButton(
                         icon: LucideIcons.phoneOff,
                         tooltip: 'End call',
                         color: AppColors.danger,
+                        wide: true,
                         onTap: widget.onEndCall!,
                       ),
                     ],
                   ],
                 ),
+                  ),
+                ),
               ),
-              const Positioned(left: 12, bottom: 18, child: _MockLabel()),
+              const Positioned(left: 12, bottom: 22, child: _MockLabel()),
             ],
           );
         },
@@ -425,28 +486,44 @@ class _MockLabel extends StatelessWidget {
 }
 
 class _SelfView extends StatelessWidget {
-  const _SelfView({required this.cameraOff, required this.small});
+  const _SelfView({
+    required this.cameraOff,
+    required this.small,
+    this.photoUrl,
+  });
 
   final bool cameraOff;
   final bool small;
+  final String? photoUrl;
 
   @override
   Widget build(BuildContext context) {
+    final icon = Center(
+      child: Icon(
+        cameraOff ? LucideIcons.videoOff : LucideIcons.userRound,
+        color: Colors.white70,
+        size: small ? 20 : 26,
+      ),
+    );
     return Container(
-      width: small ? 58 : 76,
-      height: small ? 78 : 104,
+      width: small ? 62 : 84,
+      height: small ? 84 : 112,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: const Color(0xFF2A3A63),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white24),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: const [
+          BoxShadow(color: Color(0x55000000), blurRadius: 10),
+        ],
       ),
-      child: Center(
-        child: Icon(
-          cameraOff ? LucideIcons.videoOff : LucideIcons.userRound,
-          color: Colors.white70,
-          size: small ? 20 : 26,
-        ),
-      ),
+      child: cameraOff || photoUrl == null
+          ? icon
+          : Image.network(
+              photoUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => icon,
+            ),
     );
   }
 }
@@ -456,9 +533,10 @@ class _RoundButton extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onTap,
-    this.color,
+        this.color,
     this.active = false,
     this.size = 44,
+    this.wide = false,
   });
 
   final IconData icon;
@@ -467,6 +545,9 @@ class _RoundButton extends StatelessWidget {
   final Color? color;
   final bool active;
   final double size;
+
+  /// A pill (the red end-call button) instead of a circle.
+  final bool wide;
 
   @override
   Widget build(BuildContext context) {
@@ -477,14 +558,14 @@ class _RoundButton extends StatelessWidget {
         : (active ? AppColors.ink : Colors.white);
     return Tooltip(
       message: tooltip,
-      child: Material(
+            child: Material(
         color: bg,
-        shape: const CircleBorder(),
+        shape: wide ? const StadiumBorder() : const CircleBorder(),
         child: InkWell(
-          customBorder: const CircleBorder(),
+          customBorder: wide ? const StadiumBorder() : const CircleBorder(),
           onTap: onTap,
           child: SizedBox(
-            width: size,
+            width: wide ? size * 1.6 : size,
             height: size,
             child: Icon(icon, color: fg, size: size * 0.45),
           ),

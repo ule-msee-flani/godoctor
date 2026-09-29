@@ -24,6 +24,7 @@ import '../widgets/doctor_widgets.dart' show VerifiedBadge;
 import '../widgets/medicine_image.dart';
 import '../../../data/models/public_doctor.dart' show DoctorReview;
 import '../../reviews/review_widgets.dart';
+import '../../../services/pharmacy_hours.dart';
 
 final publicChemistProvider = FutureProvider.autoDispose
     .family<PublicChemist?, String>(
@@ -184,6 +185,14 @@ class ChemistProfileScreen extends ConsumerWidget {
           ],
         ),
       ),
+      if (c.openingHours != null ||
+          c.openDays.isNotEmpty ||
+          c.offersDelivery != null ||
+          c.services.isNotEmpty)
+        ProfileSection(
+          title: 'Hours & services',
+          child: _HoursCard(chemist: c, km: km),
+        ),
       if (c.hasLocation)
         ProfileSection(
           title: 'Where to find them',
@@ -244,6 +253,130 @@ class ChemistProfileScreen extends ConsumerWidget {
           ),
         ),
     ];
+  }
+}
+
+class _HoursCard extends StatelessWidget {
+  const _HoursCard({required this.chemist, required this.km});
+
+  final PublicChemist chemist;
+  final double? km;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final c = chemist;
+    final open = isOpenNow(c.openDays, c.openingHours, DateTime.now());
+    const week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: AppColors.mintGradient,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (open != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: open ? AppColors.success : AppColors.danger,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    open ? 'Open now' : 'Closed now',
+                    style: text.labelSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              if (open != null) const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  hoursLabel(c.openingHours),
+                  style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          if (c.openDays.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                for (final d in week)
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: c.openDays.contains(d)
+                            ? AppColors.white
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        d.substring(0, 2),
+                        style: text.labelSmall?.copyWith(
+                          color: c.openDays.contains(d)
+                              ? AppColors.ink
+                              : AppColors.inkFaint,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          if (c.offersDelivery != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  c.offersDelivery! ? LucideIcons.bike : LucideIcons.store,
+                  size: 16,
+                  color: AppColors.mint,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    !c.offersDelivery!
+                        ? 'Pickup only'
+                        : c.deliversTo(km)
+                        ? 'Delivers to you${km == null ? '' : ' · ${deliveryEstimate(km!)}'}'
+                        : 'Delivers within ${c.deliveryRadiusKm} km',
+                    style: text.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (c.services.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final s in c.services)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(s, style: text.labelMedium),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 

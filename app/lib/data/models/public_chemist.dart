@@ -11,8 +11,13 @@ class PublicChemist {
     this.memberSince,
     this.medicinesInStock = 0,
     this.ordersFilled = 0,
-    this.ratingAvg = 0,
+        this.ratingAvg = 0,
     this.ratingCount = 0,
+    this.offersDelivery,
+    this.deliveryRadiusKm,
+    this.openingHours,
+    this.openDays = const [],
+    this.services = const [],
   });
 
   final String userId;
@@ -30,7 +35,23 @@ class PublicChemist {
 
   /// Average of every patient's rating (0 when there are none).
   final double ratingAvg;
-  final int ratingCount;
+    final int ratingCount;
+
+  /// Null when they haven't said.
+  final bool? offersDelivery;
+  final int? deliveryRadiusKm;
+
+  /// "24 hours" or "08:00-20:00".
+  final String? openingHours;
+
+  /// "Mon".."Sun"; empty when not given.
+  final List<String> openDays;
+  final List<String> services;
+
+  /// They deliver to a place [km] away.
+  bool deliversTo(double? km) =>
+      offersDelivery == true &&
+      (km == null || deliveryRadiusKm == null || km <= deliveryRadiusKm!);
 
   bool get hasLocation => lat != null && lng != null;
 
@@ -50,7 +71,12 @@ class PublicChemist {
     medicinesInStock: (m['medicines_in_stock'] as num?)?.toInt() ?? 0,
     ordersFilled: (m['orders_filled'] as num?)?.toInt() ?? 0,
     ratingAvg: (m['rating_avg'] as num?)?.toDouble() ?? 0,
-    ratingCount: (m['rating_count'] as num?)?.toInt() ?? 0,
+        ratingCount: (m['rating_count'] as num?)?.toInt() ?? 0,
+    offersDelivery: m['offers_delivery'] as bool?,
+    deliveryRadiusKm: (m['delivery_radius_km'] as num?)?.toInt(),
+    openingHours: m['opening_hours'] as String?,
+    openDays: ((m['open_days'] as List?) ?? const []).cast<String>(),
+    services: ((m['services'] as List?) ?? const []).cast<String>(),
   );
 }
 

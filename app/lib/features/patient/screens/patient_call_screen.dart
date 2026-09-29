@@ -24,6 +24,7 @@ import '../family/family_session_panel.dart';
 import '../widgets/doctor_widgets.dart';
 import 'doctor_profile_screen.dart' show publicDoctorProvider;
 import '../widgets/review_sheet.dart';
+import '../../../data/providers/repository_providers.dart';
 
 /// The patient's side of the consultation. Until the doctor opens the call
 /// the patient waits in a calm waiting room (with a camera / data choice);
@@ -204,12 +205,18 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
             otherPartyName: doctorName,
             otherPartyRole: consultation.specialtyRequested,
             startedAt: consultation.startedAt,
-            height: (MediaQuery.sizeOf(context).height * 0.36).clamp(
-              190.0,
-              300.0,
+                        height: (MediaQuery.sizeOf(context).height * 0.52).clamp(
+              260.0,
+              470.0,
             ),
             listeners: listeners,
             remoteCameraOff: !doctorVideo,
+            otherPhotoUrl: ref
+                .watch(profileRepositoryProvider)
+                .avatarUrl(doctor?.avatarPath),
+            selfPhotoUrl: ref
+                .watch(profileRepositoryProvider)
+                .avatarUrl(ref.watch(currentAppUserProvider).value?.avatarUrl),
             startWithCameraOff: _myCameraOff,
             onEndCall: () => _leave(context),
           ),
