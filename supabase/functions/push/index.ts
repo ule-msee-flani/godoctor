@@ -169,6 +169,73 @@ function message(n: NotificationRow, token: string, category: string) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Email for news that matters beyond the phone (the verification outcome).
+// Sent through Brevo (BREVO_API_KEY) or Resend (RESEND_API_KEY) from
+// EMAIL_FROM ("GoDoctor <you@example.com>"); skipped until one is set.
+// ---------------------------------------------------------------------------
+const EMAIL_KINDS = new Set(['verification_approved', 'verification_removed']);
+const BREVO_KEY = Deno.env.get('BREVO_API_KEY') ?? '';
+const RESEND_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
+const EMAIL_FROM = Deno.env.get('EMAIL_FROM') ?? '';
+const APP_LINK = Deno.env.get('APP_LINK') ?? 'https://ule-msee-flani.github.io/godoctor/';
+
+const esc = (t: string) =>
+  t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function emailHtml(n: NotificationRow): string {
+  const good = n.kind === 'verification_approved';
+  return `<!doctype html><html><body style="margin:0;background:#F5F8FF;font-family:Arial,Helvetica,sans-serif;color:#0B1730">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 12px">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:20px;overflow:hidden">
+<tr><td style="background:#1B63F2;padding:22px 28px;color:#ffffff;font-size:22px;font-weight:bold">GoDoctor</td></tr>
+<tr><td style="padding:28px">
+<div style="font-size:40px;line-height:1">${good ? '&#127881;' : '&#9888;&#65039;'}</div>
+<h1 style="font-size:22px;margin:16px 0 10px">${esc(n.title)}</h1>
+<p style="font-size:15px;line-height:1.55;color:#57617A;margin:0 0 24px">${esc(n.body ?? '')}</p>
+<a href="${APP_LINK}" style="display:inline-block;background:#1B63F2;color:#ffffff;text-decoration:none;font-weight:bold;padding:13px 26px;border-radius:12px">Open GoDoctor</a>
+</td></tr>
+<tr><td style="padding:0 28px 24px;font-size:12px;color:#9AA8C3">You're getting this because you registered on GoDoctor.</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+async function sendEmail(n: NotificationRow): Promise<string> {
+  if (!EMAIL_KINDS.has(n.kind) || !EMAIL_FROM || (!BREVO_KEY && !RESEND_KEY)) return 'skipped';
+  const { data } = await supabase.auth.admin.getUserById(n.user_id);
+  const to = data?.user?.email;
+  if (!to) return 'no email';
+  const named = EMAIL_FROM.match(/^(.*)<(.+)>\s*$/);
+  const fromName = named ? named[1].trim() || 'GoDoctor' : 'GoDoctor';
+  const fromEmail = named ? named[2].trim() : EMAIL_FROM.trim();
+  const text = `${n.title}\n\n${n.body ?? ''}\n\nOpen GoDoctor: ${APP_LINK}`;
+  const res = BREVO_KEY
+    ? await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': BREVO_KEY, 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        sender: { name: fromName, email: fromEmail },
+        to: [{ email: to }],
+        subject: n.title,
+        htmlContent: emailHtml(n),
+        textContent: text,
+      }),
+    })
+    : await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${RESEND_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        from: `${fromName} <${fromEmail}>`,
+        to: [to],
+        subject: n.title,
+        html: emailHtml(n),
+        text,
+      }),
+    });
+  if (!res.ok) console.error('email error', res.status, await res.text().catch(() => ''));
+  return res.ok ? 'emailed' : 'email failed';
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('method not allowed', { status: 405 });
   if (!SECRET || req.headers.get('x-push-secret') !== SECRET) {
@@ -184,6 +251,12 @@ Deno.serve(async (req) => {
   if (!n?.user_id || !n?.title) return new Response('bad request', { status: 400 });
 
   const category = CATEGORY[n.kind] ?? 'account';
+
+  // Email first: it goes out even with no phone registered or pushes muted.
+  const email = await sendEmail(n).catch((e) => {
+    console.error('email error', e);
+    return 'email failed';
+  });
 
   // Respect muted categories (urgent always goes through).
   if (category !== 'urgent') {
@@ -232,5 +305,5 @@ Deno.serve(async (req) => {
   if (results.includes('sent')) {
     await supabase.from('notifications').update({ push_sent_at: new Date().toISOString() }).eq('id', n.id);
   }
-  return Response.json({ category, results });
+  return Response.json({ category, results, email });
 });
