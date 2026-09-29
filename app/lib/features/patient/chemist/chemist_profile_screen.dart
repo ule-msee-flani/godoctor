@@ -229,6 +229,7 @@ class ChemistProfileScreen extends ConsumerWidget {
           reviews: ref.watch(chemistReviewsProvider(chemistId)),
           average: c.ratingAvg,
           count: c.ratingCount,
+          breakdown: ref.watch(ratingBreakdownProvider(chemistId)).valueOrNull,
           emptyText:
               'No reviews yet. Patients can rate a pharmacy after an order.',
         ),

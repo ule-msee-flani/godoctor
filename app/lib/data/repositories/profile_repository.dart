@@ -149,6 +149,33 @@ class ProfileRepository {
         : PatientCard.fromMap(rows.first as Map<String, dynamic>);
   }
 
+  /// Well guide: when I last had each preventive check (key -> date).
+  Future<Map<String, DateTime>> preventiveChecks() async {
+    final rows = await _client
+        .from('preventive_checks')
+        .select('check_key, last_done');
+    return {
+      for (final r in rows)
+        r['check_key'] as String: DateTime.parse(r['last_done'] as String),
+    };
+  }
+
+  Future<void> markPreventiveCheck(String key, DateTime done) =>
+      _client.from('preventive_checks').upsert({
+        'patient_id': _client.auth.currentUser!.id,
+        'check_key': key,
+        'last_done':
+            '${done.year}-${done.month.toString().padLeft(2, '0')}-'
+            '${done.day.toString().padLeft(2, '0')}',
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      });
+
+  Future<void> clearPreventiveCheck(String key) => _client
+      .from('preventive_checks')
+      .delete()
+      .eq('patient_id', _client.auth.currentUser!.id)
+      .eq('check_key', key);
+
   String? avatarUrl(String? path) => (path == null || path.isEmpty)
       ? null
       : _client.storage.from('avatars').getPublicUrl(path);

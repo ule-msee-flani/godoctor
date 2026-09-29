@@ -14,6 +14,7 @@ import '../../../data/repositories/repository_errors.dart';
 import '../widgets/doctor_widgets.dart';
 import '../widgets/specialty_tiles.dart';
 import '../../../services/live_updates.dart';
+import '../doctors/my_doctors.dart';
 
 const _unset = Object();
 
@@ -84,6 +85,16 @@ final doctorSearchProvider = FutureProvider.autoDispose<List<PublicDoctor>>((
         limit: 50,
       );
 });
+
+/// Open slots per day for the doctors in view (ids joined with commas).
+final _slotCountsProvider = FutureProvider.autoDispose
+    .family<Map<String, Map<DateTime, int>>, String>(
+      (ref, ids) => ids.isEmpty
+          ? const {}
+          : ref
+                .watch(doctorDirectoryRepositoryProvider)
+                .slotCounts(ids.split(','), days: 4),
+    );
 
 class DoctorsScreen extends ConsumerStatefulWidget {
   const DoctorsScreen({super.key, this.initialSpecialty});
@@ -264,9 +275,18 @@ class _DoctorsScreenState extends ConsumerState<DoctorsScreen> {
                           ),
                   );
                 }
+                final slots = ref
+                    .watch(
+                      _slotCountsProvider(
+                        doctors.take(50).map((d) => d.userId).join(','),
+                      ),
+                    )
+                    .valueOrNull;
                 return LiveRefresh(
-                  onRefresh: () async =>
-                      ref.refresh(doctorSearchProvider.future),
+                  onRefresh: () async {
+                    ref.invalidate(myDoctorsProvider);
+                    return ref.refresh(doctorSearchProvider.future);
+                  },
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                     itemCount: doctors.length + 1,
@@ -275,20 +295,34 @@ class _DoctorsScreenState extends ConsumerState<DoctorsScreen> {
                       if (i == 0) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 2),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const VerifiedBadge(size: 15),
-                              const SizedBox(width: 6),
-                              Text(
-                                '${doctors.length} licence-verified '
-                                '${doctors.length == 1 ? 'doctor' : 'doctors'}',
-                                style: Theme.of(context).textTheme.bodySmall,
+                              if (filters.isDefault) const MyDoctorsRow(),
+                              Row(
+                                children: [
+                                  const VerifiedBadge(size: 15),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${doctors.length} licence-verified '
+                                    '${doctors.length == 1 ? 'doctor' : 'doctors'}',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         );
                       }
-                      return DoctorCard(doctor: doctors[i - 1]);
+                      final d = doctors[i - 1];
+                      return DoctorCard(
+                        doctor: d,
+                        slots: slots == null
+                            ? null
+                            : (slots[d.userId] ?? const {}),
+                      );
                     },
                   ),
                 );

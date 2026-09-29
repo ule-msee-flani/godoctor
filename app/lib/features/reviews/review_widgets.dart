@@ -8,6 +8,15 @@ import '../../core/widgets/loading_view.dart';
 import '../../data/models/public_doctor.dart';
 import '../../data/repositories/repository_errors.dart';
 import '../patient/widgets/doctor_widgets.dart' show RatingStars;
+import '../../data/models/my_doctor.dart' show RatingBreakdown;
+import '../../data/providers/repository_providers.dart';
+
+/// Every rating of a doctor or pharmacy, counted per star, with sub-scores.
+final ratingBreakdownProvider = FutureProvider.autoDispose
+    .family<RatingBreakdown, String>(
+      (ref, id) =>
+          ref.watch(doctorDirectoryRepositoryProvider).ratingBreakdown(id),
+    );
 
 /// "What patients say" on a doctor's or pharmacy's profile: the average
 /// rating with a bar per star, then each review.
@@ -18,12 +27,16 @@ class ReviewsBlock extends StatelessWidget {
     required this.average,
     required this.count,
     required this.emptyText,
+    this.breakdown,
   });
 
   final AsyncValue<List<DoctorReview>> reviews;
   final double average;
   final int count;
   final String emptyText;
+
+  /// Every review counted per star, plus sub-scores (when loaded).
+  final RatingBreakdown? breakdown;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +53,12 @@ class ReviewsBlock extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            RatingSummary(average: average, count: count, reviews: list),
+            RatingSummary(
+              average: average,
+              count: count,
+              reviews: list,
+              breakdown: breakdown,
+            ),
             const SizedBox(height: 12),
             for (final r in list)
               Padding(
@@ -61,17 +79,29 @@ class RatingSummary extends StatelessWidget {
     required this.average,
     required this.count,
     required this.reviews,
+    this.breakdown,
   });
 
   final double average;
   final int count;
   final List<DoctorReview> reviews;
+  final RatingBreakdown? breakdown;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
     final total = reviews.length;
-    return Container(
+    final b = breakdown;
+    double share(int star) => b != null && b.count > 0
+        ? b.share(star)
+        : total == 0
+        ? 0
+        : reviews.where((r) => r.rating == star).length / total;
+    final subs = [
+      if (b?.onTime != null) ('On time', b!.onTime!),
+      if (b?.manner != null) ('Bedside manner', b!.manner!),
+    ];
+    final summary = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.primarySofter,
@@ -114,12 +144,7 @@ class RatingSummary extends StatelessWidget {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
-                              value: total == 0
-                                  ? 0
-                                  : reviews
-                                            .where((r) => r.rating == star)
-                                            .length /
-                                        total,
+                              value: share(star),
                               minHeight: 6,
                               backgroundColor: AppColors.border,
                               color: AppColors.warning,
@@ -134,6 +159,50 @@ class RatingSummary extends StatelessWidget {
           ),
         ],
       ),
+    );
+    if (subs.isEmpty) return summary;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        summary,
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            for (var i = 0; i < subs.length; i++) ...[
+              if (i > 0) const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(subs[i].$1, style: theme.labelMedium),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            subs[i].$2.toStringAsFixed(1),
+                            style: theme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          RatingStars(rating: subs[i].$2, size: 12),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }

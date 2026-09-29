@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../data/models/public_doctor.dart';
 import '../../../data/providers/repository_providers.dart';
+import 'package:intl/intl.dart';
 
 /// Doctor photo with an initials fallback (no photo set, or it failed to load).
 class DoctorAvatar extends ConsumerWidget {
@@ -118,9 +119,13 @@ class VerifiedBadge extends StatelessWidget {
 
 /// One directory row.
 class DoctorCard extends StatelessWidget {
-  const DoctorCard({super.key, required this.doctor, this.onTap});
+  const DoctorCard({super.key, required this.doctor, this.onTap, this.slots});
 
   final PublicDoctor doctor;
+
+  /// Open appointment slots per day (from today); shows the day strip when
+  /// given.
+  final Map<DateTime, int>? slots;
 
   /// Defaults to opening the doctor's public profile.
   final VoidCallback? onTap;
@@ -137,66 +142,165 @@ class DoctorCard extends StatelessWidget {
         onTap: onTap ?? () => context.push('/patient/doctor/${doctor.userId}'),
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DoctorAvatar(
+                    name: doctor.name,
+                    avatarPath: doctor.avatarPath,
+                    radius: 30,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                doctor.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.titleSmall,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const VerifiedBadge(),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          doctor.specialties.isEmpty
+                              ? 'General Practice'
+                              : doctor.specialties.join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.bodySmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            RatingSummary(doctor: doctor),
+                            if (doctor.yearsExperience != null)
+                              Text(
+                                '${doctor.yearsExperience} yrs',
+                                style: theme.bodySmall,
+                              ),
+                            Text(
+                              formatKes(doctor.consultationFee),
+                              style: theme.bodySmall?.copyWith(
+                                color: AppColors.ink,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        _AvailabilityPill(available: available, next: next),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (slots != null) ...[
+                const SizedBox(height: 12),
+                SlotStrip(doctorId: doctor.userId, slots: slots!),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Today 3 slots · Tomorrow 5 slots · Thu 2 · ..." — tap a day with slots
+/// to book.
+class SlotStrip extends StatelessWidget {
+  const SlotStrip({
+    super.key,
+    required this.doctorId,
+    required this.slots,
+    this.days = 4,
+  });
+
+  final String doctorId;
+  final Map<DateTime, int> slots;
+  final int days;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return Row(
+      children: [
+        for (var i = 0; i < days; i++) ...[
+          if (i > 0) const SizedBox(width: 6),
+          Expanded(
+            child: _DayChip(
+              label: switch (i) {
+                0 => 'Today',
+                1 => 'Tomorrow',
+                _ => DateFormat('EEE d').format(today.add(Duration(days: i))),
+              },
+              count: slots[today.add(Duration(days: i))] ?? 0,
+              onTap: () => context.push('/patient/book/$doctorId'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DayChip extends StatelessWidget {
+  const _DayChip({
+    required this.label,
+    required this.count,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final open = count > 0;
+    return Material(
+      color: open ? AppColors.primarySoft : AppColors.primarySofter,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: open ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DoctorAvatar(
-                name: doctor.name,
-                avatarPath: doctor.avatarPath,
-                radius: 30,
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.fade,
+                softWrap: false,
+                style: text.labelMedium?.copyWith(
+                  color: open ? AppColors.ink : AppColors.inkFaint,
+                ),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            doctor.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.titleSmall,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const VerifiedBadge(),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      doctor.specialties.isEmpty
-                          ? 'General Practice'
-                          : doctor.specialties.join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.bodySmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        RatingSummary(doctor: doctor),
-                        if (doctor.yearsExperience != null)
-                          Text(
-                            '${doctor.yearsExperience} yrs',
-                            style: theme.bodySmall,
-                          ),
-                        Text(
-                          formatKes(doctor.consultationFee),
-                          style: theme.bodySmall?.copyWith(
-                            color: AppColors.ink,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _AvailabilityPill(available: available, next: next),
-                  ],
+              Text(
+                open ? '$count ${count == 1 ? 'slot' : 'slots'}' : 'None',
+                maxLines: 1,
+                style: text.labelSmall?.copyWith(
+                  color: open ? AppColors.primary : AppColors.inkFaint,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],

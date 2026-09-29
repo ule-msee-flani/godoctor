@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/config/supabase_client.dart';
 import '../models/public_chemist.dart';
 import '../models/public_doctor.dart';
+import '../models/my_doctor.dart';
 
 /// The certified-doctor directory: search, public profiles, open slots and
 /// public reviews. Everything goes through SQL functions that expose only
@@ -17,6 +18,67 @@ class DoctorDirectoryRepository {
       params: {'p_doctor': doctorId},
     );
     return DoctorPublicStats.fromMap(res as Map<String, dynamic>?);
+  }
+
+  /// Open appointment slots per day for [doctorIds], from today, for
+  /// [days] days: doctor -> day -> count.
+  Future<Map<String, Map<DateTime, int>>> slotCounts(
+    List<String> doctorIds, {
+    int days = 5,
+  }) async {
+    if (doctorIds.isEmpty) return const {};
+    final rows =
+        await _client.rpc(
+              'doctor_slot_counts',
+              params: {
+                'p_doctors': doctorIds.take(50).toList(),
+                'p_days': days,
+              },
+            )
+            as List;
+    final out = <String, Map<DateTime, int>>{};
+    for (final r in rows.cast<Map<String, dynamic>>()) {
+      final day = DateTime.parse(r['day'] as String);
+      (out[r['doctor_id'] as String] ??= {})[DateTime(
+        day.year,
+        day.month,
+        day.day,
+      )] = (r['slots'] as num)
+          .toInt();
+    }
+    return out;
+  }
+
+  /// Average, stars per level and sub-scores for a doctor or pharmacy.
+  Future<RatingBreakdown> ratingBreakdown(String userId) async {
+    final res = await _client.rpc(
+      'rating_breakdown',
+      params: {'p_user': userId},
+    );
+    return RatingBreakdown.fromJson((res as Map).cast<String, dynamic>());
+  }
+
+  /// Doctors I've seen and doctors I saved, saved first.
+  Future<List<MyDoctor>> myDoctors() async {
+    final rows = await _client.rpc('my_doctors') as List;
+    return [for (final r in rows) MyDoctor.fromMap(r as Map<String, dynamic>)];
+  }
+
+  /// Save (or unsave) a doctor to "My doctors".
+  Future<void> setFavorite(String doctorId, bool favorite) async {
+    final me = _client.auth.currentUser!.id;
+    if (favorite) {
+      await _client.from('favorite_doctors').upsert({
+        'patient_id': me,
+        'doctor_id': doctorId,
+      });
+    } else {
+      await _client
+          .from('favorite_doctors')
+          .delete()
+          .eq('patient_id', me)
+          .eq('doctor_id', doctorId);
+    }
   }
 
   /// What patients said about a pharmacy, newest first (no names).

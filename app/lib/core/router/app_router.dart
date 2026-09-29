@@ -80,6 +80,7 @@ import '../widgets/exit_guard.dart';
 import '../widgets/pending_verification_view.dart';
 import '../widgets/role_shell.dart';
 import '../../features/chemist/screens/chemist_dashboard_screen.dart';
+import '../../features/patient/health/well_guide.dart';
 
 /// A screen with nothing to go back to: back asks before leaving the app.
 Widget _top(Widget child) => ExitGuard(child: child);
@@ -277,6 +278,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/patient/prescriptions',
         pageBuilder: (_, state) => _quiet(state, const PrescriptionsScreen()),
+      ),
+      GoRoute(
+        path: '/patient/well-guide',
+        builder: (context, state) => const WellGuideScreen(),
       ),
       GoRoute(
         path: '/patient/pharmacies',

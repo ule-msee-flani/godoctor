@@ -89,12 +89,15 @@ Future<bool> showReviewSheet(
     ],
     initialRating: initialRating,
     extra: extra,
-    submit: (rating, comment) => container
+    subScores: true,
+    submit: (rating, comment, onTime, manner) => container
         .read(appointmentRepositoryProvider)
         .submitReview(
           consultationId: consultationId,
           rating: rating,
           comment: comment,
+          onTime: onTime,
+          manner: manner,
         ),
   );
 }
@@ -119,7 +122,7 @@ Future<bool> showPharmacyReviewSheet(
       'Easy to find',
     ],
     initialRating: initialRating,
-    submit: (rating, comment) => container
+    submit: (rating, comment, _, _) => container
         .read(orderRepositoryProvider)
         .reviewPharmacy(orderId: orderId, rating: rating, comment: comment),
   );
@@ -130,9 +133,16 @@ Future<bool> _showRateSheet(
   required String title,
   required String subject,
   required List<String> tags,
-  required Future<void> Function(int rating, String? comment) submit,
+  required Future<void> Function(
+    int rating,
+    String? comment,
+    int? onTime,
+    int? manner,
+  )
+  submit,
   int initialRating = 0,
   ({String label, VoidCallback onTap})? extra,
+  bool subScores = false,
 }) async {
   final submitted = await showModalBottomSheet<bool>(
     context: context,
@@ -149,6 +159,7 @@ Future<bool> _showRateSheet(
         submit: submit,
         initialRating: initialRating,
         extra: extra,
+        subScores: subScores,
       ),
     ),
   );
@@ -163,14 +174,24 @@ class _RateSheet extends StatefulWidget {
     required this.submit,
     required this.initialRating,
     this.extra,
+    this.subScores = false,
   });
 
   final String title;
   final String subject;
   final List<String> tags;
-  final Future<void> Function(int rating, String? comment) submit;
+  final Future<void> Function(
+    int rating,
+    String? comment,
+    int? onTime,
+    int? manner,
+  )
+  submit;
   final int initialRating;
   final ({String label, VoidCallback onTap})? extra;
+
+  /// Also ask "On time" and "Bedside manner" (doctors).
+  final bool subScores;
 
   @override
   State<_RateSheet> createState() => _RateSheetState();
@@ -178,6 +199,8 @@ class _RateSheet extends StatefulWidget {
 
 class _RateSheetState extends State<_RateSheet> {
   late int _rating = widget.initialRating.clamp(0, 5);
+  int _onTime = 0;
+  int _manner = 0;
   final _picked = <String>{};
   final _commentCtrl = TextEditingController();
   bool _submitting = false;
@@ -211,7 +234,12 @@ class _RateSheetState extends State<_RateSheet> {
       _error = null;
     });
     try {
-      await widget.submit(_rating, _comment);
+      await widget.submit(
+        _rating,
+        _comment,
+        _onTime == 0 ? null : _onTime,
+        _manner == 0 ? null : _manner,
+      );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) setState(() => _error = friendlyError(e));
@@ -291,6 +319,19 @@ class _RateSheetState extends State<_RateSheet> {
                   ),
               ],
             ),
+            if (widget.subScores) ...[
+              const SizedBox(height: 14),
+              _SubScore(
+                label: 'On time',
+                value: _onTime,
+                onChanged: (v) => setState(() => _onTime = v),
+              ),
+              _SubScore(
+                label: 'Bedside manner',
+                value: _manner,
+                onChanged: (v) => setState(() => _manner = v),
+              ),
+            ],
             const SizedBox(height: 14),
             TextField(
               controller: _commentCtrl,
@@ -330,6 +371,41 @@ class _RateSheetState extends State<_RateSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A small optional star row ("On time ★★★★☆").
+class _SubScore extends StatelessWidget {
+  const _SubScore({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+        ),
+        for (var i = 1; i <= 5; i++)
+          IconButton(
+            tooltip: '$label $i',
+            visualDensity: VisualDensity.compact,
+            iconSize: 24,
+            onPressed: () => onChanged(i),
+            icon: Icon(
+              i <= value ? Icons.star_rounded : Icons.star_outline_rounded,
+              color: i <= value ? AppColors.warning : AppColors.borderStrong,
+            ),
+          ),
+      ],
     );
   }
 }

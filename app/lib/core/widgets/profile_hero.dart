@@ -19,6 +19,7 @@ class ProfileHeroScaffold extends StatefulWidget {
     this.photoAlignment = const Alignment(0, -0.3),
     this.bottomBar,
     this.heightFactor = 0.48,
+    this.actions = const [],
   });
 
   /// Shown in the bar after scrolling (their name).
@@ -31,6 +32,9 @@ class ProfileHeroScaffold extends StatefulWidget {
   final Alignment photoAlignment;
   final Widget? bottomBar;
   final double heightFactor;
+
+  /// Buttons at the top right (e.g. save to favourites).
+  final List<Widget> actions;
 
   @override
   State<ProfileHeroScaffold> createState() => _ProfileHeroScaffoldState();
@@ -114,6 +118,7 @@ class _ProfileHeroScaffoldState extends State<ProfileHeroScaffold> {
               expandedHeight: _height,
               automaticallyImplyLeading: false,
               leading: back,
+              actions: [...widget.actions, const SizedBox(width: 12)],
               backgroundColor: _collapsed
                   ? AppColors.white
                   : Colors.transparent,

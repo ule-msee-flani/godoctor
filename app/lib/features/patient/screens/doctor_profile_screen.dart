@@ -19,6 +19,7 @@ import '../specialties/specialty_registry.dart';
 import '../widgets/specialty_tiles.dart';
 import '../widgets/doctor_widgets.dart';
 import '../../reviews/review_widgets.dart';
+import '../doctors/my_doctors.dart';
 
 final publicDoctorProvider = FutureProvider.autoDispose
     .family<PublicDoctor?, String>(
@@ -83,6 +84,7 @@ class DoctorProfileScreen extends ConsumerWidget {
           bottomBar: seeNow
               ? _SeeNowBar(doctor: doctor)
               : _BookBar(doctor: doctor),
+          actions: [FavoriteDoctorButton(doctorId: doctor.userId)],
           children: _profile(context, ref, doctor),
         );
       },
@@ -282,6 +284,9 @@ class DoctorProfileScreen extends ConsumerWidget {
           reviews: reviews,
           average: doctor.ratingAvg,
           count: doctor.ratingCount,
+          breakdown: ref
+              .watch(ratingBreakdownProvider(doctor.userId))
+              .valueOrNull,
           emptyText:
               'No reviews yet. Only patients who completed a consultation can leave one.',
         ),

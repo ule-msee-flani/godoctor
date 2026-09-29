@@ -49,16 +49,22 @@ class AppointmentRepository {
   Future<void> start(String consultationId) =>
       _client.rpc('start_appointment', params: {'p_id': consultationId});
 
+  /// [onTime] and [manner] are the optional extra stars ("on time",
+  /// "bedside manner").
   Future<void> submitReview({
     required String consultationId,
     required int rating,
     String? comment,
+    int? onTime,
+    int? manner,
   }) => _client.rpc(
     'submit_review',
     params: {
       'p_consultation_id': consultationId,
       'p_rating': rating,
       'p_comment': comment,
+      'p_on_time': ?onTime,
+      'p_manner': ?manner,
     },
   );
 

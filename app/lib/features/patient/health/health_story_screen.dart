@@ -20,6 +20,7 @@ import '../../../services/live_updates.dart';
 import '../screens/order_history_screen.dart';
 import '../screens/prescriptions_screen.dart';
 import '../visits/visit_widgets.dart';
+import 'well_guide.dart';
 
 enum HealthFilter { all, consultations, prescriptions, orders }
 
@@ -271,6 +272,8 @@ class _Overview extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          const WellGuideCard(),
           const SizedBox(height: 20),
           const MedicinesTakingSection(),
           const SizedBox(height: 10),
