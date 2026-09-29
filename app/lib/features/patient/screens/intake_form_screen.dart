@@ -53,13 +53,17 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
         ..clear()
         ..addAll(next);
       var s = specialtyForAreas(next);
-      final gender = ref.read(currentPatientProfileProvider).valueOrNull?.gender;
+      final gender = ref
+          .read(currentPatientProfileProvider)
+          .valueOrNull
+          ?.gender;
       if (s == 'Obstetrics & Gynaecology' && gender == 'male') {
         s = 'General Practice';
       }
       if (s != null && !_specialtyChosen) _specialty = s;
     });
   }
+
   late final _symptomsCtrl = TextEditingController(
     text: widget.initialSymptoms,
   );

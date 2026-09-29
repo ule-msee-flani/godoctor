@@ -275,7 +275,8 @@ class _RateSheetState extends State<_RateSheet> {
               height: 56,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
-                transitionBuilder: (c, a) => ScaleTransition(scale: a, child: c),
+                transitionBuilder: (c, a) =>
+                    ScaleTransition(scale: a, child: c),
                 child: Text(
                   const ['🤔', '😞', '🙁', '😐', '🙂', '😍'][_rating],
                   key: ValueKey(_rating),

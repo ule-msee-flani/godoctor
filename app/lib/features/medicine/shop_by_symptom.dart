@@ -37,7 +37,11 @@ const kSymptomShelves = <SymptomShelf>[
     'ranitidine',
     'antacid',
   ]),
-  SymptomShelf('Allergy', '🌼', ['cetirizine', 'loratadine', 'chlorpheniramine']),
+  SymptomShelf('Allergy', '🌼', [
+    'cetirizine',
+    'loratadine',
+    'chlorpheniramine',
+  ]),
   SymptomShelf('Diarrhoea', '💧', ['oral rehydration', 'zinc', 'loperamide']),
   SymptomShelf('Constipation', '🌿', ['bisacodyl', 'lactulose']),
   SymptomShelf('Aches & pain', '💪', [
@@ -127,8 +131,12 @@ class ShopHeader extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  shelf == null ? 'Shop by symptom' : 'For ${shelf!.label.toLowerCase()}',
-                  style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  shelf == null
+                      ? 'Shop by symptom'
+                      : 'For ${shelf!.label.toLowerCase()}',
+                  style: text.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               if (shelf != null)

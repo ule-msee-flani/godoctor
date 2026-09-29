@@ -88,6 +88,11 @@ class ChemistDashboardScreen extends ConsumerWidget {
                       ?.avatarUrl,
                   onAvatarTap: () => context.go('/chemist/account'),
                   actions: [
+                    IconButton(
+                      tooltip: 'Scan a health card',
+                      icon: const Icon(LucideIcons.scanQrCode),
+                      onPressed: () => context.push('/account/scan-card'),
+                    ),
                     NotificationBell(
                       count: ref.watch(unreadNotificationCountProvider),
                       onPressed: () => context.push('/chemist/notifications'),

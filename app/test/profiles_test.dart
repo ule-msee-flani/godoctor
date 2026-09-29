@@ -167,10 +167,17 @@ void main() {
     expect(find.text('General Practice · Pediatrics'), findsOneWidget);
     expect(find.text('Available now'), findsOneWidget);
     expect(find.text('Licence verified'), findsOneWidget);
-    expect(find.text('12 yrs'), findsOneWidget);
-    expect(find.text('148'), findsOneWidget);
-    expect(find.text('About Dr Jane'), findsOneWidget);
+    // Stat pills: big numbers on soft colours.
+    expect(find.text('12y+'), findsOneWidget);
+    expect(find.text('Experience'), findsOneWidget);
+    expect(find.text('120'), findsOneWidget);
+    expect(find.text('Patients'), findsOneWidget);
     expect(find.text('Book appointment'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('About Dr Jane'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
 
     await tester.scrollUntilVisible(
       find.text('What patients say'),

@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 String compactCount(num n) {
   if (n < 1000) return '${n.round()}';
   final k = n / 1000;
-  return k >= 10 ? '${k.round()}k' : '${k.toStringAsFixed(1).replaceAll('.0', '')}k';
+  return k >= 10
+      ? '${k.round()}k'
+      : '${k.toStringAsFixed(1).replaceAll('.0', '')}k';
 }
 
 String formatKes(double? amount) {

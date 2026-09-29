@@ -84,7 +84,7 @@ class _PharmaciesScreenState extends ConsumerState<PharmaciesScreen> {
   Widget build(BuildContext context) {
     final async = ref.watch(publicChemistsProvider);
     final at = ref.watch(matchingLocationProvider);
-        return Scaffold(
+    return Scaffold(
       appBar: AppBar(
         title: const Text('Pharmacies'),
         actions: [
@@ -133,71 +133,78 @@ class _PharmaciesScreenState extends ConsumerState<PharmaciesScreen> {
               ],
             )
           : LiveRefresh(
-        onRefresh: () => ref.refresh(publicChemistsProvider.future),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-          children: [
-            const MatchLocationBar(),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _search,
-              onChanged: (_) => setState(() {}),
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Search by name or area',
-                prefixIcon: const Icon(LucideIcons.search, size: 20),
-                suffixIcon: _search.text.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(LucideIcons.x, size: 18),
-                        onPressed: () => setState(_search.clear),
+              onRefresh: () => ref.refresh(publicChemistsProvider.future),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                children: [
+                  const MatchLocationBar(),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _search,
+                    onChanged: (_) => setState(() {}),
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: 'Search by name or area',
+                      prefixIcon: const Icon(LucideIcons.search, size: 20),
+                      suffixIcon: _search.text.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(LucideIcons.x, size: 18),
+                              onPressed: () => setState(_search.clear),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  ...async.when(
+                    skipLoadingOnRefresh: true,
+                    loading: () => const [
+                      SizedBox(
+                        height: 400,
+                        child: SkeletonList(
+                          itemCount: 5,
+                          padding: EdgeInsets.zero,
+                        ),
                       ),
+                    ],
+                    error: (e, _) => [
+                      ErrorView(
+                        message: friendlyError(e),
+                        onRetry: () => ref.invalidate(publicChemistsProvider),
+                      ),
+                    ],
+                    data: (all) {
+                      final ranked = rankPharmacies(
+                        all,
+                        at,
+                        query: _search.text,
+                      );
+                      if (ranked.isEmpty) {
+                        return [
+                          EmptyView(
+                            message: all.isEmpty
+                                ? 'No pharmacies yet.'
+                                : 'No pharmacy matches "${_search.text.trim()}".',
+                            icon: LucideIcons.store,
+                          ),
+                        ];
+                      }
+                      return [
+                        for (var i = 0; i < ranked.length; i++)
+                          FadeSlideIn(
+                            index: i,
+                            child: PharmacyCard(
+                              chemist: ranked[i].chemist,
+                              km: ranked[i].km,
+                              nearest: i == 0 && ranked[i].km != null,
+                            ),
+                          ),
+                      ];
+                    },
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 14),
-            ...async.when(
-              skipLoadingOnRefresh: true,
-              loading: () => const [
-                SizedBox(
-                  height: 400,
-                  child: SkeletonList(itemCount: 5, padding: EdgeInsets.zero),
-                ),
-              ],
-              error: (e, _) => [
-                ErrorView(
-                  message: friendlyError(e),
-                  onRetry: () => ref.invalidate(publicChemistsProvider),
-                ),
-              ],
-              data: (all) {
-                final ranked = rankPharmacies(all, at, query: _search.text);
-                if (ranked.isEmpty) {
-                  return [
-                    EmptyView(
-                      message: all.isEmpty
-                          ? 'No pharmacies yet.'
-                          : 'No pharmacy matches "${_search.text.trim()}".',
-                      icon: LucideIcons.store,
-                    ),
-                  ];
-                }
-                return [
-                  for (var i = 0; i < ranked.length; i++)
-                    FadeSlideIn(
-                      index: i,
-                      child: PharmacyCard(
-                        chemist: ranked[i].chemist,
-                        km: ranked[i].km,
-                        nearest: i == 0 && ranked[i].km != null,
-                      ),
-                    ),
-                ];
-              },
-            ),
-          ],
-        ),
-      ),
-        );
+    );
   }
 }
 
@@ -311,12 +318,18 @@ class PharmacyCard extends ConsumerWidget {
                           spacing: 10,
                           runSpacing: 2,
                           children: [
-                            if (isOpenNow(c.openDays, c.openingHours, DateTime.now())
+                            if (isOpenNow(
+                                  c.openDays,
+                                  c.openingHours,
+                                  DateTime.now(),
+                                )
                                 case final open?)
                               _Meta(
                                 icon: LucideIcons.clock,
                                 text: open ? 'Open now' : 'Closed',
-                                color: open ? AppColors.success : AppColors.danger,
+                                color: open
+                                    ? AppColors.success
+                                    : AppColors.danger,
                               ),
                             if (c.deliversTo(km))
                               _Meta(
@@ -379,7 +392,7 @@ class _Meta extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-                Icon(icon, size: 13, color: color ?? AppColors.inkFaint),
+        Icon(icon, size: 13, color: color ?? AppColors.inkFaint),
         const SizedBox(width: 4),
         Text(
           text,

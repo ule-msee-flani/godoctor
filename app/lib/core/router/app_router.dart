@@ -83,6 +83,9 @@ import '../../features/chemist/screens/chemist_dashboard_screen.dart';
 import '../../features/patient/health/well_guide.dart';
 import '../../features/onboarding/welcome_path_screen.dart';
 import '../../features/patient/appointments/appointments.dart';
+import '../../features/patient/health/readings.dart';
+import '../../features/patient/health/health_card.dart';
+import '../../features/patient_card/scan_card_screen.dart';
 
 /// A screen with nothing to go back to: back asks before leaving the app.
 Widget _top(Widget child) => ExitGuard(child: child);
@@ -292,6 +295,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           transitionsBuilder: (context, animation, _, child) =>
               FadeTransition(opacity: animation, child: child),
         ),
+      ),
+      GoRoute(
+        path: '/patient/readings',
+        builder: (context, state) =>
+            ReadingsScreen(initial: state.uri.queryParameters['kind']),
+      ),
+      GoRoute(
+        path: '/patient/health-card',
+        builder: (context, state) => const HealthCardScreen(),
+      ),
+      // Doctors and pharmacies scan a patient's health card (under
+      // /account/ so every signed-in role can open it).
+      GoRoute(
+        path: '/account/scan-card',
+        builder: (context, state) => const ScanCardScreen(),
       ),
       GoRoute(
         path: '/patient/appointments',

@@ -21,15 +21,60 @@ class BodyArea {
 /// The front-facing figure, top to bottom, plus problems that aren't one
 /// spot (chips). Pure data, so the suggestions can be tested.
 const kBodyAreas = <BodyArea>[
-  BodyArea('head', 'Head', 'General Practice', Rect.fromLTWH(0.40, 0.00, 0.20, 0.15)),
-  BodyArea('throat', 'Ear, nose or throat', 'ENT', Rect.fromLTWH(0.44, 0.15, 0.12, 0.05)),
-  BodyArea('chest', 'Chest', 'General Practice', Rect.fromLTWH(0.33, 0.20, 0.34, 0.15)),
-  BodyArea('stomach', 'Stomach', 'General Practice', Rect.fromLTWH(0.35, 0.35, 0.30, 0.13)),
-  BodyArea('pelvis', 'Lower belly', 'Obstetrics & Gynaecology', Rect.fromLTWH(0.37, 0.48, 0.26, 0.08)),
-  BodyArea('arm_r', 'Arm', 'Orthopedics', Rect.fromLTWH(0.20, 0.21, 0.12, 0.30)),
-  BodyArea('arm_l', 'Arm', 'Orthopedics', Rect.fromLTWH(0.68, 0.21, 0.12, 0.30)),
-  BodyArea('leg_r', 'Leg or knee', 'Orthopedics', Rect.fromLTWH(0.37, 0.57, 0.12, 0.42)),
-  BodyArea('leg_l', 'Leg or knee', 'Orthopedics', Rect.fromLTWH(0.51, 0.57, 0.12, 0.42)),
+  BodyArea(
+    'head',
+    'Head',
+    'General Practice',
+    Rect.fromLTWH(0.40, 0.00, 0.20, 0.15),
+  ),
+  BodyArea(
+    'throat',
+    'Ear, nose or throat',
+    'ENT',
+    Rect.fromLTWH(0.44, 0.15, 0.12, 0.05),
+  ),
+  BodyArea(
+    'chest',
+    'Chest',
+    'General Practice',
+    Rect.fromLTWH(0.33, 0.20, 0.34, 0.15),
+  ),
+  BodyArea(
+    'stomach',
+    'Stomach',
+    'General Practice',
+    Rect.fromLTWH(0.35, 0.35, 0.30, 0.13),
+  ),
+  BodyArea(
+    'pelvis',
+    'Lower belly',
+    'Obstetrics & Gynaecology',
+    Rect.fromLTWH(0.37, 0.48, 0.26, 0.08),
+  ),
+  BodyArea(
+    'arm_r',
+    'Arm',
+    'Orthopedics',
+    Rect.fromLTWH(0.20, 0.21, 0.12, 0.30),
+  ),
+  BodyArea(
+    'arm_l',
+    'Arm',
+    'Orthopedics',
+    Rect.fromLTWH(0.68, 0.21, 0.12, 0.30),
+  ),
+  BodyArea(
+    'leg_r',
+    'Leg or knee',
+    'Orthopedics',
+    Rect.fromLTWH(0.37, 0.57, 0.12, 0.42),
+  ),
+  BodyArea(
+    'leg_l',
+    'Leg or knee',
+    'Orthopedics',
+    Rect.fromLTWH(0.51, 0.57, 0.12, 0.42),
+  ),
   BodyArea('back', 'Back', 'Orthopedics', null),
   BodyArea('skin', 'Skin', 'Dermatology', null),
   BodyArea('mind', 'Mood or sleep', 'Psychiatry/Mental Health', null),
@@ -44,7 +89,8 @@ String? specialtyForAreas(List<String> pickedInOrder) {
 
 /// "Stomach, Back" — each label once, in the order picked.
 String describeAreas(List<String> pickedInOrder) => {
-  for (final id in pickedInOrder) kBodyAreas.firstWhere((a) => a.id == id).label,
+  for (final id in pickedInOrder)
+    kBodyAreas.firstWhere((a) => a.id == id).label,
 }.join(', ');
 
 /// "Where does it hurt?": tap the figure (or a chip) to show the doctor.
@@ -141,8 +187,12 @@ class BodyMap extends StatelessWidget {
   }
 }
 
-Rect _scale(Rect f, Size s) =>
-    Rect.fromLTWH(f.left * s.width, f.top * s.height, f.width * s.width, f.height * s.height);
+Rect _scale(Rect f, Size s) => Rect.fromLTWH(
+  f.left * s.width,
+  f.top * s.height,
+  f.width * s.width,
+  f.height * s.height,
+);
 
 class _FigurePainter extends CustomPainter {
   _FigurePainter({required this.areas, required this.on});
@@ -156,7 +206,9 @@ class _FigurePainter extends CustomPainter {
       final r = _scale(a.rect!, size);
       final picked = on.contains(a.id);
       final fill = Paint()
-        ..color = picked ? AppColors.danger.withValues(alpha: 0.85) : AppColors.primarySoft;
+        ..color = picked
+            ? AppColors.danger.withValues(alpha: 0.85)
+            : AppColors.primarySoft;
       final line = Paint()
         ..color = picked ? AppColors.danger : AppColors.borderStrong
         ..style = PaintingStyle.stroke
@@ -167,13 +219,11 @@ class _FigurePainter extends CustomPainter {
           ..drawOval(r, line);
         continue;
       }
-      final radius = Radius.circular(
-        switch (a.id) {
-          'throat' => 6,
-          'chest' || 'stomach' || 'pelvis' => 18,
-          _ => r.width / 2,
-        },
-      );
+      final radius = Radius.circular(switch (a.id) {
+        'throat' => 6,
+        'chest' || 'stomach' || 'pelvis' => 18,
+        _ => r.width / 2,
+      });
       final rr = RRect.fromRectAndRadius(r, radius);
       canvas
         ..drawRRect(rr, fill)

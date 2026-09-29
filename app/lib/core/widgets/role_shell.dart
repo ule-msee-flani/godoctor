@@ -90,7 +90,8 @@ class RoleShell extends StatelessWidget {
         currentIndex: navigationShell.currentIndex,
         onTap: _go,
         items: [
-          for (final t in tabs) FloatingNavItem(t.icon, t.label, badge: t.badge),
+          for (final t in tabs)
+            FloatingNavItem(t.icon, t.label, badge: t.badge),
         ],
       ),
     );

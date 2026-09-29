@@ -13,7 +13,6 @@ import '../../../data/repositories/repository_errors.dart';
 import '../../medicine/medicine_gallery.dart';
 import '../../medicine/shop_by_symptom.dart';
 
-
 /// Stock at verified chemists for the medicine being showcased.
 final _stockProvider = FutureProvider.autoDispose
     .family<List<ChemistInventoryItem>, String>(

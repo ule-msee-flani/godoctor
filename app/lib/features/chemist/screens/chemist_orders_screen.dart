@@ -144,6 +144,11 @@ class _ChemistOrdersScreenState extends ConsumerState<ChemistOrdersScreen> {
                           ? '$preparing ${preparing == 1 ? 'order' : 'orders'} being prepared.'
                           : 'All caught up. New orders appear here straight away.',
                       actions: [
+                        IconButton(
+                          tooltip: 'Scan a health card',
+                          icon: const Icon(LucideIcons.scanQrCode),
+                          onPressed: () => context.push('/account/scan-card'),
+                        ),
                         NotificationBell(
                           count: ref.watch(unreadNotificationCountProvider),
                           onPressed: () =>

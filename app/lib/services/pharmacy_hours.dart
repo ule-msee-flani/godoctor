@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 /// "08:00-20:00"). Null when it hasn't said.
 bool? isOpenNow(List<String> days, String? hours, DateTime now) {
   if ((hours == null || hours.isEmpty) && days.isEmpty) return null;
-  final today = DateFormat('EEE', 'en').format(now);
+  const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final today = names[now.weekday - 1];
   if (days.isNotEmpty && !days.contains(today)) return false;
   if (hours == null || hours.isEmpty || hours == '24 hours') return true;
   final m = RegExp(r'^(\d{2}):(\d{2})-(\d{2}):(\d{2})$').firstMatch(hours);

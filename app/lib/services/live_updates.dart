@@ -21,8 +21,10 @@ abstract final class LiveTable {
   static const family = 'family_links';
   static const payments = 'payments';
   static const doctors = 'doctor_profiles';
+  static const readings = 'health_readings';
 
   static const all = [
+    readings,
     orders,
     prescriptions,
     consultations,
@@ -64,6 +66,7 @@ final liveUpdatesProvider = Provider<void>((ref) {
         (LiveTable.prescriptions, 'patient_id'),
         (LiveTable.consultations, 'patient_id'),
         (LiveTable.schedules, 'patient_id'),
+        (LiveTable.readings, 'patient_id'),
         (LiveTable.doses, null),
         (LiveTable.family, null),
         (LiveTable.payments, null),

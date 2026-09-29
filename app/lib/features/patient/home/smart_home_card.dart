@@ -522,4 +522,3 @@ class _OrderCard extends StatelessWidget {
     );
   }
 }
-

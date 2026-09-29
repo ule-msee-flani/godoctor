@@ -21,6 +21,7 @@ import '../screens/order_history_screen.dart';
 import '../screens/prescriptions_screen.dart';
 import '../visits/visit_widgets.dart';
 import 'well_guide.dart';
+import 'readings.dart';
 
 enum HealthFilter { all, consultations, prescriptions, orders }
 
@@ -188,6 +189,11 @@ class _HealthStoryScreenState extends ConsumerState<HealthStoryScreen>
         title: const Text('Health'),
         actions: [
           IconButton(
+            tooltip: 'My health card',
+            icon: const Icon(LucideIcons.qrCode),
+            onPressed: () => context.push('/patient/health-card'),
+          ),
+          IconButton(
             tooltip: 'Upload a prescription',
             icon: const Icon(LucideIcons.upload),
             onPressed: () => context.push('/patient/prescriptions/upload'),
@@ -274,6 +280,8 @@ class _Overview extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
           const WellGuideCard(),
+          const SizedBox(height: 20),
+          const YourNumbersCard(),
           const SizedBox(height: 20),
           const MedicinesTakingSection(),
           const SizedBox(height: 10),

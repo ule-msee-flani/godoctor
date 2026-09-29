@@ -16,6 +16,7 @@ import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/repository_errors.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../services/live_updates.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class DoctorDashboardScreen extends ConsumerWidget {
   const DoctorDashboardScreen({super.key});
@@ -86,6 +87,11 @@ class _DashboardBody extends ConsumerWidget {
                   ?.avatarUrl,
               onAvatarTap: () => context.go('/doctor/profile'),
               actions: [
+                IconButton(
+                  tooltip: 'Scan a health card',
+                  icon: const Icon(LucideIcons.scanQrCode),
+                  onPressed: () => context.push('/account/scan-card'),
+                ),
                 NotificationBell(
                   count: ref.watch(unreadNotificationCountProvider),
                   onPressed: () => context.push('/doctor/notifications'),

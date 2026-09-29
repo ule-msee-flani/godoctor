@@ -18,7 +18,11 @@ final profileSlotsProvider = FutureProvider.autoDispose
       final today = DateUtils.dateOnly(DateTime.now());
       return ref
           .watch(doctorDirectoryRepositoryProvider)
-          .openSlots(doctorId, today, today.add(const Duration(days: _days - 1)));
+          .openSlots(
+            doctorId,
+            today,
+            today.add(const Duration(days: _days - 1)),
+          );
     });
 
 String bookingRoute(String doctorId, DateTime start) =>
@@ -81,7 +85,9 @@ class EarliestAvailabilityCard extends StatelessWidget {
                 Text(
                   '${DateFormat('EEEE').format(next)}, '
                   '${DateFormat('h:mm a').format(next)}',
-                  style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  style: text.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
@@ -92,8 +98,7 @@ class EarliestAvailabilityCard extends StatelessWidget {
               minimumSize: const Size(0, 40),
               padding: const EdgeInsets.symmetric(horizontal: 16),
             ),
-            onPressed: () =>
-                context.push(bookingRoute(doctor.userId, next)),
+            onPressed: () => context.push(bookingRoute(doctor.userId, next)),
             child: const Text('Take it'),
           ),
         ],
@@ -141,7 +146,8 @@ class _InlineBookingState extends ConsumerState<InlineBooking> {
         final days = [
           for (var i = 0; i < _days; i++) today.add(Duration(days: i)),
         ];
-        final day = _day ?? days.firstWhere(byDay.containsKey, orElse: () => today);
+        final day =
+            _day ?? days.firstWhere(byDay.containsKey, orElse: () => today);
         final times = byDay[day] ?? const <TimeSlot>[];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

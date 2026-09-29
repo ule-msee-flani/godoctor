@@ -155,14 +155,12 @@ class FadedPhoto extends StatelessWidget {
     ).createShader(r);
     return ShaderMask(
       blendMode: BlendMode.dstIn,
-      shaderCallback: (r) => fade(r, Alignment.centerLeft, Alignment.centerRight),
+      shaderCallback: (r) =>
+          fade(r, Alignment.centerLeft, Alignment.centerRight),
       child: ShaderMask(
         blendMode: BlendMode.dstIn,
-        shaderCallback: (r) => fade(
-          r,
-          Alignment.bottomCenter,
-          Alignment.topCenter,
-        ),
+        shaderCallback: (r) =>
+            fade(r, Alignment.bottomCenter, Alignment.topCenter),
         child: Image.network(
           url!,
           fit: BoxFit.cover,

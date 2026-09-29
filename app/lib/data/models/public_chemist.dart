@@ -11,7 +11,7 @@ class PublicChemist {
     this.memberSince,
     this.medicinesInStock = 0,
     this.ordersFilled = 0,
-        this.ratingAvg = 0,
+    this.ratingAvg = 0,
     this.ratingCount = 0,
     this.offersDelivery,
     this.deliveryRadiusKm,
@@ -35,7 +35,7 @@ class PublicChemist {
 
   /// Average of every patient's rating (0 when there are none).
   final double ratingAvg;
-    final int ratingCount;
+  final int ratingCount;
 
   /// Null when they haven't said.
   final bool? offersDelivery;
@@ -71,7 +71,7 @@ class PublicChemist {
     medicinesInStock: (m['medicines_in_stock'] as num?)?.toInt() ?? 0,
     ordersFilled: (m['orders_filled'] as num?)?.toInt() ?? 0,
     ratingAvg: (m['rating_avg'] as num?)?.toDouble() ?? 0,
-        ratingCount: (m['rating_count'] as num?)?.toInt() ?? 0,
+    ratingCount: (m['rating_count'] as num?)?.toInt() ?? 0,
     offersDelivery: m['offers_delivery'] as bool?,
     deliveryRadiusKm: (m['delivery_radius_km'] as num?)?.toInt(),
     openingHours: m['opening_hours'] as String?,

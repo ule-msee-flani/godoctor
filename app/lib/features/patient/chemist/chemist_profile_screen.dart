@@ -281,7 +281,10 @@ class _HoursCard extends StatelessWidget {
             children: [
               if (open != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: open ? AppColors.success : AppColors.danger,
                     borderRadius: BorderRadius.circular(20),
@@ -364,7 +367,10 @@ class _HoursCard extends StatelessWidget {
               children: [
                 for (final s in c.services)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.white,
                       borderRadius: BorderRadius.circular(20),

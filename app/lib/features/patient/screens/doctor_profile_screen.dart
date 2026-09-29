@@ -218,7 +218,9 @@ class DoctorProfileScreen extends ConsumerWidget {
             const SizedBox(width: 8),
             Expanded(
               child: StatPill(
-                value: formatKes(doctor.consultationFee).replaceFirst('KES ', ''),
+                value: formatKes(
+                  doctor.consultationFee,
+                ).replaceFirst('KES ', ''),
                 label: 'Fee (KES)',
                 gradient: AppColors.lavenderGradient,
               ),

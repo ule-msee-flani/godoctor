@@ -27,7 +27,7 @@ class VideoCallPanel extends StatefulWidget {
     this.onMinimize,
     this.onExpand,
     this.listeners = const [],
-        this.remoteCameraOff = false,
+    this.remoteCameraOff = false,
     this.startWithCameraOff = false,
     this.otherPhotoUrl,
     this.selfPhotoUrl,
@@ -57,7 +57,7 @@ class VideoCallPanel extends StatefulWidget {
   /// doctor to, to save data): their tile shows their initials only.
   final bool remoteCameraOff;
 
-    /// Start with my own camera off (data saver). Still switchable.
+  /// Start with my own camera off (data saver). Still switchable.
   final bool startWithCameraOff;
 
   /// The other person's photo: fills their tile until real video is wired
@@ -121,7 +121,7 @@ class _VideoCallPanelState extends State<VideoCallPanel>
     return widget.compact ? _buildCompact() : _buildFull();
   }
 
-    Widget _remoteTile({required double avatar}) {
+  Widget _remoteTile({required double avatar}) {
     final photo = widget.otherPhotoUrl;
     if (photo != null && !widget.remoteCameraOff) {
       return Stack(
@@ -214,7 +214,7 @@ class _VideoCallPanelState extends State<VideoCallPanel>
   }
 
   Widget _buildFull() {
-        final body = ClipRRect(
+    final body = ClipRRect(
       borderRadius: BorderRadius.circular(26),
       child: LayoutBuilder(
         builder: (context, c) {
@@ -305,7 +305,7 @@ class _VideoCallPanelState extends State<VideoCallPanel>
                   ],
                 ),
               ),
-                            // Self view.
+              // Self view.
               Positioned(
                 right: 12,
                 top: widget.onMinimize != null ? 56 : 12,
@@ -332,37 +332,37 @@ class _VideoCallPanelState extends State<VideoCallPanel>
                       border: Border.all(color: Colors.white24),
                     ),
                     child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _RoundButton(
-                      icon: _muted ? LucideIcons.micOff : LucideIcons.mic,
-                      tooltip: _muted ? 'Unmute' : 'Mute',
-                      active: _muted,
-                      onTap: () => setState(() => _muted = !_muted),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _RoundButton(
+                          icon: _muted ? LucideIcons.micOff : LucideIcons.mic,
+                          tooltip: _muted ? 'Unmute' : 'Mute',
+                          active: _muted,
+                          onTap: () => setState(() => _muted = !_muted),
+                        ),
+                        const SizedBox(width: 12),
+                        _RoundButton(
+                          icon: _cameraOff
+                              ? LucideIcons.videoOff
+                              : LucideIcons.video,
+                          tooltip: _cameraOff
+                              ? 'Turn camera on'
+                              : 'Turn camera off',
+                          active: _cameraOff,
+                          onTap: () => setState(() => _cameraOff = !_cameraOff),
+                        ),
+                        if (widget.onEndCall != null) ...[
+                          const SizedBox(width: 12),
+                          _RoundButton(
+                            icon: LucideIcons.phoneOff,
+                            tooltip: 'End call',
+                            color: AppColors.danger,
+                            wide: true,
+                            onTap: widget.onEndCall!,
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    _RoundButton(
-                      icon: _cameraOff
-                          ? LucideIcons.videoOff
-                          : LucideIcons.video,
-                      tooltip: _cameraOff
-                          ? 'Turn camera on'
-                          : 'Turn camera off',
-                      active: _cameraOff,
-                      onTap: () => setState(() => _cameraOff = !_cameraOff),
-                    ),
-                                        if (widget.onEndCall != null) ...[
-                      const SizedBox(width: 12),
-                      _RoundButton(
-                        icon: LucideIcons.phoneOff,
-                        tooltip: 'End call',
-                        color: AppColors.danger,
-                        wide: true,
-                        onTap: widget.onEndCall!,
-                      ),
-                    ],
-                  ],
-                ),
                   ),
                 ),
               ),
@@ -513,9 +513,7 @@ class _SelfView extends StatelessWidget {
         color: const Color(0xFF2A3A63),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white, width: 2),
-        boxShadow: const [
-          BoxShadow(color: Color(0x55000000), blurRadius: 10),
-        ],
+        boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 10)],
       ),
       child: cameraOff || photoUrl == null
           ? icon
@@ -533,7 +531,7 @@ class _RoundButton extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onTap,
-        this.color,
+    this.color,
     this.active = false,
     this.size = 44,
     this.wide = false,
@@ -558,7 +556,7 @@ class _RoundButton extends StatelessWidget {
         : (active ? AppColors.ink : Colors.white);
     return Tooltip(
       message: tooltip,
-            child: Material(
+      child: Material(
         color: bg,
         shape: wide ? const StadiumBorder() : const CircleBorder(),
         child: InkWell(

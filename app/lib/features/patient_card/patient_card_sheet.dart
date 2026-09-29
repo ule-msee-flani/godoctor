@@ -8,6 +8,7 @@ import '../../core/widgets/user_avatar.dart';
 import '../../data/models/patient_card.dart';
 import '../../data/providers/repository_providers.dart';
 import '../../data/repositories/repository_errors.dart';
+import 'package:intl/intl.dart';
 
 /// A patient's card, for their own doctor or pharmacy.
 final patientCardProvider = FutureProvider.autoDispose
@@ -21,6 +22,7 @@ Future<void> showPatientCard(
   BuildContext context,
   String patientId, {
   bool forPharmacy = false,
+  PatientCard? preloaded,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -36,6 +38,7 @@ Future<void> showPatientCard(
         patientId: patientId,
         forPharmacy: forPharmacy,
         scroll: scroll,
+        preloaded: preloaded,
       ),
     ),
   );
@@ -46,14 +49,19 @@ class _PatientCardBody extends ConsumerWidget {
     required this.patientId,
     required this.forPharmacy,
     required this.scroll,
+    this.preloaded,
   });
 
   final String patientId;
   final bool forPharmacy;
   final ScrollController scroll;
 
+  /// Already fetched (opened from a scanned health card).
+  final PatientCard? preloaded;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (preloaded != null) return _card(context, preloaded!);
     final async = ref.watch(patientCardProvider(patientId));
     return async.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -170,6 +178,7 @@ class _PatientCardBody extends ConsumerWidget {
               ? 'Check for interactions with what you\'re dispensing.'
               : null,
         ),
+        if (p.hasReadings) ...[const SizedBox(height: 10), _Readings(card: p)],
         const SizedBox(height: 18),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,6 +321,92 @@ class _Section extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Their latest numbers, each with when it was taken.
+class _Readings extends StatelessWidget {
+  const _Readings({required this.card});
+
+  final PatientCard card;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final day = DateFormat('d MMM');
+    Widget tile(String label, String value, String unit, DateTime? at) =>
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: AppColors.skyGradient,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: text.labelSmall?.copyWith(color: AppColors.inkSoft),
+                ),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    style: text.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Text(
+                  at == null ? unit : '$unit · ${day.format(at)}',
+                  style: text.labelSmall?.copyWith(color: AppColors.inkSoft),
+                ),
+              ],
+            ),
+          ),
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Latest numbers',
+          style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            if (card.bpSys != null)
+              tile(
+                'Blood pressure',
+                '${card.bpSys!.round()}/${card.bpDia?.round() ?? '–'}',
+                'mmHg',
+                card.bpAt,
+              ),
+            if (card.bpSys != null &&
+                (card.sugar != null || card.weight != null))
+              const SizedBox(width: 8),
+            if (card.sugar != null)
+              tile(
+                'Sugar',
+                card.sugar!.toStringAsFixed(1),
+                'mmol/L',
+                card.sugarAt,
+              ),
+            if (card.sugar != null && card.weight != null)
+              const SizedBox(width: 8),
+            if (card.weight != null)
+              tile(
+                'Weight',
+                card.weight!.toStringAsFixed(1),
+                'kg',
+                card.weightAt,
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -15,6 +15,13 @@ class PatientCard {
     this.memberSince,
     this.visitsWithMe = 0,
     this.ordersWithMe = 0,
+    this.bpSys,
+    this.bpDia,
+    this.bpAt,
+    this.sugar,
+    this.sugarAt,
+    this.weight,
+    this.weightAt,
   });
 
   final String userId;
@@ -31,6 +38,17 @@ class PatientCard {
   final DateTime? memberSince;
   final int visitsWithMe;
   final int ordersWithMe;
+
+  /// Their latest readings, when they log them.
+  final double? bpSys;
+  final double? bpDia;
+  final DateTime? bpAt;
+  final double? sugar;
+  final DateTime? sugarAt;
+  final double? weight;
+  final DateTime? weightAt;
+
+  bool get hasReadings => bpSys != null || sugar != null || weight != null;
 
   String get displayName => name.trim().isEmpty ? 'GoDoctor patient' : name;
 
@@ -71,5 +89,15 @@ class PatientCard {
         : DateTime.tryParse(m['member_since'] as String),
     visitsWithMe: (m['visits_with_me'] as num?)?.toInt() ?? 0,
     ordersWithMe: (m['orders_with_me'] as num?)?.toInt() ?? 0,
+    bpSys: (m['bp_sys'] as num?)?.toDouble(),
+    bpDia: (m['bp_dia'] as num?)?.toDouble(),
+    bpAt: _when(m['bp_at']),
+    sugar: (m['sugar'] as num?)?.toDouble(),
+    sugarAt: _when(m['sugar_at']),
+    weight: (m['weight'] as num?)?.toDouble(),
+    weightAt: _when(m['weight_at']),
   );
+
+  static DateTime? _when(Object? v) =>
+      v is String ? DateTime.tryParse(v)?.toLocal() : null;
 }

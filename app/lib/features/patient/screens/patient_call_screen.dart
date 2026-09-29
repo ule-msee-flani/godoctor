@@ -205,18 +205,22 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
             otherPartyName: doctorName,
             otherPartyRole: consultation.specialtyRequested,
             startedAt: consultation.startedAt,
-                        height: (MediaQuery.sizeOf(context).height * 0.52).clamp(
+            height: (MediaQuery.sizeOf(context).height * 0.52).clamp(
               260.0,
               470.0,
             ),
             listeners: listeners,
             remoteCameraOff: !doctorVideo,
             otherPhotoUrl: ref
-                .watch(profileRepositoryProvider)
+                .watch(doctorDirectoryRepositoryProvider)
                 .avatarUrl(doctor?.avatarPath),
+            // Same avatars bucket; the directory repository is the one faked
+            // in tests.
             selfPhotoUrl: ref
-                .watch(profileRepositoryProvider)
-                .avatarUrl(ref.watch(currentAppUserProvider).value?.avatarUrl),
+                .watch(doctorDirectoryRepositoryProvider)
+                .avatarUrl(
+                  ref.watch(currentAppUserProvider).valueOrNull?.avatarUrl,
+                ),
             startWithCameraOff: _myCameraOff,
             onEndCall: () => _leave(context),
           ),

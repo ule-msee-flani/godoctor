@@ -6,7 +6,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../services/chemist_matching.dart';
-import '../../location/location_picker_screen.dart' show mapTilesEnabledProvider;
+import '../../location/location_picker_screen.dart'
+    show mapTilesEnabledProvider;
 import 'pharmacies_screen.dart';
 
 /// Pharmacies on a map: a pin for each, you in the middle; tap a pin to

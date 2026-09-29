@@ -26,11 +26,10 @@ final myAppointmentsProvider =
     });
 
 /// The ones still to come (soonest first).
-List<AppointmentItem> upcomingOf(List<AppointmentItem> all) =>
-    [
-      for (final a in all)
-        if (a.isUpcoming) a,
-    ]..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+List<AppointmentItem> upcomingOf(List<AppointmentItem> all) => [
+  for (final a in all)
+    if (a.isUpcoming) a,
+]..sort((a, b) => a.startsAt.compareTo(b.startsAt));
 
 /// "Starting now", "in 45 min", "in 3 hours", "tomorrow", "in 4 days".
 String startsIn(DateTime at, {DateTime? now}) {
@@ -70,13 +69,17 @@ class _UpcomingAppointmentsHeroState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SectionHeader(
-          upcoming.length == 1 ? 'Upcoming appointment' : 'Upcoming appointments',
+          upcoming.length == 1
+              ? 'Upcoming appointment'
+              : 'Upcoming appointments',
           onMore: () => context.push('/patient/appointments'),
           padding: const EdgeInsets.only(left: 20, right: 8),
         ),
         const SizedBox(height: 6),
         SizedBox(
-          height: 184,
+          // Room for a two-line name and the Join button, even with
+          // bigger text.
+          height: MediaQuery.textScalerOf(context).scale(216).clamp(216, 300),
           child: PageView.builder(
             itemCount: upcoming.length,
             onPageChanged: (p) => setState(() => _page = p),
@@ -106,7 +109,9 @@ class AppointmentHeroCard extends ConsumerWidget {
     final a = item;
     final now = DateTime.now();
     final join = a.canJoin(now);
-    final photo = ref.watch(profileRepositoryProvider).avatarUrl(a.doctorAvatar);
+    final photo = ref
+        .watch(profileRepositoryProvider)
+        .avatarUrl(a.doctorAvatar);
     return Pressable(
       child: Material(
         borderRadius: BorderRadius.circular(26),
@@ -394,9 +399,13 @@ class AppointmentTile extends ConsumerWidget {
                         color: AppColors.primary,
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        DateFormat('EEE d MMM').format(a.startsAt),
-                        style: text.labelLarge,
+                      Flexible(
+                        child: Text(
+                          DateFormat('EEE d MMM').format(a.startsAt),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.labelLarge,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       const Icon(
@@ -405,11 +414,15 @@ class AppointmentTile extends ConsumerWidget {
                         color: AppColors.primary,
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        DateFormat('h:mm a').format(a.startsAt),
-                        style: text.labelLarge,
+                      Expanded(
+                        child: Text(
+                          DateFormat('h:mm a').format(a.startsAt),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.labelLarge,
+                        ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 6),
                       Icon(
                         a.facility == null
                             ? LucideIcons.video

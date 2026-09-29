@@ -13,7 +13,7 @@ import 'package:intl/intl.dart';
 class DoctorAvatar extends ConsumerWidget {
   const DoctorAvatar({
     super.key,
-        required this.name,
+    required this.name,
     this.avatarPath,
     this.radius = 28,
     this.square = false,
@@ -32,7 +32,7 @@ class DoctorAvatar extends ConsumerWidget {
         .watch(doctorDirectoryRepositoryProvider)
         .avatarUrl(avatarPath);
 
-        final initials = Text(
+    final initials = Text(
       initialsOf(name),
       style: TextStyle(
         color: AppColors.primary,
@@ -180,12 +180,12 @@ class DoctorCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                                DoctorAvatar(
-                name: doctor.name,
-                avatarPath: doctor.avatarPath,
-                radius: 40,
-                square: true,
-              ),
+                  DoctorAvatar(
+                    name: doctor.name,
+                    avatarPath: doctor.avatarPath,
+                    radius: 40,
+                    square: true,
+                  ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(

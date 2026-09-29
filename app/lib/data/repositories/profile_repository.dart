@@ -8,6 +8,7 @@ import '../models/chemist_profile.dart';
 import '../models/doctor_profile.dart';
 import '../models/patient_profile.dart';
 import '../models/patient_card.dart';
+import '../models/health_reading.dart';
 
 class ProfileRepository {
   SupabaseClient get _client => SupabaseService.client;
@@ -152,6 +153,52 @@ class ProfileRepository {
   Future<PatientCard?> patientCard(String patientId) async {
     final rows =
         await _client.rpc('patient_card', params: {'p_patient': patientId})
+            as List;
+    return rows.isEmpty
+        ? null
+        : PatientCard.fromMap(rows.first as Map<String, dynamic>);
+  }
+
+  /// My readings of one [kind] ('bp', 'sugar', 'weight'), newest first.
+  Future<List<HealthReading>> readings({String? kind, int limit = 60}) async {
+    var q = _client.from('health_readings').select();
+    if (kind != null) q = q.eq('kind', kind);
+    final rows = await q.order('taken_at', ascending: false).limit(limit);
+    return rows.map(HealthReading.fromMap).toList();
+  }
+
+  Future<void> addReading({
+    required String kind,
+    required double value,
+    double? value2,
+    String? context,
+    DateTime? takenAt,
+  }) => _client.from('health_readings').insert({
+    'patient_id': _client.auth.currentUser!.id,
+    'kind': kind,
+    'value': value,
+    'value2': ?value2,
+    'context': ?context,
+    'taken_at': (takenAt ?? DateTime.now()).toUtc().toIso8601String(),
+  });
+
+  Future<void> deleteReading(String id) =>
+      _client.from('health_readings').delete().eq('id', id);
+
+  /// A 15-minute code for my health card's QR.
+  Future<({String code, DateTime expiresAt})> createShareCode() async {
+    final rows = await _client.rpc('create_patient_share_code') as List;
+    final r = rows.first as Map<String, dynamic>;
+    return (
+      code: r['code'] as String,
+      expiresAt: DateTime.parse(r['expires_at'] as String).toLocal(),
+    );
+  }
+
+  /// A doctor or pharmacy opens a patient's card from their QR code.
+  Future<PatientCard?> patientCardByCode(String code) async {
+    final rows =
+        await _client.rpc('patient_card_by_code', params: {'p_code': code})
             as List;
     return rows.isEmpty
         ? null

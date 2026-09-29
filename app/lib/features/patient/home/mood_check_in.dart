@@ -59,6 +59,9 @@ class MoodCheckIn extends ConsumerStatefulWidget {
 class _MoodCheckInState extends ConsumerState<MoodCheckIn> {
   Mood? _picked;
 
+  /// "Change" asks again, even when a mood was saved earlier today.
+  bool _asking = false;
+
   static const _unwellOptions = [
     ('Headache', 'General Practice'),
     ('Fever', 'General Practice'),
@@ -70,7 +73,10 @@ class _MoodCheckInState extends ConsumerState<MoodCheckIn> {
 
   Future<void> _pick(Mood m) async {
     HapticFeedback.selectionClick();
-    setState(() => _picked = m);
+    setState(() {
+      _picked = m;
+      _asking = false;
+    });
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_todayKey(), m.name);
@@ -84,7 +90,8 @@ class _MoodCheckInState extends ConsumerState<MoodCheckIn> {
 
   @override
   Widget build(BuildContext context) {
-    final mood = _picked ?? ref.watch(todaysMoodProvider).valueOrNull;
+    final saved = ref.watch(todaysMoodProvider).valueOrNull;
+    final mood = _asking ? null : _picked ?? saved;
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       child: mood == null
@@ -94,7 +101,10 @@ class _MoodCheckInState extends ConsumerState<MoodCheckIn> {
               mood: mood,
               unwellOptions: _unwellOptions,
               onUnwell: widget.onUnwell,
-              onChange: () => setState(() => _picked = null),
+              onChange: () => setState(() {
+                _picked = null;
+                _asking = true;
+              }),
             ),
     );
   }
@@ -129,6 +139,7 @@ class _Ask extends StatelessWidget {
                 Semantics(
                   button: true,
                   label: m.label,
+                  excludeSemantics: true,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(18),
                     onTap: () => onPick(m),

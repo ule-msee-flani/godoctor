@@ -37,7 +37,7 @@ DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 class BookAppointmentScreen extends ConsumerStatefulWidget {
   const BookAppointmentScreen({
     super.key,
-        required this.doctorId,
+    required this.doctorId,
     this.rescheduleId,
     this.initialStart,
   });
@@ -54,7 +54,7 @@ class BookAppointmentScreen extends ConsumerStatefulWidget {
 }
 
 class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
-    DateTime? _day;
+  DateTime? _day;
   TimeSlot? _slot;
   bool _preselected = false;
   final _reasonCtrl = TextEditingController();
@@ -189,7 +189,7 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
       for (var i = 0; i < _horizonDays; i++) today.add(Duration(days: i)),
     ];
 
-        // The time picked on the profile, if it's still free.
+    // The time picked on the profile, if it's still free.
     if (!_preselected) {
       _preselected = true;
       final at = widget.initialStart;

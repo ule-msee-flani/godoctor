@@ -115,6 +115,12 @@ class ProfileScreen extends ConsumerWidget {
                 onTap: () => context.push('/patient/profile/account'),
               ),
               SettingsTile(
+                icon: LucideIcons.qrCode,
+                title: 'My health card',
+                subtitle: 'Show your doctor or pharmacist a QR',
+                onTap: () => context.push('/patient/health-card'),
+              ),
+              SettingsTile(
                 icon: LucideIcons.heartPulse,
                 title: 'Health details',
                 subtitle:
