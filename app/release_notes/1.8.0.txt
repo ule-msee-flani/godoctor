@@ -1,0 +1,4 @@
+A short welcome path for new accounts: a few friendly questions, one or two at a time
+Doctors and pharmacies confirm their details are genuine before submitting for verification
+A clear "Awaiting verification" screen, and a notification when you're approved
+Registration forms are filled in from your welcome answers
