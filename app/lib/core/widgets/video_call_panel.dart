@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -7,14 +8,14 @@ import '../theme/app_colors.dart';
 import 'motion.dart';
 
 /// The video call surface. For now this is a MOCK: it looks and behaves like
-/// a live call (the other person's tile, your own self-view, a running
-/// timer, mute/camera/end controls) but no camera or network is used.
+/// a live call (the other person full screen, your own self-view, a running
+/// timer, the call buttons) but no camera or network is used.
 ///
 /// Deliberately kept as its own isolated widget (per spec: "keep the video
 /// call area... as a distinct component/panel so a video SDK can be dropped
 /// in later without restructuring the surrounding UI"). When Agora/Daily.co
-/// is wired up, swap the two tiles below for the SDK's remote/local video
-/// views and keep this constructor, so the call screens don't change.
+/// is wired up, swap [CallRemoteTile] and the self-view for the SDK's
+/// remote/local video views and keep this constructor.
 class VideoCallPanel extends StatefulWidget {
   const VideoCallPanel({
     super.key,
@@ -23,32 +24,38 @@ class VideoCallPanel extends StatefulWidget {
     this.onEndCall,
     this.startedAt,
     this.height,
-    this.compact = false,
-    this.onMinimize,
-    this.onExpand,
     this.listeners = const [],
     this.remoteCameraOff = false,
     this.startWithCameraOff = false,
     this.otherPhotoUrl,
     this.selfPhotoUrl,
+    this.onBack,
+    this.topInset = 0,
+    this.bottomInset = 0,
+    this.radius = 26,
+    this.muted,
+    this.onToggleMute,
+    this.cameraOff,
+    this.onCameraChanged,
+    this.speakerOn,
+    this.onToggleSpeaker,
+    this.onPanel,
+    this.panelOpen = false,
+    this.panelBadge = false,
+    this.notice,
   });
 
   final String otherPartyName;
 
-  /// Shown under the name, e.g. "Patient" or "ENT doctor".
+  /// Shown under the name, e.g. "Patient" or "Cardiologist".
   final String? otherPartyRole;
   final VoidCallback? onEndCall;
 
   /// When the call started (for the timer); defaults to when this opened.
   final DateTime? startedAt;
 
-  /// Fixed height; otherwise a 16:10 box.
+  /// Fixed height; otherwise it fills its box (or 16:10 when unbounded).
   final double? height;
-
-  /// Small floating tile (picture-in-picture) instead of the full panel.
-  final bool compact;
-  final VoidCallback? onMinimize;
-  final VoidCallback? onExpand;
 
   /// Family members listening in (family session), shown under the name.
   final List<String> listeners;
@@ -64,66 +71,288 @@ class VideoCallPanel extends StatefulWidget {
   /// in (then the SDK's view replaces it).
   final String? otherPhotoUrl;
 
-  /// My photo for the self-view bubble.
+  /// My photo for the self-view.
   final String? selfPhotoUrl;
+
+  /// The "<" at the top left: leave the screen, keep the call going.
+  final VoidCallback? onBack;
+
+  /// Room for the status bar and the phone's own buttons when the video is
+  /// full screen.
+  final double topInset;
+  final double bottomInset;
+
+  /// Corner rounding (0 when full screen).
+  final double radius;
+
+  /// The buttons' state, when kept outside (so it survives leaving the
+  /// screen). Null: this panel keeps it.
+  final bool? muted;
+  final VoidCallback? onToggleMute;
+  final bool? cameraOff;
+  final ValueChanged<bool>? onCameraChanged;
+  final bool? speakerOn;
+  final VoidCallback? onToggleSpeaker;
+
+  /// The prescription & details panel under the video: open it, or (when
+  /// [panelOpen]) go back to full-screen video.
+  final VoidCallback? onPanel;
+  final bool panelOpen;
+
+  /// Something new in the panel (a prescription arrived).
+  final bool panelBadge;
+
+  /// A short message over the video, above the timer.
+  final Widget? notice;
 
   @override
   State<VideoCallPanel> createState() => _VideoCallPanelState();
 }
 
-class _VideoCallPanelState extends State<VideoCallPanel>
+class _VideoCallPanelState extends State<VideoCallPanel> {
+  bool _muted = false;
+  late bool _cameraOff = widget.startWithCameraOff;
+  bool _speaker = true;
+
+  bool get muted => widget.muted ?? _muted;
+  bool get cameraOff => widget.cameraOff ?? _cameraOff;
+  bool get speakerOn => widget.speakerOn ?? _speaker;
+
+  @override
+  Widget build(BuildContext context) {
+    final body = ClipRRect(
+      borderRadius: BorderRadius.circular(widget.radius),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final small = c.maxHeight < 420;
+          final button = small ? 44.0 : 54.0;
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              CallRemoteTile(
+                name: widget.otherPartyName,
+                photoUrl: widget.otherPhotoUrl,
+                cameraOff: widget.remoteCameraOff,
+                avatar: small ? 30 : 44,
+              ),
+              // Top: back, who you're talking to.
+              Positioned(
+                left: 12,
+                right: 12,
+                top: widget.topInset + 10,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (widget.onBack != null)
+                      _GlassButton(
+                        icon: LucideIcons.chevronLeft,
+                        tooltip: 'Minimize',
+                        onTap: widget.onBack!,
+                        size: small ? 38 : 42,
+                      )
+                    else
+                      const SizedBox(width: 42),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            widget.otherPartyName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: small ? 15 : 17,
+                              shadows: const [
+                                Shadow(color: Color(0x66000000), blurRadius: 8),
+                              ],
+                            ),
+                          ),
+                          if (widget.otherPartyRole != null)
+                            Text(
+                              widget.otherPartyRole!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12.5,
+                                shadows: [
+                                  Shadow(
+                                    color: Color(0x66000000),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (widget.listeners.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            _ListenersChip(names: widget.listeners),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 42),
+                  ],
+                ),
+              ),
+              // Self view, top right, under the name.
+              Positioned(
+                right: 14,
+                top: widget.topInset + (small ? 56 : 64),
+                child: _SelfView(
+                  cameraOff: cameraOff,
+                  small: small,
+                  photoUrl: widget.selfPhotoUrl,
+                ),
+              ),
+              // Bottom: a notice, the timer, the buttons.
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: widget.bottomInset + (small ? 12 : 22),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.notice != null) ...[
+                      widget.notice!,
+                      const SizedBox(height: 10),
+                    ],
+                    _TimerPill(startedAt: widget.startedAt),
+                    SizedBox(height: small ? 10 : 16),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _CallButton(
+                            icon: speakerOn
+                                ? LucideIcons.volume2
+                                : LucideIcons.volumeOff,
+                            tooltip: speakerOn ? 'Speaker off' : 'Speaker on',
+                            active: !speakerOn,
+                            size: button,
+                            onTap: () {
+                              if (widget.onToggleSpeaker != null) {
+                                widget.onToggleSpeaker!();
+                              } else {
+                                setState(() => _speaker = !_speaker);
+                              }
+                            },
+                          ),
+                          _CallButton(
+                            icon: cameraOff
+                                ? LucideIcons.videoOff
+                                : LucideIcons.video,
+                            tooltip: cameraOff
+                                ? 'Turn camera on'
+                                : 'Turn camera off',
+                            active: cameraOff,
+                            size: button,
+                            onTap: () {
+                              final next = !cameraOff;
+                              if (widget.onCameraChanged != null) {
+                                widget.onCameraChanged!(next);
+                              } else {
+                                setState(() => _cameraOff = next);
+                              }
+                            },
+                          ),
+                          _CallButton(
+                            icon: muted ? LucideIcons.micOff : LucideIcons.mic,
+                            tooltip: muted ? 'Unmute' : 'Mute',
+                            active: muted,
+                            size: button,
+                            onTap: () {
+                              if (widget.onToggleMute != null) {
+                                widget.onToggleMute!();
+                              } else {
+                                setState(() => _muted = !_muted);
+                              }
+                            },
+                          ),
+                          if (widget.onPanel != null)
+                            _CallButton(
+                              icon: widget.panelOpen
+                                  ? LucideIcons.maximize2
+                                  : LucideIcons.clipboardList,
+                              tooltip: widget.panelOpen
+                                  ? 'Full screen'
+                                  : 'Prescription & details',
+                              badge: widget.panelBadge && !widget.panelOpen,
+                              size: button,
+                              onTap: widget.onPanel!,
+                            ),
+                          if (widget.onEndCall != null)
+                            _CallButton(
+                              icon: LucideIcons.phoneOff,
+                              tooltip: 'End call',
+                              color: AppColors.danger,
+                              size: button,
+                              onTap: widget.onEndCall!,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (widget.height != null) {
+      return SizedBox(height: widget.height, child: body);
+    }
+    return LayoutBuilder(
+      builder: (context, c) => c.hasBoundedHeight
+          ? body
+          : AspectRatio(aspectRatio: 10 / 13, child: body),
+    );
+  }
+}
+
+/// The other person: their video (for now their photo) filling the tile,
+/// or their initials breathing gently when there's no picture.
+class CallRemoteTile extends StatefulWidget {
+  const CallRemoteTile({
+    super.key,
+    required this.name,
+    this.photoUrl,
+    this.cameraOff = false,
+    this.avatar = 40,
+  });
+
+  final String name;
+  final String? photoUrl;
+  final bool cameraOff;
+  final double avatar;
+
+  @override
+  State<CallRemoteTile> createState() => _CallRemoteTileState();
+}
+
+class _CallRemoteTileState extends State<CallRemoteTile>
     with SingleTickerProviderStateMixin {
-  late final DateTime _start = widget.startedAt ?? DateTime.now();
   late final AnimationController _pulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1800),
   )..repeat(reverse: true);
-  Timer? _ticker;
-  bool _muted = false;
-  late bool _cameraOff = widget.startWithCameraOff;
-
-  @override
-  void initState() {
-    super.initState();
-    _ticker = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => setState(() {}),
-    );
-  }
 
   @override
   void dispose() {
-    _ticker?.cancel();
     _pulse.dispose();
     super.dispose();
   }
 
-  String get _elapsed {
-    final d = DateTime.now().difference(_start);
-    final s = d.isNegative ? 0 : d.inSeconds;
-    final mm = (s ~/ 60).toString().padLeft(2, '0');
-    final ss = (s % 60).toString().padLeft(2, '0');
-    return s >= 3600 ? '${s ~/ 3600}:$mm:$ss' : '$mm:$ss';
-  }
-
-  String get _initials {
-    final parts = widget.otherPartyName
-        .replaceFirst(RegExp(r'^Dr\.?\s+', caseSensitive: false), '')
-        .split(RegExp(r'\s+'))
-        .where((p) => p.isNotEmpty)
-        .toList();
-    if (parts.isEmpty) return '?';
-    return parts.take(2).map((p) => p[0].toUpperCase()).join();
-  }
+  String get _initials => callInitials(widget.name);
 
   @override
   Widget build(BuildContext context) {
-    return widget.compact ? _buildCompact() : _buildFull();
-  }
-
-  Widget _remoteTile({required double avatar}) {
-    final photo = widget.otherPhotoUrl;
-    if (photo != null && !widget.remoteCameraOff) {
+    final photo = widget.photoUrl;
+    if (photo != null && !widget.cameraOff) {
       return Stack(
         fit: StackFit.expand,
         children: [
@@ -131,31 +360,32 @@ class _VideoCallPanelState extends State<VideoCallPanel>
             photo,
             fit: BoxFit.cover,
             alignment: const Alignment(0, -0.35),
-            errorBuilder: (_, _, _) => _initialsTile(avatar),
+            errorBuilder: (_, _, _) => _initialsTile(),
           ),
-          // Darker at the top and bottom so the controls read.
+          // Darker at the top and bottom so the name and buttons read.
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0x66000000),
+                  Color(0x73000000),
                   Color(0x00000000),
                   Color(0x00000000),
-                  Color(0x99000000),
+                  Color(0xA6000000),
                 ],
-                stops: [0, 0.25, 0.6, 1],
+                stops: [0, 0.22, 0.58, 1],
               ),
             ),
           ),
         ],
       );
     }
-    return _initialsTile(avatar);
+    return _initialsTile();
   }
 
-  Widget _initialsTile(double avatar) {
+  Widget _initialsTile() {
+    final avatar = widget.avatar;
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -193,8 +423,8 @@ class _VideoCallPanelState extends State<VideoCallPanel>
                 ),
               ),
             ),
-            if (widget.remoteCameraOff && avatar > 26) ...[
-              const SizedBox(height: 6),
+            if (widget.cameraOff && avatar > 26) ...[
+              const SizedBox(height: 8),
               const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -212,249 +442,125 @@ class _VideoCallPanelState extends State<VideoCallPanel>
       ),
     );
   }
+}
 
-  Widget _buildFull() {
-    final body = ClipRRect(
-      borderRadius: BorderRadius.circular(26),
-      child: LayoutBuilder(
-        builder: (context, c) {
-          final small = c.maxHeight < 220;
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              _remoteTile(avatar: small ? 28 : 40),
-              // Top: live indicator, name, timer; mock label.
-              Positioned(
-                left: 12,
-                top: 12,
-                right: 12,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _LiveChip(elapsed: _elapsed),
-                          const SizedBox(height: 6),
-                          Text(
-                            widget.otherPartyName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                            ),
-                          ),
-                          if (widget.otherPartyRole != null)
-                            Text(
-                              widget.otherPartyRole!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                          if (widget.listeners.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.14),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    LucideIcons.headphones,
-                                    size: 12,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Flexible(
-                                    child: Text(
-                                      'Listening: ${widget.listeners.join(', ')}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    if (widget.onMinimize != null)
-                      _RoundButton(
-                        icon: LucideIcons.minimize2,
-                        tooltip: 'Shrink video',
-                        size: 34,
-                        onTap: widget.onMinimize!,
-                      ),
-                  ],
-                ),
-              ),
-              // Self view.
-              Positioned(
-                right: 12,
-                top: widget.onMinimize != null ? 56 : 12,
-                child: _SelfView(
-                  cameraOff: _cameraOff,
-                  small: small,
-                  photoUrl: widget.selfPhotoUrl,
-                ),
-              ),
-              // Controls: a floating frosted pill.
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 14,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.42),
-                      borderRadius: BorderRadius.circular(40),
-                      border: Border.all(color: Colors.white24),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _RoundButton(
-                          icon: _muted ? LucideIcons.micOff : LucideIcons.mic,
-                          tooltip: _muted ? 'Unmute' : 'Mute',
-                          active: _muted,
-                          onTap: () => setState(() => _muted = !_muted),
-                        ),
-                        const SizedBox(width: 12),
-                        _RoundButton(
-                          icon: _cameraOff
-                              ? LucideIcons.videoOff
-                              : LucideIcons.video,
-                          tooltip: _cameraOff
-                              ? 'Turn camera on'
-                              : 'Turn camera off',
-                          active: _cameraOff,
-                          onTap: () => setState(() => _cameraOff = !_cameraOff),
-                        ),
-                        if (widget.onEndCall != null) ...[
-                          const SizedBox(width: 12),
-                          _RoundButton(
-                            icon: LucideIcons.phoneOff,
-                            tooltip: 'End call',
-                            color: AppColors.danger,
-                            wide: true,
-                            onTap: widget.onEndCall!,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const Positioned(left: 12, bottom: 22, child: _MockLabel()),
-            ],
-          );
-        },
-      ),
+/// "Dr. Jane Wanjiru" -> "JW".
+String callInitials(String name) {
+  final parts = name
+      .replaceFirst(RegExp(r'^Dr\.?\s+', caseSensitive: false), '')
+      .split(RegExp(r'\s+'))
+      .where((p) => p.isNotEmpty)
+      .toList();
+  if (parts.isEmpty) return '?';
+  return parts.take(2).map((p) => p[0].toUpperCase()).join();
+}
+
+/// "12:32" since the call started, ticking every second.
+class CallTimer extends StatefulWidget {
+  const CallTimer({super.key, this.startedAt, this.style});
+
+  final DateTime? startedAt;
+  final TextStyle? style;
+
+  @override
+  State<CallTimer> createState() => _CallTimerState();
+}
+
+class _CallTimerState extends State<CallTimer> {
+  late final DateTime _opened = DateTime.now();
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => setState(() {}),
     );
-    if (widget.height != null) {
-      return SizedBox(height: widget.height, child: body);
-    }
-    return AspectRatio(aspectRatio: 16 / 10, child: body);
   }
 
-  Widget _buildCompact() {
-    return Material(
-      elevation: 10,
-      shadowColor: Colors.black54,
-      borderRadius: BorderRadius.circular(18),
-      clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        width: 132,
-        height: 176,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _remoteTile(avatar: 26),
-            Positioned(
-              left: 8,
-              top: 8,
-              right: 8,
-              child: _LiveChip(elapsed: _elapsed, dense: true),
-            ),
-            Positioned(
-              left: 8,
-              right: 8,
-              bottom: 8,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (widget.onExpand != null)
-                    _RoundButton(
-                      icon: LucideIcons.maximize2,
-                      tooltip: 'Enlarge video',
-                      size: 34,
-                      onTap: widget.onExpand!,
-                    ),
-                  if (widget.onEndCall != null)
-                    _RoundButton(
-                      icon: LucideIcons.phoneOff,
-                      tooltip: 'End call',
-                      size: 34,
-                      color: AppColors.danger,
-                      onTap: widget.onEndCall!,
-                    ),
-                ],
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = DateTime.now().difference(widget.startedAt ?? _opened);
+    final s = d.isNegative ? 0 : d.inSeconds;
+    final mm = (s ~/ 60).toString().padLeft(2, '0');
+    final ss = (s % 60).toString().padLeft(2, '0');
+    return Text(
+      s >= 3600 ? '${s ~/ 3600}:$mm:$ss' : '$mm:$ss',
+      style: (widget.style ?? const TextStyle()).copyWith(
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
+  }
+}
+
+class _TimerPill extends StatelessWidget {
+  const _TimerPill({this.startedAt});
+
+  final DateTime? startedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          color: Colors.black.withValues(alpha: 0.32),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const PulseDot(color: Color(0xFFFF4D4F), size: 7),
+              const SizedBox(width: 6),
+              CallTimer(
+                startedAt: startedAt,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              const _MockLabel(),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _LiveChip extends StatelessWidget {
-  const _LiveChip({required this.elapsed, this.dense = false});
+class _ListenersChip extends StatelessWidget {
+  const _ListenersChip({required this.names});
 
-  final String elapsed;
-  final bool dense;
+  final List<String> names;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: dense ? 6 : 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.35),
+        color: Colors.black.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const PulseDot(color: Color(0xFFFF4D4F), size: 7),
+          const Icon(LucideIcons.headphones, size: 12, color: Colors.white),
           const SizedBox(width: 5),
-          Text(
-            dense ? elapsed : 'Live · $elapsed',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: dense ? 10.5 : 11.5,
-              fontWeight: FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
+          Flexible(
+            child: Text(
+              'Listening: ${names.join(', ')}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 11),
             ),
           ),
         ],
@@ -468,18 +574,11 @@ class _MockLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
+    return const Tooltip(
       message: 'Video calling is not connected yet. This is a preview.',
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: const Text(
-          'Demo',
-          style: TextStyle(color: Colors.white70, fontSize: 10),
-        ),
+      child: Text(
+        'Demo',
+        style: TextStyle(color: Colors.white60, fontSize: 10.5),
       ),
     );
   }
@@ -505,15 +604,19 @@ class _SelfView extends StatelessWidget {
         size: small ? 20 : 26,
       ),
     );
-    return Container(
-      width: small ? 62 : 84,
-      height: small ? 84 : 112,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      width: small ? 68 : 96,
+      height: small ? 90 : 128,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: const Color(0xFF2A3A63),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 10)],
+        borderRadius: BorderRadius.circular(small ? 14 : 18),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.85),
+          width: 1.5,
+        ),
+        boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 12)],
       ),
       child: cameraOff || photoUrl == null
           ? icon
@@ -526,47 +629,113 @@ class _SelfView extends StatelessWidget {
   }
 }
 
-class _RoundButton extends StatelessWidget {
-  const _RoundButton({
+/// A frosted round button at the top of the call ("<").
+class _GlassButton extends StatelessWidget {
+  const _GlassButton({
     required this.icon,
     required this.tooltip,
     required this.onTap,
-    this.color,
-    this.active = false,
-    this.size = 44,
-    this.wide = false,
+    this.size = 42,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
-  final Color? color;
-  final bool active;
   final double size;
 
-  /// A pill (the red end-call button) instead of a circle.
-  final bool wide;
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Material(
+            color: Colors.white.withValues(alpha: 0.22),
+            child: InkWell(
+              onTap: onTap,
+              child: SizedBox(
+                width: size,
+                height: size,
+                child: Icon(icon, color: Colors.white, size: size * 0.5),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One of the round call buttons along the bottom.
+class _CallButton extends StatelessWidget {
+  const _CallButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    required this.size,
+    this.color,
+    this.active = false,
+    this.badge = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final double size;
+  final Color? color;
+
+  /// On (muted, camera off...): white with a dark icon.
+  final bool active;
+
+  /// A dot: something new behind this button.
+  final bool badge;
 
   @override
   Widget build(BuildContext context) {
     final bg =
-        color ?? (active ? Colors.white : Colors.white.withValues(alpha: 0.18));
+        color ?? (active ? Colors.white : Colors.black.withValues(alpha: 0.38));
     final fg = color != null
         ? Colors.white
         : (active ? AppColors.ink : Colors.white);
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: bg,
-        shape: wide ? const StadiumBorder() : const CircleBorder(),
-        child: InkWell(
-          customBorder: wide ? const StadiumBorder() : const CircleBorder(),
-          onTap: onTap,
-          child: SizedBox(
-            width: wide ? size * 1.6 : size,
-            height: size,
-            child: Icon(icon, color: fg, size: size * 0.45),
-          ),
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: size * 0.12),
+      child: Tooltip(
+        message: tooltip,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            ClipOval(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Material(
+                  color: bg,
+                  child: InkWell(
+                    onTap: onTap,
+                    child: SizedBox(
+                      width: size,
+                      height: size,
+                      child: Icon(icon, color: fg, size: size * 0.42),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (badge)
+              Positioned(
+                right: 2,
+                top: 2,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

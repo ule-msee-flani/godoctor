@@ -44,6 +44,8 @@ import 'package:godoctor_app/features/patient/screens/consultation_history_scree
 import 'package:godoctor_app/features/patient/screens/order_history_screen.dart';
 
 import 'support/fakes.dart';
+import 'package:godoctor_app/features/doctor/widgets/prescribing.dart';
+import 'package:godoctor_app/features/call/active_call.dart';
 
 const _uid = 'user-1';
 final _now = DateTime.now();
@@ -571,6 +573,10 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 void callTests() {
+  // Unsent prescriptions are kept per consultation (they survive leaving
+  // the call); start each test with none.
+  setUp(() => PrescriptionDraftStore.clear('c1'));
+
   testWidgets('doctor prescribes during the call and sends it', (tester) async {
     sentItems = null;
     await _render(
@@ -602,7 +608,17 @@ void callTests() {
         .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger))
         .removeCurrentSnackBar();
     await tester.pump();
-    await tester.ensureVisible(find.text('Send to Amina Hassan'));
+    // The panel under the call is half the screen: scroll to the button.
+    await tester.scrollUntilVisible(
+      find.text('Send to Amina Hassan'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(PrescriptionDraftPanel),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.pump();
     await tester.tap(find.text('Send to Amina Hassan'));
     await _settle(tester);
@@ -704,7 +720,7 @@ void callTests() {
     await tester.pump(const Duration(seconds: 1));
   });
 
-  testWidgets('doctor can shrink the video to a floating window', (
+  testWidgets('doctor drags the panel down for full-screen video, and up', (
     tester,
   ) async {
     await _render(
@@ -712,14 +728,19 @@ void callTests() {
       const DoctorCallScreen(consultationId: 'c1'),
       size: const Size(412, 915),
     );
-    await tester.tap(find.byTooltip('Shrink video'));
+    // The work panel starts open under the video.
+    expect(find.text('Medicines'), findsOneWidget);
+    expect(find.byTooltip('Full screen'), findsOneWidget);
+    await tester.tap(find.byTooltip('Full screen'));
     await _settle(tester);
-    expect(find.byTooltip('Enlarge video'), findsOneWidget);
-    await tester.drag(find.byTooltip('Enlarge video'), const Offset(-120, 80));
+    expect(find.byTooltip('Prescription & details'), findsOneWidget);
+    // Drag the handle back up.
+    await tester.drag(
+      find.text('Patient, prescribing & notes'),
+      const Offset(0, -500),
+    );
     await _settle(tester);
-    await tester.tap(find.byTooltip('Enlarge video'));
-    await _settle(tester);
-    expect(find.byTooltip('Shrink video'), findsOneWidget);
+    expect(find.byTooltip('Full screen'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.pumpWidget(const SizedBox());

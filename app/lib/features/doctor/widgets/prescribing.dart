@@ -12,13 +12,17 @@ import '../../../data/repositories/repository_errors.dart';
 import '../../medicine/medicine_gallery.dart';
 import '../../prescription/digital_prescription.dart';
 import 'dose_sheet.dart';
+import '../../call/active_call.dart';
 
 /// The prescription a doctor is putting together (not sent yet), and the
 /// actions on it. Shared by the call screen and the chat's "new
 /// prescription" screen.
 mixin PrescriptionDrafting<T extends ConsumerStatefulWidget>
     on ConsumerState<T> {
-  final List<PrescriptionItem> draft = [];
+  /// Kept per consultation, so it survives stepping away from the call.
+  late final List<PrescriptionItem> draft = PrescriptionDraftStore.of(
+    draftConsultationId,
+  );
   bool sending = false;
 
   String get draftConsultationId;

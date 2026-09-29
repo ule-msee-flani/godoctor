@@ -17,6 +17,9 @@ import '../widgets/prescribing.dart';
 import '../widgets/visit_summary_editor.dart';
 import '../widgets/voice_note_player.dart';
 import '../../patient_card/patient_card_sheet.dart';
+import 'package:flutter/services.dart';
+import '../../call/active_call.dart';
+import '../../call/call_stage.dart';
 
 final _consultationDetailProvider = FutureProvider.autoDispose
     .family<
@@ -38,11 +41,15 @@ final _consultationDetailProvider = FutureProvider.autoDispose
       return (consultation: consultation, intake: intake, patient: patient);
     });
 
-/// The doctor's side of a consultation: the (mock) video call on top -- it
-/// can shrink into a floating window -- and underneath, the patient's
-/// details, the medicine gallery to prescribe from, the digital
-/// prescription (sent while the call continues), and the visit summary the
-/// patient keeps afterwards.
+/// The doctor's visit notes, per consultation, kept while they step away
+/// from the call (it carries on in a floating window).
+final _summaries = <String, VisitSummaryDraft>{};
+
+/// The doctor's side of a consultation: the (mock) video call full screen,
+/// and a panel pulled up from the bottom with the patient's details, the
+/// medicine gallery to prescribe from, the digital prescription (sent while
+/// the call continues), and the visit summary the patient keeps afterwards.
+/// Back shrinks the call into a floating window; it carries on.
 class DoctorCallScreen extends ConsumerStatefulWidget {
   const DoctorCallScreen({super.key, required this.consultationId});
 
@@ -58,11 +65,15 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
         PrescriptionDrafting<DoctorCallScreen> {
   final _searchCtrl = TextEditingController();
   late final _tabs = TabController(length: 4, vsync: this);
-  final _summary = VisitSummaryDraft();
-  bool _summaryLoaded = false;
+  late final VisitSummaryDraft _summary;
+  late bool _summaryLoaded;
   bool _finishing = false;
-  bool _videoMinimized = false;
-  Offset? _pip;
+  late final ActiveCallController _calls;
+
+  /// Ended on purpose: don't keep the call floating. Minimized: don't pull
+  /// it back full screen.
+  bool _leaving = false;
+  bool _minimized = false;
 
   @override
   String get draftConsultationId => widget.consultationId;
@@ -70,6 +81,12 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
   @override
   void initState() {
     super.initState();
+    _calls = ref.read(activeCallProvider.notifier);
+    _summaryLoaded = _summaries.containsKey(widget.consultationId);
+    _summary = _summaries.putIfAbsent(
+      widget.consultationId,
+      VisitSummaryDraft.new,
+    );
     // Tell the patient's waiting room that the doctor is here.
     final repo = ref.read(consultationRepositoryProvider);
     Future.sync(
@@ -81,8 +98,34 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
   void dispose() {
     _searchCtrl.dispose();
     _tabs.dispose();
-    _summary.dispose();
+    // The summary draft stays in _summaries until the visit ends.
+    if (!_leaving) {
+      final calls = _calls;
+      final id = widget.consultationId;
+      Future.microtask(() => calls.screenClosed(id));
+    }
     super.dispose();
+  }
+
+  /// Back (or "<"): the call carries on in a floating window.
+  void _minimize() {
+    if (_minimized) return;
+    HapticFeedback.selectionClick();
+    _minimized = true;
+    _calls.minimize();
+    final router = GoRouter.of(context);
+    if (router.canPop()) {
+      router.pop();
+    } else {
+      router.go('/doctor');
+    }
+  }
+
+  void _sync(ActiveCall info) {
+    if (_leaving || _minimized) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_leaving && !_minimized) _calls.showing(info);
+    });
   }
 
   @override
@@ -157,6 +200,10 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
           .read(consultationRepositoryProvider)
           .completeConsultation(widget.consultationId);
       ref.invalidate(currentDoctorProfileProvider);
+      _leaving = true;
+      _calls.end(widget.consultationId);
+      PrescriptionDraftStore.clear(widget.consultationId);
+      _summaries.remove(widget.consultationId);
       if (mounted) context.go('/doctor');
     } catch (e) {
       if (mounted) {
@@ -173,212 +220,228 @@ class _DoctorCallScreenState extends ConsumerState<DoctorCallScreen>
       _consultationDetailProvider(widget.consultationId),
     );
     final doctor = ref.watch(currentDoctorProfileProvider).valueOrNull;
+    final call = ref.watch(activeCallProvider);
+    final mine = call?.consultationId == widget.consultationId ? call : null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Consultation'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.danger,
-                minimumSize: const Size(0, 38),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-              ),
-              onPressed: _finishing ? null : _endConsultation,
-              icon: const Icon(LucideIcons.phoneOff, size: 16),
-              label: Text(_finishing ? 'Ending…' : 'End'),
-            ),
-          ),
-        ],
+    final detail = detailAsync.valueOrNull;
+    final consultation = detail?.consultation;
+    if (detail == null || consultation == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Consultation')),
+        body: detailAsync.hasError
+            ? ErrorView(message: friendlyError(detailAsync.error!))
+            : detail != null
+            ? const ErrorView(message: 'Consultation not found')
+            : const LoadingView(),
+      );
+    }
+    if (!_summaryLoaded) {
+      _summaryLoaded = true;
+      _summary.load(consultation);
+    }
+    final patientName = (detail.patient?.name.isNotEmpty ?? false)
+        ? detail.patient!.name
+        : 'Patient';
+    // Family members the patient brought into the call.
+    final listeners = <String>[
+      for (final p
+          in ref
+                  .watch(sessionPeopleProvider(widget.consultationId))
+                  .valueOrNull ??
+              const [])
+        if (p.isFamily && p.isJoined) p.name,
+    ];
+    final doctorName = (doctor?.name.isNotEmpty ?? false)
+        ? (doctor!.name.startsWith('Dr') ? doctor.name : 'Dr ${doctor.name}')
+        : 'Your doctor';
+    // The patient asked for the doctor's camera to stay off (data).
+    final myCameraOff = !consultation.doctorVideoPreferred;
+    final myPhoto = ref
+        .watch(doctorDirectoryRepositoryProvider)
+        .avatarUrl(ref.watch(currentAppUserProvider).valueOrNull?.avatarUrl);
+
+    _sync(
+      ActiveCall(
+        consultationId: widget.consultationId,
+        isDoctor: true,
+        otherName: patientName,
+        otherRole: 'Patient',
+        selfPhotoUrl: myPhoto,
+        startedAt: consultation.startedAt,
+        cameraOff: myCameraOff,
       ),
-      body: detailAsync.when(
-        loading: () => const LoadingView(),
-        error: (e, _) => ErrorView(message: friendlyError(e)),
-        data: (detail) {
-          final consultation = detail.consultation;
-          if (consultation == null) {
-            return const ErrorView(message: 'Consultation not found');
-          }
-          if (!_summaryLoaded) {
-            _summaryLoaded = true;
-            _summary.load(consultation);
-          }
-          final patientName = (detail.patient?.name.isNotEmpty ?? false)
-              ? detail.patient!.name
-              : 'Patient';
-          // Family members the patient brought into the call.
-          final listeners = <String>[
-            for (final p
-                in ref
-                        .watch(sessionPeopleProvider(widget.consultationId))
-                        .valueOrNull ??
-                    const [])
-              if (p.isFamily && p.isJoined) p.name,
-          ];
-          final doctorName = (doctor?.name.isNotEmpty ?? false)
-              ? (doctor!.name.startsWith('Dr')
-                    ? doctor.name
-                    : 'Dr ${doctor.name}')
-              : 'Your doctor';
-          // The patient asked for the doctor's camera to stay off (data).
-          final myCameraOff = !consultation.doctorVideoPreferred;
+    );
 
-          final patientTab = _PatientTab(
-            patient: detail.patient,
-            intake: detail.intake,
-            consultation: consultation,
+    final patientTab = _PatientTab(
+      patient: detail.patient,
+      intake: detail.intake,
+      consultation: consultation,
+    );
+    final medicinesTab = PrescribeMedicinesPanel(
+      searchCtrl: _searchCtrl,
+      onSearch: (_) => setState(() {}),
+      draft: draft,
+      onPrescribe: (drug, {template}) => prescribe(drug, template: template),
+    );
+    final prescriptionTab = PrescriptionDraftPanel(
+      consultationId: widget.consultationId,
+      doctorName: doctorName,
+      doctorDetail: doctor?.specialties.firstOrNull,
+      patientName: patientName,
+      patientAge: detail.patient?.ageOn(DateTime.now()),
+      patientGender: detail.patient?.genderLabel,
+      draft: draft,
+      sending: sending,
+      onEdit: (i) => prescribe(null, editIndex: i),
+      onRemove: (i) => setState(() => draft.removeAt(i)),
+      onSend: () => sendDraft(patientName),
+      onBrowse: () => _tabs.animateTo(1),
+    );
+    final summaryTab = VisitSummaryEditor(
+      draft: _summary,
+      patientName: patientName,
+      onSave: _saveSummary,
+    );
+
+    Widget video({
+      double topInset = 0,
+      double radius = 26,
+      bool? panelOpen,
+      VoidCallback? togglePanel,
+    }) => VideoCallPanel(
+      otherPartyName: patientName,
+      otherPartyRole: 'Patient',
+      listeners: listeners,
+      startedAt: consultation.startedAt,
+      startWithCameraOff: myCameraOff,
+      selfPhotoUrl: myPhoto,
+      radius: radius,
+      topInset: topInset,
+      onBack: _minimize,
+      muted: mine?.muted,
+      onToggleMute: mine == null ? null : _calls.toggleMute,
+      cameraOff: mine?.cameraOff,
+      onCameraChanged: mine == null ? null : _calls.setCameraOff,
+      speakerOn: mine?.speakerOn,
+      onToggleSpeaker: mine == null ? null : _calls.toggleSpeaker,
+      onPanel: togglePanel,
+      panelOpen: panelOpen ?? false,
+      onEndCall: _finishing ? null : _endConsultation,
+    );
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _minimize();
+      },
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final wide = c.maxWidth >= 1000;
+          final tabBar = TabBar(
+            controller: _tabs,
+            isScrollable: c.maxWidth < 420,
+            tabAlignment: c.maxWidth < 420 ? TabAlignment.start : null,
+            tabs: [
+              const Tab(text: 'Patient'),
+              const Tab(text: 'Medicines'),
+              Tab(
+                text: draft.isEmpty
+                    ? 'Prescription'
+                    : 'Prescription (${draft.length})',
+              ),
+              const Tab(text: 'Summary'),
+            ],
           );
-          final medicinesTab = PrescribeMedicinesPanel(
-            searchCtrl: _searchCtrl,
-            onSearch: (_) => setState(() {}),
-            draft: draft,
-            onPrescribe: (drug, {template}) =>
-                prescribe(drug, template: template),
-          );
-          final prescriptionTab = PrescriptionDraftPanel(
-            consultationId: widget.consultationId,
-            doctorName: doctorName,
-            doctorDetail: doctor?.specialties.firstOrNull,
-            patientName: patientName,
-            patientAge: detail.patient?.ageOn(DateTime.now()),
-            patientGender: detail.patient?.genderLabel,
-            draft: draft,
-            sending: sending,
-            onEdit: (i) => prescribe(null, editIndex: i),
-            onRemove: (i) => setState(() => draft.removeAt(i)),
-            onSend: () => sendDraft(patientName),
-            onBrowse: () => _tabs.animateTo(1),
-          );
-          final summaryTab = VisitSummaryEditor(
-            draft: _summary,
-            patientName: patientName,
-            onSave: _saveSummary,
+          final tabViews = TabBarView(
+            controller: _tabs,
+            children: [patientTab, medicinesTab, prescriptionTab, summaryTab],
           );
 
-          return LayoutBuilder(
-            builder: (context, c) {
-              final wide = c.maxWidth >= 1000;
-              final tabBar = TabBar(
-                controller: _tabs,
-                isScrollable: c.maxWidth < 420,
-                tabAlignment: c.maxWidth < 420 ? TabAlignment.start : null,
-                tabs: [
-                  const Tab(text: 'Patient'),
-                  const Tab(text: 'Medicines'),
-                  Tab(
-                    text: draft.isEmpty
-                        ? 'Prescription'
-                        : 'Prescription (${draft.length})',
+          if (wide) {
+            // Desktop: video + patient on the left, work on the right.
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text('Consultation'),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.danger,
+                        minimumSize: const Size(0, 38),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                      ),
+                      onPressed: _finishing ? null : _endConsultation,
+                      icon: const Icon(LucideIcons.phoneOff, size: 16),
+                      label: Text(_finishing ? 'Ending…' : 'End'),
+                    ),
                   ),
-                  const Tab(text: 'Summary'),
                 ],
-              );
-              final tabViews = TabBarView(
-                controller: _tabs,
+              ),
+              body: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  patientTab,
-                  medicinesTab,
-                  prescriptionTab,
-                  summaryTab,
+                  SizedBox(
+                    width: 420,
+                    child: ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        video(),
+                        const SizedBox(height: 16),
+                        _PatientSummary(
+                          patient: detail.patient,
+                          intake: detail.intake,
+                          consultation: consultation,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const VerticalDivider(width: 1),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        tabBar,
+                        Expanded(child: tabViews),
+                      ],
+                    ),
+                  ),
                 ],
-              );
+              ),
+            );
+          }
 
-              if (wide) {
-                // Desktop: video + patient on the left, work on the right.
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // Phone / tablet: the call full screen; the work is in the panel
+          // pulled up from the bottom (open to start with).
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle.light,
+            child: Scaffold(
+              backgroundColor: AppColors.ink,
+              body: CallStage(
+                initiallyOpen: true,
+                panelTitle: draft.isEmpty
+                    ? 'Patient, prescribing & notes'
+                    : 'Prescribing · ${draft.length} not sent',
+                panelIcon: LucideIcons.stethoscope,
+                video:
+                    (
+                      context, {
+                      required panelOpen,
+                      required togglePanel,
+                      required topInset,
+                    }) => video(
+                      topInset: topInset,
+                      radius: 0,
+                      panelOpen: panelOpen,
+                      togglePanel: togglePanel,
+                    ),
+                panel: Column(
                   children: [
-                    SizedBox(
-                      width: 420,
-                      child: ListView(
-                        padding: const EdgeInsets.all(16),
-                        children: [
-                          VideoCallPanel(
-                            otherPartyName: patientName,
-                            otherPartyRole: 'Patient',
-                            listeners: listeners,
-                            startedAt: consultation.startedAt,
-                            startWithCameraOff: myCameraOff,
-                            onEndCall: _endConsultation,
-                          ),
-                          const SizedBox(height: 16),
-                          _PatientSummary(
-                            patient: detail.patient,
-                            intake: detail.intake,
-                            consultation: consultation,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const VerticalDivider(width: 1),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          tabBar,
-                          Expanded(child: tabViews),
-                        ],
-                      ),
-                    ),
+                    tabBar,
+                    Expanded(child: tabViews),
                   ],
-                );
-              }
-
-              // Phone / tablet: video on top (or floating), tabs below.
-              final videoHeight = (c.maxHeight * 0.32).clamp(170.0, 260.0);
-              const pipW = 132.0, pipH = 176.0;
-              final pip =
-                  _pip ?? Offset(c.maxWidth - pipW - 12, c.maxHeight * 0.35);
-
-              return Stack(
-                children: [
-                  Column(
-                    children: [
-                      if (!_videoMinimized)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                          child: VideoCallPanel(
-                            otherPartyName: patientName,
-                            otherPartyRole: 'Patient',
-                            listeners: listeners,
-                            startedAt: consultation.startedAt,
-                            height: videoHeight,
-                            startWithCameraOff: myCameraOff,
-                            onEndCall: _endConsultation,
-                            onMinimize: () =>
-                                setState(() => _videoMinimized = true),
-                          ),
-                        ),
-                      tabBar,
-                      Expanded(child: tabViews),
-                    ],
-                  ),
-                  if (_videoMinimized)
-                    Positioned(
-                      left: pip.dx,
-                      top: pip.dy,
-                      child: GestureDetector(
-                        onPanUpdate: (d) => setState(() {
-                          final next = pip + d.delta;
-                          _pip = Offset(
-                            next.dx.clamp(0, c.maxWidth - pipW),
-                            next.dy.clamp(0, c.maxHeight - pipH),
-                          );
-                        }),
-                        child: VideoCallPanel(
-                          otherPartyName: patientName,
-                          startedAt: consultation.startedAt,
-                          compact: true,
-                          onEndCall: _endConsultation,
-                          onExpand: () =>
-                              setState(() => _videoMinimized = false),
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
+                ),
+              ),
+            ),
           );
         },
       ),

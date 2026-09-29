@@ -16,6 +16,8 @@ import '../../../data/providers/appointment_providers.dart';
 import '../../../data/providers/auth_providers.dart';
 import '../../../data/providers/prescription_providers.dart';
 import '../../../services/data_saver.dart';
+import '../../call/active_call.dart';
+import '../../call/call_stage.dart';
 import '../../medications/dose_reminder_sheet.dart';
 import '../../prescription/digital_prescription.dart';
 import '../../prescription/suggested_chemist_card.dart';
@@ -26,11 +28,50 @@ import 'doctor_profile_screen.dart' show publicDoctorProvider;
 import '../widgets/review_sheet.dart';
 import '../../../data/providers/repository_providers.dart';
 
+/// The doctor ended the visit: back to Home, and there ask how it went
+/// while it's fresh (the summary is one tap away, and stays on Home under
+/// "Your visits"). Used by the call screen and, when the call was
+/// minimized, by the floating call window.
+void showVisitEnded(
+  GoRouter router, {
+  required String consultationId,
+  required String doctorName,
+}) {
+  HapticFeedback.lightImpact();
+  router.go('/patient');
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final home = router.routerDelegate.navigatorKey.currentContext;
+    if (home == null || !home.mounted) return;
+    final rated = await showReviewSheet(
+      home,
+      consultationId: consultationId,
+      doctorName: doctorName,
+      extra: (
+        label: 'Not now — see the visit summary',
+        onTap: () => router.push('/patient/visit/$consultationId'),
+      ),
+    );
+    if (rated && home.mounted) {
+      ScaffoldMessenger.of(home).showSnackBar(
+        SnackBar(
+          content: const Text('Thanks for your review. Get well soon!'),
+          action: SnackBarAction(
+            label: 'Summary',
+            onPressed: () => router.push('/patient/visit/$consultationId'),
+          ),
+        ),
+      );
+    }
+  });
+}
+
 /// The patient's side of the consultation. Until the doctor opens the call
 /// the patient waits in a calm waiting room (with a camera / data choice);
 /// when the doctor joins there's a small moment (a tap of haptics and a
-/// "joined" pill) and the (mock) video call takes over. Below it, any
-/// prescription the doctor sends appears live with a suggested chemist.
+/// "joined" pill) and the (mock) video call takes over the whole screen.
+/// The prescription and details sit in a panel pulled up from the bottom.
+/// Back doesn't end anything: the call shrinks into a floating window and
+/// carries on while the patient uses the rest of the app.
 class PatientCallScreen extends ConsumerStatefulWidget {
   const PatientCallScreen({super.key, required this.consultationId});
 
@@ -42,14 +83,39 @@ class PatientCallScreen extends ConsumerStatefulWidget {
 
 class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
   late bool _myCameraOff = ref.read(dataSaverProvider);
+  late final ActiveCallController _calls;
+  final _stage = GlobalKey<CallStageState>();
   bool _justJoined = false;
   Timer? _joinedTimer;
+
+  /// Prescriptions the patient has seen (the panel was open).
+  int _seen = 0;
+  bool _panelOpen = false;
+  bool _rxNotice = false;
+  Timer? _rxTimer;
+
+  /// Leaving on purpose (left, or the visit ended): don't keep the call
+  /// floating. Minimized: don't pull it back full screen.
+  bool _leaving = false;
+  bool _minimized = false;
 
   String get _id => widget.consultationId;
 
   @override
+  void initState() {
+    super.initState();
+    _calls = ref.read(activeCallProvider.notifier);
+  }
+
+  @override
   void dispose() {
     _joinedTimer?.cancel();
+    _rxTimer?.cancel();
+    if (!_leaving) {
+      final calls = _calls;
+      final id = _id;
+      Future.microtask(() => calls.screenClosed(id));
+    }
     super.dispose();
   }
 
@@ -62,48 +128,53 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
     });
   }
 
+  void _newPrescription() {
+    HapticFeedback.mediumImpact();
+    setState(() => _rxNotice = true);
+    _rxTimer?.cancel();
+    _rxTimer = Timer(const Duration(seconds: 8), () {
+      if (mounted) setState(() => _rxNotice = false);
+    });
+  }
+
   void _visitEnded() {
-    if (!mounted) return;
-    final router = GoRouter.of(context);
+    if (!mounted || _leaving) return;
+    _leaving = true;
     final doctorId = ref.read(appointmentProvider(_id)).valueOrNull?.doctorId;
     final doctor = doctorId == null
         ? null
         : ref.read(publicDoctorProvider(doctorId)).valueOrNull?.name;
-    HapticFeedback.lightImpact();
-    router.go('/patient');
-    // On Home, ask how it went while it's fresh; the summary is one tap
-    // away (and stays on Home under "Your visits").
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final home = router.routerDelegate.navigatorKey.currentContext;
-      if (home == null || !home.mounted) return;
-      final rated = await showReviewSheet(
-        home,
-        consultationId: _id,
-        doctorName: doctor ?? 'your doctor',
-        extra: (
-          label: 'Not now — see the visit summary',
-          onTap: () => router.push('/patient/visit/$_id'),
-        ),
-      );
-      if (rated && home.mounted) {
-        ScaffoldMessenger.of(home).showSnackBar(
-          SnackBar(
-            content: const Text('Thanks for your review. Get well soon!'),
-            action: SnackBarAction(
-              label: 'Summary',
-              onPressed: () => router.push('/patient/visit/$_id'),
-            ),
-          ),
-        );
-      }
-    });
+    _calls.end(_id);
+    showVisitEnded(
+      GoRouter.of(context),
+      consultationId: _id,
+      doctorName: doctor ?? 'your doctor',
+    );
   }
 
-  Future<void> _leave(BuildContext context) async {
+  void _close() {
+    final router = GoRouter.of(context);
+    if (router.canPop()) {
+      router.pop();
+    } else {
+      router.go('/patient');
+    }
+  }
+
+  /// Back (or "<"): the call carries on in a floating window.
+  void _minimize() {
+    if (_minimized) return;
+    HapticFeedback.selectionClick();
+    _minimized = true;
+    _calls.minimize();
+    _close();
+  }
+
+  Future<void> _leave(BuildContext context, {required bool waiting}) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Leave the call?'),
+        title: Text(waiting ? 'Leave the waiting room?' : 'Leave the call?'),
         content: const Text(
           'You can come back to it from Home while the doctor is still on.',
         ),
@@ -120,12 +191,22 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
         ],
       ),
     );
-    if (ok == true && context.mounted) context.pop();
+    if (ok != true || !mounted) return;
+    _leaving = true;
+    _calls.end(_id);
+    _close();
+  }
+
+  /// Keep the floating window's copy of the call up to date.
+  void _sync(ActiveCall info) {
+    if (_leaving || _minimized) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_leaving && !_minimized) _calls.showing(info);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
     ref.listen(appointmentProvider(_id), (prev, next) {
       final was = prev?.valueOrNull?.doctorJoinedAt;
       final now = next.valueOrNull?.doctorJoinedAt;
@@ -137,6 +218,11 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
           prev?.valueOrNull?.status == ConsultationStatus.completed;
       if (prev?.hasValue == true && ended && !wasEnded) _visitEnded();
     });
+    ref.listen(consultationPrescriptionsProvider(_id), (prev, next) {
+      final before = prev?.valueOrNull?.length;
+      final after = next.valueOrNull?.length ?? 0;
+      if (before != null && after > before && !_panelOpen) _newPrescription();
+    });
     final consultation = ref.watch(appointmentProvider(_id)).value;
     final doctor = consultation?.doctorId == null
         ? null
@@ -145,6 +231,8 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
         ref.watch(consultationPrescriptionsProvider(_id)).value ??
         const <Prescription>[];
     final patient = ref.watch(currentPatientProfileProvider).value;
+    final call = ref.watch(activeCallProvider);
+    final mine = call?.consultationId == _id ? call : null;
 
     final ended = consultation?.status == ConsultationStatus.completed;
     // A prescription means the doctor is clearly there, even if the
@@ -161,155 +249,267 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
     final patientName = (patient?.name.isNotEmpty ?? false)
         ? patient!.name
         : 'You';
+    // Same avatars bucket; the directory repository is the one faked in
+    // tests.
+    final avatars = ref.watch(doctorDirectoryRepositoryProvider);
+    final doctorPhoto = avatars.avatarUrl(doctor?.avatarPath);
+    final myPhoto = avatars.avatarUrl(
+      ref.watch(currentAppUserProvider).valueOrNull?.avatarUrl,
+    );
+    final cameraOff = mine?.cameraOff ?? _myCameraOff;
 
-    final Widget top;
-    if (ended) {
-      top = _EndedBanner(
-        key: const ValueKey('ended'),
-        doctorName: doctorName,
-        chatOpen: consultation?.chatOpen ?? false,
-        onSummary: () => context.pushReplacement('/patient/visit/$_id'),
-        onMessage: () => context.pushReplacement('/patient/chat/$_id'),
-      );
-    } else if (consultation == null) {
-      top = const SizedBox(
-        key: ValueKey('loading'),
-        height: 240,
-        child: Center(child: DelayedHeartbeat()),
-      );
-    } else if (!joined) {
-      top = _WaitingRoom(
-        key: const ValueKey('waiting'),
-        doctorName: doctorName,
-        doctorAvatar: doctor?.avatarPath,
-        doctorVideo: doctorVideo,
-        myCameraOff: _myCameraOff,
-        onCameraChanged: (off) => setState(() => _myCameraOff = off),
-        onLeave: () => _leave(context),
-      );
-    } else {
-      top = Column(
-        key: const ValueKey('call'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AnimatedSize(
-            duration: const Duration(milliseconds: 250),
-            child: _justJoined
-                ? Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _JoinedPill(doctorName: doctorName),
-                  )
-                : const SizedBox(width: double.infinity),
-          ),
-          VideoCallPanel(
-            otherPartyName: doctorName,
-            otherPartyRole: consultation.specialtyRequested,
-            startedAt: consultation.startedAt,
-            height: (MediaQuery.sizeOf(context).height * 0.52).clamp(
-              260.0,
-              470.0,
-            ),
-            listeners: listeners,
-            remoteCameraOff: !doctorVideo,
-            otherPhotoUrl: ref
-                .watch(doctorDirectoryRepositoryProvider)
-                .avatarUrl(doctor?.avatarPath),
-            // Same avatars bucket; the directory repository is the one faked
-            // in tests.
-            selfPhotoUrl: ref
-                .watch(doctorDirectoryRepositoryProvider)
-                .avatarUrl(
-                  ref.watch(currentAppUserProvider).valueOrNull?.avatarUrl,
-                ),
-            startWithCameraOff: _myCameraOff,
-            onEndCall: () => _leave(context),
-          ),
-        ],
+    if (consultation != null && !ended) {
+      _sync(
+        ActiveCall(
+          consultationId: _id,
+          isDoctor: false,
+          otherName: doctorName,
+          otherRole: consultation.specialtyRequested,
+          otherPhotoUrl: doctorPhoto,
+          selfPhotoUrl: myPhoto,
+          startedAt: consultation.startedAt,
+          joined: joined,
+          remoteCameraOff: !doctorVideo,
+          cameraOff: _myCameraOff,
+        ),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          ended
-              ? 'Consultation ended'
-              : joined || consultation == null
-              ? 'Consultation'
-              : 'Waiting room',
+    List<Widget> prescriptionList() => [
+      if (prescriptions.isEmpty)
+        _NoPrescriptionYet(ended: ended)
+      else
+        for (final p in prescriptions.reversed) ...[
+          DigitalPrescription(
+            doctorName: doctorName,
+            doctorDetail: consultation?.specialtyRequested,
+            patientName: patientName,
+            patientAge: patient?.ageOn(p.issuedAt),
+            patientGender: patient?.genderLabel,
+            items: p.items,
+            issuedAt: p.issuedAt.toLocal(),
+            validUntil: p.validUntil,
+            reference: p.id,
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => showDoseReminderSheet(context, items: p.items),
+              icon: const Icon(LucideIcons.alarmClock, size: 18),
+              label: const Text('Remind me to take these'),
+            ),
+          ),
+          const SizedBox(height: 4),
+          SuggestedChemistCard(prescription: p),
+          const SizedBox(height: 24),
+        ],
+    ];
+
+    if (ended) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Consultation ended')),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          children: [
+            _EndedBanner(
+              doctorName: doctorName,
+              chatOpen: consultation?.chatOpen ?? false,
+              onSummary: () => context.pushReplacement('/patient/visit/$_id'),
+              onMessage: () => context.pushReplacement('/patient/chat/$_id'),
+            ),
+            const SizedBox(height: 20),
+            ...prescriptionList(),
+          ],
+        ),
+      );
+    }
+
+    if (consultation == null || !joined) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          consultation == null ? _close() : _minimize();
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(consultation == null ? 'Consultation' : 'Waiting room'),
+          ),
+          body: consultation == null
+              ? const Center(child: DelayedHeartbeat())
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                  children: [
+                    _WaitingRoom(
+                      doctorName: doctorName,
+                      doctorAvatar: doctor?.avatarPath,
+                      doctorVideo: doctorVideo,
+                      myCameraOff: cameraOff,
+                      onCameraChanged: (off) {
+                        setState(() => _myCameraOff = off);
+                        _calls.setCameraOff(off);
+                      },
+                      onLeave: () => _leave(context, waiting: true),
+                    ),
+                    const SizedBox(height: 16),
+                    FamilySessionPanel(consultationId: _id),
+                  ],
+                ),
+        ),
+      );
+    }
+
+    final unseen = prescriptions.length - _seen;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _minimize();
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Scaffold(
+          backgroundColor: AppColors.ink,
+          body: CallStage(
+            key: _stage,
+            panelTitle: prescriptions.isEmpty
+                ? 'Prescription & details'
+                : prescriptions.length == 1
+                ? 'Your prescription'
+                : 'Your prescriptions (${prescriptions.length})',
+            panelIcon: prescriptions.isEmpty
+                ? LucideIcons.clipboardList
+                : LucideIcons.fileCheck,
+            panelBadge: unseen > 0 ? '$unseen new' : null,
+            onOpenChanged: (open) => setState(() {
+              _panelOpen = open;
+              if (open) {
+                _seen = prescriptions.length;
+                _rxNotice = false;
+              }
+            }),
+            video:
+                (
+                  context, {
+                  required panelOpen,
+                  required togglePanel,
+                  required topInset,
+                }) => VideoCallPanel(
+                  otherPartyName: doctorName,
+                  otherPartyRole: consultation.specialtyRequested,
+                  startedAt: consultation.startedAt,
+                  listeners: listeners,
+                  remoteCameraOff: !doctorVideo,
+                  otherPhotoUrl: doctorPhoto,
+                  selfPhotoUrl: myPhoto,
+                  startWithCameraOff: cameraOff,
+                  radius: 0,
+                  topInset: topInset,
+                  onBack: _minimize,
+                  muted: mine?.muted,
+                  onToggleMute: mine == null ? null : _calls.toggleMute,
+                  cameraOff: mine?.cameraOff,
+                  onCameraChanged: mine == null
+                      ? null
+                      : (off) {
+                          setState(() => _myCameraOff = off);
+                          _calls.setCameraOff(off);
+                        },
+                  speakerOn: mine?.speakerOn,
+                  onToggleSpeaker: mine == null ? null : _calls.toggleSpeaker,
+                  onPanel: togglePanel,
+                  panelOpen: panelOpen,
+                  panelBadge: unseen > 0,
+                  notice: _justJoined
+                      ? _JoinedPill(doctorName: doctorName)
+                      : _rxNotice
+                      ? _PrescriptionNotice(
+                          doctorName: doctorName,
+                          onView: () => _stage.currentState?.open(),
+                        )
+                      : null,
+                  onEndCall: () => _leave(context, waiting: false),
+                ),
+            panel: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+              children: [
+                ...prescriptionList(),
+                const SizedBox(height: 4),
+                FamilySessionPanel(consultationId: _id),
+              ],
+            ),
+          ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 420),
-            switchInCurve: Curves.easeOutCubic,
-            transitionBuilder: (child, a) => FadeTransition(
-              opacity: a,
-              child: ScaleTransition(
-                scale: Tween(begin: 0.96, end: 1.0).animate(a),
-                child: child,
-              ),
-            ),
-            child: top,
-          ),
-          if (!ended) ...[
-            const SizedBox(height: 16),
-            FamilySessionPanel(consultationId: _id),
-          ],
-          if (joined || ended) ...[
-            const SizedBox(height: 20),
-            if (prescriptions.isEmpty)
-              _NoPrescriptionYet(ended: ended)
-            else ...[
-              Row(
-                children: [
-                  const Icon(
-                    LucideIcons.fileCheck,
-                    size: 18,
-                    color: AppColors.success,
+    );
+  }
+}
+
+/// "Dr X sent you a prescription · View", over the video.
+class _PrescriptionNotice extends StatelessWidget {
+  const _PrescriptionNotice({required this.doctorName, required this.onView});
+
+  final String doctorName;
+  final VoidCallback onView;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutBack,
+      builder: (context, t, child) => Transform.scale(
+        scale: 0.85 + 0.15 * t,
+        child: Opacity(opacity: t.clamp(0, 1), child: child),
+      ),
+      child: Material(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(30),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(30),
+          onTap: onView,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  LucideIcons.fileCheck,
+                  size: 16,
+                  color: AppColors.success,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    '$doctorName sent you a prescription',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      prescriptions.length == 1
-                          ? 'Your prescription'
-                          : 'Your prescriptions (${prescriptions.length})',
-                      style: theme.titleMedium,
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'View',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              for (final p in prescriptions.reversed) ...[
-                DigitalPrescription(
-                  doctorName: doctorName,
-                  doctorDetail: consultation?.specialtyRequested,
-                  patientName: patientName,
-                  patientAge: patient?.ageOn(p.issuedAt),
-                  patientGender: patient?.genderLabel,
-                  items: p.items,
-                  issuedAt: p.issuedAt.toLocal(),
-                  validUntil: p.validUntil,
-                  reference: p.id,
                 ),
-                const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () =>
-                        showDoseReminderSheet(context, items: p.items),
-                    icon: const Icon(LucideIcons.alarmClock, size: 18),
-                    label: const Text('Remind me to take these'),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                SuggestedChemistCard(prescription: p),
-                const SizedBox(height: 24),
               ],
-            ],
-          ],
-        ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -320,7 +520,6 @@ class _PatientCallScreenState extends ConsumerState<PatientCallScreen> {
 /// data choice.
 class _WaitingRoom extends StatefulWidget {
   const _WaitingRoom({
-    super.key,
     required this.doctorName,
     required this.doctorAvatar,
     required this.doctorVideo,
@@ -573,7 +772,6 @@ class _NoPrescriptionYet extends StatelessWidget {
 
 class _EndedBanner extends StatelessWidget {
   const _EndedBanner({
-    super.key,
     required this.doctorName,
     required this.chatOpen,
     required this.onSummary,

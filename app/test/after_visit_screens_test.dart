@@ -33,6 +33,7 @@ import 'package:godoctor_app/features/patient/screens/patient_call_screen.dart';
 import 'package:godoctor_app/features/patient/visit/visit_summary_screen.dart';
 
 import 'support/fakes.dart';
+import 'package:godoctor_app/features/call/call_overlay.dart';
 
 final _now = DateTime.now();
 
@@ -225,6 +226,7 @@ Future<void> _render(
   _Chats? chats,
   List<Prescription>? prescriptions,
   GoRouter? router,
+  bool callOverlay = false,
 }) async {
   tester.view.physicalSize = const Size(412, 915);
   tester.view.devicePixelRatio = 1;
@@ -260,6 +262,12 @@ Future<void> _render(
           : MaterialApp.router(
               theme: AppTheme.patientTheme,
               routerConfig: router,
+              builder: callOverlay
+                  ? (context, child) => CallOverlay(
+                      router: router,
+                      child: child ?? const SizedBox(),
+                    )
+                  : null,
             ),
     ),
   );
@@ -528,6 +536,92 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(find.text('SUMMARY c1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _close(tester);
+  });
+
+  testWidgets('back shrinks the call into a floating window that carries on', (
+    tester,
+  ) async {
+    final live = StreamController<Consultation?>();
+    addTearDown(live.close);
+    final router = GoRouter(
+      initialLocation: '/patient',
+      routes: [
+        GoRoute(
+          path: '/patient',
+          builder: (_, _) => const Scaffold(body: Center(child: Text('HOME'))),
+        ),
+        GoRoute(
+          path: '/patient/call/:id',
+          builder: (_, state) =>
+              PatientCallScreen(consultationId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/patient/visit/:id',
+          builder: (_, state) =>
+              Scaffold(body: Text('SUMMARY ${state.pathParameters['id']}')),
+        ),
+      ],
+    );
+    Future<void> settle([int n = 8]) async {
+      for (var i = 0; i < n; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    final window = find.bySemanticsLabel(RegExp('Your call with'));
+    await _render(
+      tester,
+      const SizedBox(),
+      consultation: live.stream,
+      prescriptions: const [],
+      router: router,
+      callOverlay: true,
+    );
+    router.push('/patient/call/c1');
+    live.add(
+      _consultation(
+        status: ConsultationStatus.inProgress,
+        doctorJoinedAt: _now,
+      ),
+    );
+    await settle();
+    expect(find.byType(VideoCallPanel), findsOneWidget);
+    expect(window, findsNothing);
+
+    // "<": Home, with the call floating over it.
+    await tester.tap(find.byTooltip('Minimize'));
+    await settle();
+    expect(find.text('HOME'), findsOneWidget);
+    expect(find.byType(VideoCallPanel), findsNothing);
+    expect(window, findsOneWidget);
+
+    // Tucked into the edge, then brought back.
+    await tester.tap(find.bySemanticsLabel('Tuck the call away'));
+    await settle(4);
+    expect(window, findsNothing);
+    await tester.tap(find.bySemanticsLabel('Show your call'));
+    await settle(4);
+    expect(window, findsOneWidget);
+
+    // Tap the window: back on the call.
+    await tester.tap(window);
+    await settle();
+    expect(find.byType(VideoCallPanel), findsOneWidget);
+    expect(window, findsNothing);
+
+    // The phone's back button minimizes too.
+    await tester.binding.handlePopRoute();
+    await settle();
+    expect(find.text('HOME'), findsOneWidget);
+    expect(window, findsOneWidget);
+
+    // The doctor ends the visit while the patient is on Home.
+    live.add(_consultation(doctorJoinedAt: _now));
+    await settle(10);
+    expect(window, findsNothing);
+    expect(find.text('How was your visit?'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _close(tester);
   });

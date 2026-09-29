@@ -23,6 +23,7 @@ import 'package:godoctor_app/features/prescription/chemist_match.dart';
 import 'package:godoctor_app/features/prescription/prescription_order_screen.dart';
 
 import 'support/fakes.dart';
+import 'package:godoctor_app/features/call/call_stage.dart';
 
 final _now = DateTime.now();
 
@@ -248,11 +249,28 @@ void main() {
   ) async {
     await _render(tester, const PatientCallScreen(consultationId: 'c1'));
     expect(tester.takeException(), isNull);
+    // The call is full screen; the prescription is in the panel under it,
+    // marked new until it's opened.
     expect(find.text('Your prescription'), findsOneWidget);
+    expect(find.text('1 new'), findsOneWidget);
+    await tester.tap(find.text('Your prescription'));
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('1 new'), findsNothing);
     // Written like the paper pad: "1." then the medicine and its form.
     expect(find.text('1.'), findsOneWidget);
     expect(find.text('Paracetamol (tablet)'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Order from Afya Chemist'), 300);
+    await tester.scrollUntilVisible(
+      find.text('Order from Afya Chemist'),
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byType(CallStage),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Order from Afya Chemist'), findsOneWidget);
     expect(find.textContaining('Has all 2 · '), findsOneWidget);

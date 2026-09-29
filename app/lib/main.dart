@@ -12,6 +12,7 @@ import 'features/update/update_sheet.dart';
 import 'services/app_update.dart';
 import 'services/live_updates.dart';
 import 'services/push_service.dart';
+import 'features/call/call_overlay.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,9 +58,14 @@ class GoDoctorApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.patientTheme,
       routerConfig: router,
-      // The launch video plays over the app while it starts up.
-      builder: (context, child) =>
-          SplashGate(child: child ?? const SizedBox.shrink()),
+      // The launch video plays over the app while it starts up; a call in
+      // progress floats over every screen.
+      builder: (context, child) => SplashGate(
+        child: CallOverlay(
+          router: router,
+          child: child ?? const SizedBox.shrink(),
+        ),
+      ),
     );
   }
 }

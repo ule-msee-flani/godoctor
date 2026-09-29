@@ -41,22 +41,64 @@ class _ConsultPayScreenState extends ConsumerState<ConsultPayScreen> {
   bool _paying = false;
   bool _left = false;
 
+  /// M-Pesa (or the connection) is taking a while: offer to wait on Home.
+  bool _slow = false;
+  Timer? _slowTimer;
+
+  @override
+  void dispose() {
+    _slowTimer?.cancel();
+    super.dispose();
+  }
+
   void _toast(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   Future<void> _pay() async {
-    setState(() => _paying = true);
+    setState(() {
+      _paying = true;
+      _slow = false;
+    });
+    _slowTimer?.cancel();
+    _slowTimer = Timer(const Duration(seconds: 8), () {
+      if (mounted && _paying) setState(() => _slow = true);
+    });
     try {
       await simulateMpesaPrompt();
       await ref
           .read(consultationRepositoryProvider)
           .payForConsultation(widget.consultationId);
-      // The live stream flips to in_progress and _goToCall() takes over.
+      // Paid: go on now rather than waiting for the live update, which can
+      // lag on a slow connection.
+      if (mounted) _goToCall();
     } catch (e) {
       if (mounted) _toast(friendlyError(e));
     } finally {
-      if (mounted) setState(() => _paying = false);
+      _slowTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _paying = false;
+          _slow = false;
+        });
+      }
     }
+  }
+
+  /// Leave while the payment is still going through: Home shows the
+  /// consultation (with Join) as soon as it's confirmed. Never back to the
+  /// booking steps.
+  void _waitOnHome() {
+    final messenger = ScaffoldMessenger.of(context);
+    context.go('/patient');
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Your payment is still going through. Your consultation will '
+          'show on Home as soon as it\'s confirmed. Pull down to refresh.',
+        ),
+        duration: Duration(seconds: 6),
+      ),
+    );
   }
 
   Future<void> _cancel() async {
@@ -89,17 +131,18 @@ class _ConsultPayScreenState extends ConsumerState<ConsultPayScreen> {
     }
   }
 
-  /// Once paid: open the consultation (and keep the status page underneath,
-  /// so leaving the call lands on "consultation in progress / completed").
+  /// Once paid: straight to the waiting room. It replaces the booking
+  /// steps, so Back from there goes Home, not back into booking.
   void _goToCall() {
     if (_left) return;
     _left = true;
     ref.read(consultDraftProvider.notifier).state = null;
+    ref.invalidate(appointmentProvider(widget.consultationId));
     HapticFeedback.heavyImpact();
-    Future<void>.delayed(const Duration(milliseconds: 1600), () {
+    if (mounted) setState(() {});
+    Future<void>.delayed(const Duration(milliseconds: 1400), () {
       if (!mounted) return;
-      context.pushReplacement('/patient/waiting/${widget.consultationId}');
-      context.push('/patient/call/${widget.consultationId}');
+      context.go('/patient/call/${widget.consultationId}');
     });
   }
 
@@ -108,7 +151,15 @@ class _ConsultPayScreenState extends ConsumerState<ConsultPayScreen> {
     final async = ref.watch(appointmentProvider(widget.consultationId));
 
     return PopScope(
-      canPop: !_paying,
+      canPop: !_paying && !_left,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_left) {
+          context.go('/patient/call/${widget.consultationId}');
+        } else {
+          _waitOnHome();
+        }
+      },
       child: Scaffold(
         appBar: AppBar(title: const Text('Pay & see your doctor')),
         body: async.when(
@@ -116,20 +167,27 @@ class _ConsultPayScreenState extends ConsumerState<ConsultPayScreen> {
           error: (e, _) => ErrorView(message: friendlyError(e)),
           data: (c) {
             if (c == null) return const ErrorView(message: 'Request not found');
+            if (_left) {
+              return const PaymentSuccessView(
+                message: 'Payment received. Taking you to the waiting room…',
+              );
+            }
             switch (c.status) {
               case ConsultationStatus.awaitingPayment:
                 return _PayBody(
                   consultation: c,
                   paying: _paying,
+                  slow: _slow,
                   onPay: _pay,
                   onCancel: _cancel,
+                  onWaitOnHome: _waitOnHome,
                 );
               case ConsultationStatus.matched:
               case ConsultationStatus.inProgress:
               case ConsultationStatus.completed:
                 _goToCall();
                 return const PaymentSuccessView(
-                  message: 'Payment received. Connecting you to your doctor…',
+                  message: 'Payment received. Taking you to the waiting room…',
                 );
               default:
                 return _EndedBody(onChooseAgain: () => context.pop());
@@ -145,14 +203,18 @@ class _PayBody extends ConsumerWidget {
   const _PayBody({
     required this.consultation,
     required this.paying,
+    required this.slow,
     required this.onPay,
     required this.onCancel,
+    required this.onWaitOnHome,
   });
 
   final Consultation consultation;
   final bool paying;
+  final bool slow;
   final VoidCallback onPay;
   final VoidCallback onCancel;
+  final VoidCallback onWaitOnHome;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -343,10 +405,20 @@ class _PayBody extends ConsumerWidget {
                         : 'Pay ${formatKes(fee)} with M-Pesa',
                   ),
                 ),
-                TextButton(
-                  onPressed: paying ? null : onCancel,
-                  child: const Text('Cancel and choose another doctor'),
-                ),
+                if (slow)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: OutlinedButton.icon(
+                      onPressed: onWaitOnHome,
+                      icon: const Icon(LucideIcons.house, size: 18),
+                      label: const Text('Taking a while? Wait on Home'),
+                    ),
+                  )
+                else
+                  TextButton(
+                    onPressed: paying ? null : onCancel,
+                    child: const Text('Cancel and choose another doctor'),
+                  ),
               ],
             ),
           ),

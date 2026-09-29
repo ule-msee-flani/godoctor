@@ -618,7 +618,10 @@ class MedicineGallerySkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    // Cut off at the bottom in a short space (e.g. the call's half-height
+    // panel) instead of overflowing.
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

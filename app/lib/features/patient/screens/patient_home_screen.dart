@@ -65,6 +65,13 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     return Scaffold(
       body: SafeArea(
         child: LiveRefresh(
+          // Pulling down also reconnects the live consultation, so a
+          // payment confirmed while offline shows up.
+          onRefresh: () async {
+            ref
+              ..invalidate(activeConsultationProvider)
+              ..invalidate(myAppointmentsProvider);
+          },
           child: ListView(
             padding: const EdgeInsets.only(top: 8, bottom: 24),
             children: [
