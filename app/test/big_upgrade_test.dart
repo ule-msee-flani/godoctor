@@ -349,6 +349,10 @@ void main() {
     expect(find.text('We\'re here for you.'), findsOneWidget);
     expect(find.text('Talk to someone'), findsOneWidget);
     expect(find.text('Lift your mood'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('A girl sits hunched on a bench in the rain.'),
+      findsOneWidget,
+    );
     expect(profiles.mood, 'sad');
 
     await tester.tap(find.text('Change'));

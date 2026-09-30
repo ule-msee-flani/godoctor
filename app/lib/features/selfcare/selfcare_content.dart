@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'stick_scene.dart';
 
 /// Practices you do, tips you keep in mind, guides you read.
 enum CareKind { practice, tip, guide }
@@ -47,6 +48,7 @@ class CareItem {
     required this.why,
     required this.steps,
     this.breathing,
+    this.scenes,
   });
 
   final String id;
@@ -59,6 +61,10 @@ class CareItem {
 
   /// Set for breathing practices: a breathing circle leads it.
   final BreathPattern? breathing;
+
+  /// An animated scene for each step (same length as [steps]), shown above
+  /// the words.
+  final List<StickSceneKind>? scenes;
 }
 
 /// A group of practices, like "Healthy sleep".
@@ -242,6 +248,13 @@ const _mood = CareTopic(
             'good cup of tea.',
         'For each, ask: why did it go well?',
         'Try it every evening this week.',
+      ],
+      // The rain clears as she finds her three good things.
+      scenes: [
+        StickSceneKind.thinkBack,
+        StickSceneKind.threeThings,
+        StickSceneKind.askWhy,
+        StickSceneKind.everyEvening,
       ],
     ),
     CareItem(

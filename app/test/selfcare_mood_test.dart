@@ -7,6 +7,7 @@ import 'package:godoctor_app/core/theme/app_theme.dart';
 import 'package:godoctor_app/features/patient/home/mood_check_in.dart';
 import 'package:godoctor_app/features/selfcare/selfcare_content.dart';
 import 'package:godoctor_app/features/selfcare/selfcare_screens.dart';
+import 'package:godoctor_app/features/selfcare/stick_scene.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> _pump(WidgetTester tester, [int times = 8]) async {
@@ -153,6 +154,63 @@ void main() {
     await tester.tap(find.text('Pause'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Carry on'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('every stick scene draws, and moves from one to the next', (
+    tester,
+  ) async {
+    var scene = StickSceneKind.sadRain;
+    late StateSetter set;
+    await _host(
+      tester,
+      Scaffold(
+        body: StatefulBuilder(
+          builder: (context, setState) {
+            set = setState;
+            return SizedBox(height: 300, child: StickScene(scene: scene));
+          },
+        ),
+      ),
+    );
+    for (final kind in StickSceneKind.values) {
+      set(() => scene = kind);
+      // Part way through the move, then settled and looping.
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 1300));
+      expect(tester.takeException(), isNull, reason: kind.name);
+    }
+    expect(
+      find.bySemanticsLabel('The girl jumps for joy in the sun.'),
+      findsOneWidget,
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('three good things: a scene for each step, then she jumps', (
+    tester,
+  ) async {
+    await _host(tester, const PracticeScreen(itemId: 'three-good'));
+    StickSceneKind showing() =>
+        tester.widget<StickScene>(find.byType(StickScene)).scene;
+    expect(find.text('Think back over today.'), findsOneWidget);
+    expect(showing(), StickSceneKind.thinkBack);
+    await tester.tap(find.text('Next'));
+    await _pump(tester, 10);
+    expect(find.textContaining('Name three things'), findsOneWidget);
+    expect(showing(), StickSceneKind.threeThings);
+    await tester.tap(find.text('Next'));
+    await _pump(tester, 10);
+    expect(showing(), StickSceneKind.askWhy);
+    await tester.tap(find.text('Next'));
+    await _pump(tester, 10);
+    expect(find.text('Try it every evening this week.'), findsOneWidget);
+    expect(showing(), StickSceneKind.everyEvening);
+    await tester.tap(find.text('I did it'));
+    await _pump(tester, 10);
+    expect(find.text('Nicely done.'), findsOneWidget);
+    expect(showing(), StickSceneKind.celebrate);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });

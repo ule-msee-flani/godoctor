@@ -13,6 +13,7 @@ import '../../core/widgets/motion.dart';
 import '../patient/home/mood_check_in.dart';
 import 'selfcare_content.dart';
 import '../patient/widgets/specialty_tiles.dart' show PageDashes;
+import 'stick_scene.dart';
 
 const _page = Color(0xFFF4F4F8);
 const _featuredTopic = 'regulate-emotions';
@@ -610,6 +611,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
         week: week,
         reading: reading,
         next: next,
+        cheerFrom: item.scenes?.last,
         onBack: () => context.canPop()
             ? context.pop()
             : context.go('/patient/selfcare/${topic.id}'),
@@ -665,42 +667,95 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
           children: [
             PageDashes(count: item.steps.length, current: _step),
             const SizedBox(height: 18),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 350),
-                transitionBuilder: (child, a) => FadeTransition(
-                  opacity: a,
-                  child: SlideTransition(
-                    position: Tween(
-                      begin: const Offset(0.08, 0),
-                      end: Offset.zero,
-                    ).animate(a),
-                    child: child,
-                  ),
-                ),
+            if (item.scenes case final scenes?)
+              // The scene stays put and moves from one step to the next;
+              // the words change under it.
+              Expanded(
                 child: Container(
-                  key: ValueKey(_step),
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppColors.white,
                     borderRadius: BorderRadius.circular(28),
                   ),
-                  child: Center(
-                    child: SingleChildScrollView(
-                      child: Text(
-                        item.steps[_step],
-                        textAlign: TextAlign.center,
-                        style: text.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          height: 1.35,
+                  child: LayoutBuilder(
+                    builder: (context, c) => Column(
+                      children: [
+                        // As big as the drawing needs (4:3), leaving room
+                        // for the words on a short screen.
+                        SizedBox(
+                          height: (c.maxWidth * 0.75).clamp(
+                            0.0,
+                            c.maxHeight * 0.64,
+                          ),
+                          width: double.infinity,
+                          child: StickScene(
+                            scene: scenes[_step],
+                            from: StickSceneKind.sadRain,
+                          ),
+                        ),
+                        Expanded(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 350),
+                            child: Center(
+                              key: ValueKey(_step),
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                                child: Text(
+                                  item.steps[_step],
+                                  textAlign: TextAlign.center,
+                                  style: text.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 350),
+                  transitionBuilder: (child, a) => FadeTransition(
+                    opacity: a,
+                    child: SlideTransition(
+                      position: Tween(
+                        begin: const Offset(0.08, 0),
+                        end: Offset.zero,
+                      ).animate(a),
+                      child: child,
+                    ),
+                  ),
+                  child: Container(
+                    key: ValueKey(_step),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: Text(
+                          item.steps[_step],
+                          textAlign: TextAlign.center,
+                          style: text.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            height: 1.35,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
             const SizedBox(height: 18),
             Row(
               children: [
@@ -820,12 +875,17 @@ class _DoneView extends StatelessWidget {
     required this.reading,
     required this.next,
     required this.onBack,
+    this.cheerFrom,
   });
 
   final int week;
   final bool reading;
   final CareItem? next;
   final VoidCallback onBack;
+
+  /// For practices with a scene: she jumps for joy (from this last pose)
+  /// instead of the check mark.
+  final StickSceneKind? cheerFrom;
 
   @override
   Widget build(BuildContext context) {
@@ -836,7 +896,19 @@ class _DoneView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const AnimatedCheck(size: 88, haptic: false),
+            if (cheerFrom != null)
+              SizedBox(
+                height: 210,
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: StickScene(
+                    scene: StickSceneKind.celebrate,
+                    from: cheerFrom,
+                  ),
+                ),
+              )
+            else
+              const AnimatedCheck(size: 88, haptic: false),
             const SizedBox(height: 18),
             FadeSlideIn(
               index: 1,

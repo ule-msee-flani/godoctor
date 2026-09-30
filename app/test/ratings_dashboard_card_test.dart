@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:godoctor_app/core/theme/app_theme.dart';
+import 'package:godoctor_app/core/utils/local_touch.dart';
 import 'package:godoctor_app/data/models/chemist_dashboard.dart';
 import 'package:godoctor_app/data/models/chemist_profile.dart';
 import 'package:godoctor_app/data/models/order.dart' as model;
@@ -212,6 +213,10 @@ model.Order _fulfilled({int? rating}) => model.Order.fromMap({
 });
 
 void main() {
+  // The greeting is English or Swahili at random; the Swahili one is longer
+  // and moves the page, so the scrolling below would sometimes overshoot.
+  setUp(() => LocalTouch.debugSet(swahili: false));
+
   test('dashboard numbers: trend, average order, lists', () {
     expect(_dashboard.trend, closeTo(0.2, 0.001));
     expect(_dashboard.averageOrder, 300);
