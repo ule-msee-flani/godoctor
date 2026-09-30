@@ -317,8 +317,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/patient/practice/:item',
-        builder: (context, state) =>
-            PracticeScreen(itemId: state.pathParameters['item']!),
+        builder: (context, state) => PracticeScreen(
+          itemId: state.pathParameters['item']!,
+          from: state.uri.queryParameters['from'],
+        ),
       ),
       // Doctors and pharmacies scan a patient's health card (under
       // /account/ so every signed-in role can open it).

@@ -553,9 +553,13 @@ class _ItemTile extends StatelessWidget {
 /// and shrinks with you); tips and guides read as a short page. Ends with a
 /// quiet "nicely done".
 class PracticeScreen extends ConsumerStatefulWidget {
-  const PracticeScreen({super.key, required this.itemId});
+  const PracticeScreen({super.key, required this.itemId, this.from});
 
   final String itemId;
+
+  /// A [StickSceneKind] name: how she was on the screen before (the mood
+  /// card), so she carries on from there.
+  final String? from;
 
   @override
   ConsumerState<PracticeScreen> createState() => _PracticeScreenState();
@@ -611,6 +615,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
         week: week,
         reading: reading,
         next: next,
+        cheer: item.scenes == null ? null : item.doneScene,
         cheerFrom: item.scenes?.last,
         onBack: () => context.canPop()
             ? context.pop()
@@ -690,7 +695,11 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                           width: double.infinity,
                           child: StickScene(
                             scene: scenes[_step],
-                            from: StickSceneKind.sadRain,
+                            from:
+                                StickSceneKind.values
+                                    .where((k) => k.name == widget.from)
+                                    .firstOrNull ??
+                                item.opening,
                           ),
                         ),
                         Expanded(
@@ -875,6 +884,7 @@ class _DoneView extends StatelessWidget {
     required this.reading,
     required this.next,
     required this.onBack,
+    this.cheer,
     this.cheerFrom,
   });
 
@@ -883,8 +893,9 @@ class _DoneView extends StatelessWidget {
   final CareItem? next;
   final VoidCallback onBack;
 
-  /// For practices with a scene: she jumps for joy (from this last pose)
-  /// instead of the check mark.
+  /// For practices with a scene: how she ends up (jumping for joy, or
+  /// asleep), moving there from her last pose, instead of the check mark.
+  final StickSceneKind? cheer;
   final StickSceneKind? cheerFrom;
 
   @override
@@ -896,15 +907,12 @@ class _DoneView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (cheerFrom != null)
+            if (cheer != null)
               SizedBox(
                 height: 210,
                 child: AspectRatio(
                   aspectRatio: 4 / 3,
-                  child: StickScene(
-                    scene: StickSceneKind.celebrate,
-                    from: cheerFrom,
-                  ),
+                  child: StickScene(scene: cheer!, from: cheerFrom),
                 ),
               )
             else
@@ -1059,41 +1067,45 @@ class _BreatherState extends State<_Breather>
                     final eased = Curves.easeInOut.transform(
                       size.clamp(0.0, 1.0),
                     );
-                    final d = big * (0.45 + 0.55 * eased);
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox.square(
-                          dimension: big,
-                          child: Center(
-                            child: Container(
-                              width: d,
-                              height: d,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: RadialGradient(
-                                  colors: [
-                                    widget.color.withValues(alpha: 0.95),
-                                    widget.color.withValues(alpha: 0.55),
-                                  ],
+                        // She breathes with you: the ring around her
+                        // grows as you breathe in and shrinks as you
+                        // breathe out.
+                        SizedBox(
+                          height: big,
+                          child: AspectRatio(
+                            aspectRatio: 4 / 3,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                StickScene(
+                                  scene: StickSceneKind.calmSit,
+                                  breath: eased,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: widget.color.withValues(alpha: 0.35),
-                                    blurRadius: 30 * eased + 8,
-                                  ),
-                                ],
-                              ),
-                              alignment: Alignment.center,
-                              child: left > 0
-                                  ? Text(
-                                      '$left',
-                                      style: text.headlineMedium?.copyWith(
-                                        color: AppColors.white,
-                                        fontWeight: FontWeight.w800,
+                                if (left > 0)
+                                  Positioned(
+                                    top: 10,
+                                    right: 12,
+                                    child: Container(
+                                      width: 44,
+                                      height: 44,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: widget.color,
+                                        shape: BoxShape.circle,
                                       ),
-                                    )
-                                  : null,
+                                      child: Text(
+                                        '$left',
+                                        style: text.titleLarge?.copyWith(
+                                          color: AppColors.white,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),

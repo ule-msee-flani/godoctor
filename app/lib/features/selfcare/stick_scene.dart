@@ -5,26 +5,57 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 
-/// Moments in a little story, acted out by a stick girl: from sitting in the
-/// rain to jumping in the sun.
+/// Moments acted out by a stick girl: one for each feeling, and one for
+/// each step of the practices that go with them.
 enum StickSceneKind {
-  /// Hunched on a bench, hugging herself, rain pouring.
+  // Sad, and "Three good things".
   sadRain,
-
-  /// Looking up, thinking; the rain easing.
   thinkBack,
-
-  /// Counting three good things as they pop up; the cloud drifting off.
   threeThings,
-
-  /// Hand on chin, wondering why each went well.
   askWhy,
-
-  /// Standing and waving at sunset, a week of evenings filling in.
   everyEvening,
 
-  /// Jumping for joy.
+  /// Jumping for joy: happy, and the end of most practices.
   celebrate,
+
+  // The other feelings.
+  calmSit,
+  okayStand,
+  tiredNod,
+  moodySwing,
+  anxiousFidget,
+  angryStomp,
+  weatherSick,
+
+  // "Reach out to someone".
+  reachThink,
+  reachMessage,
+  reachListen,
+
+  // "A 10-minute walk".
+  walkStart,
+  walkBreathe,
+  walkWeek,
+
+  // "Your wind-down hour".
+  dimLights,
+  slowTime,
+  writeDown,
+  quietRoom,
+  asleep,
+
+  // "Name it to tame it".
+  noticeBody,
+  nameFeeling,
+  sayIt,
+  riseAndFall,
+
+  // "Pause and cool down".
+  stopNow,
+  stepBack,
+  breatheOut,
+  whatINeed,
+  comeBack,
 }
 
 extension StickSceneWords on StickSceneKind {
@@ -38,19 +69,62 @@ extension StickSceneWords on StickSceneKind {
     StickSceneKind.everyEvening =>
       'The girl stands and waves at sunset as a week fills in.',
     StickSceneKind.celebrate => 'The girl jumps for joy in the sun.',
+    StickSceneKind.calmSit =>
+      'The girl sits cross-legged with her eyes closed, breathing slowly.',
+    StickSceneKind.okayStand => 'The girl gives a small, easy shrug.',
+    StickSceneKind.tiredNod => 'The girl nods off on a bench under the moon.',
+    StickSceneKind.moodySwing =>
+      'A cloud slides over the sun and away again, and the girl\'s mood '
+          'follows.',
+    StickSceneKind.anxiousFidget =>
+      'The girl paces and wrings her hands, a tangle of worry over her head.',
+    StickSceneKind.angryStomp => 'The girl stomps her foot, steaming.',
+    StickSceneKind.weatherSick =>
+      'The girl sits wrapped in a blanket with a thermometer, under a '
+          'drizzling cloud.',
+    StickSceneKind.reachThink => 'The girl thinks of a friend.',
+    StickSceneKind.reachMessage => 'The girl sends messages from her phone.',
+    StickSceneKind.reachListen =>
+      'The girl listens on the phone, nodding and smiling.',
+    StickSceneKind.walkStart => 'The girl sets off on an easy walk.',
+    StickSceneKind.walkBreathe =>
+      'The girl walks, swinging her arms and breathing deeply.',
+    StickSceneKind.walkWeek => 'The girl walks on as the days of a week fill.',
+    StickSceneKind.dimLights =>
+      'The girl dims the lamp; her phone rests on the bed.',
+    StickSceneKind.slowTime => 'The girl sits on her bed reading a book.',
+    StickSceneKind.writeDown => 'The girl writes tomorrow\'s list on a pad.',
+    StickSceneKind.quietRoom => 'The room is dark and quiet. The girl yawns.',
+    StickSceneKind.asleep => 'The girl is asleep in bed under the moon.',
+    StickSceneKind.noticeBody =>
+      'The girl closes her eyes, a hand on her chest.',
+    StickSceneKind.nameFeeling =>
+      'The girl looks over a few feelings to find the right one.',
+    StickSceneKind.sayIt => 'The girl says the feeling out loud.',
+    StickSceneKind.riseAndFall =>
+      'The feeling drifts away on a wave as the girl smiles.',
+    StickSceneKind.stopNow => 'The girl holds up her hand and pauses.',
+    StickSceneKind.stepBack => 'The girl steps back from what upset her.',
+    StickSceneKind.breatheOut => 'The girl breathes out slowly, five times.',
+    StickSceneKind.whatINeed => 'The girl wonders what she really needs.',
+    StickSceneKind.comeBack => 'The girl walks back, calm and smiling.',
   };
 }
 
 /// An animated stick-figure scene, drawn live (no video, no image files).
 /// Changing [scene] doesn't cut: she moves from one pose to the next and the
-/// weather changes around her.
+/// world changes around her.
 class StickScene extends StatefulWidget {
-  const StickScene({super.key, required this.scene, this.from});
+  const StickScene({super.key, required this.scene, this.from, this.breath});
 
   final StickSceneKind scene;
 
   /// Where she starts when this first appears (then moves to [scene]).
   final StickSceneKind? from;
+
+  /// For guided breathing ([StickSceneKind.calmSit]): how full her breath
+  /// is, 0..1, so she breathes with the exercise instead of on her own.
+  final double? breath;
 
   @override
   State<StickScene> createState() => _StickSceneState();
@@ -121,14 +195,13 @@ class _StickSceneState extends State<StickScene> with TickerProviderStateMixin {
           builder: (context, _) {
             final sec = _loop.value * _loopSeconds;
             final t = Curves.easeInOutCubic.transform(_blend.value);
+            final to = _Stage.at(widget.scene, sec, widget.breath);
             return CustomPaint(
               size: Size.infinite,
               painter: _ScenePainter(
-                _Stage.lerp(
-                  _Stage.at(_prev, sec),
-                  _Stage.at(widget.scene, sec),
-                  t,
-                ),
+                t >= 1
+                    ? to
+                    : _Stage.lerp(_Stage.at(_prev, sec, widget.breath), to, t),
                 sec,
               ),
             );
@@ -139,65 +212,137 @@ class _StickSceneState extends State<StickScene> with TickerProviderStateMixin {
   }
 }
 
-/// Everything that can change: her joints and face, and the world around.
-/// Angles are from straight down, positive towards the right.
+/// Everything that can change, as numbers (so one scene can ease into the
+/// next). Angles are from straight down, positive towards the right.
+enum _P {
+  // Her body. Near = the arm and leg in front; far = behind.
+  hipX,
+  hipY,
+  lean,
+  headTilt,
+  armNU,
+  armNF,
+  armFU,
+  armFF,
+  legNU,
+  legNF,
+  legFU,
+  legFF,
+  // Her face. smile: -1 frown .. 1 smile; faceShift: 1 facing right .. 0
+  // facing us; eyes: 1 open .. 0 closed.
+  smile,
+  faceShift,
+  eyes,
+  eyesWide,
+  mouthOpen,
+  brow,
+  hot,
+  ponyLift,
+  ponySway,
+  // Sky and weather.
+  rain,
+  rainSpan,
+  cloud,
+  cloudDx,
+  gloom,
+  sun,
+  sunLow,
+  moon,
+  stars,
+  // Things around her.
+  bench,
+  bed,
+  lamp,
+  lampGlow,
+  tree,
+  stride,
+  // Thoughts and words.
+  bubble,
+  bubbleDots,
+  bubbleHeart,
+  friend,
+  trail,
+  item0,
+  item1,
+  item2,
+  question,
+  questionBob,
+  feelings,
+  feelingAt,
+  speech,
+  tide,
+  week,
+  weekCount,
+  weekFilled,
+  sparkles,
+  // Feelings made visible.
+  zzz,
+  steam,
+  scribble,
+  sweat,
+  glow,
+  glowHot,
+  aura,
+  auraSize,
+  // Things she holds or wears.
+  phone,
+  phoneRest,
+  messages,
+  incoming,
+  sound,
+  blanket,
+  tucked,
+  thermo,
+  book,
+  writing,
+  note,
+  noteLines,
+  pause,
+  trigger,
+  puff,
+  dust,
+}
+
 class _Stage {
-  const _Stage({
-    required this.hipX,
-    required this.hipY,
-    required this.lean,
-    required this.headTilt,
-    required this.armNU,
-    required this.armNF,
-    required this.armFU,
-    required this.armFF,
-    required this.legNU,
-    required this.legNF,
-    required this.legFU,
-    required this.legFF,
-    required this.smile,
-    required this.faceShift,
-    required this.bg,
-    this.ponyLift = 0,
-    this.ponySway = 0,
-    this.rain = 0,
-    this.cloud = 0,
-    this.cloudDx = 0,
-    this.gloom = 0,
-    this.sun = 0,
-    this.sunLow = 0,
-    this.bench = 1,
-    this.bubble = 0,
-    this.trail = 0,
-    this.items = const [0, 0, 0],
-    this.question = 0,
-    this.questionAt = 0,
-    this.week = 0,
-    this.weekFilled = 0,
-    this.sparkles = 0,
-  });
+  const _Stage(this.v, this.bg);
 
-  final double hipX, hipY, lean, headTilt;
+  factory _Stage.of(int bg, Map<_P, double> values) {
+    final v = List<double>.of(_defaults);
+    values.forEach((p, x) => v[p.index] = x);
+    return _Stage(v, Color(bg));
+  }
 
-  /// Near (front) and far arm: upper arm, forearm.
-  final double armNU, armNF, armFU, armFF;
-
-  /// Near and far leg: thigh, shin.
-  final double legNU, legNF, legFU, legFF;
-
-  /// -1 frown .. 1 smile; 1 facing right .. 0 facing us.
-  final double smile, faceShift;
-  final double ponyLift, ponySway;
-  final double rain, cloud, cloudDx, gloom, sun, sunLow, bench;
-  final double bubble, trail;
-  final List<double> items;
-  final double question, questionAt;
-  final double week, weekFilled;
-  final double sparkles;
+  final List<double> v;
   final Color bg;
+
+  double operator [](_P p) => v[p.index];
+
+  static final List<double> _defaults = () {
+    final d = List<double>.filled(_P.values.length, 0);
+    d[_P.hipX.index] = 120;
+    d[_P.hipY.index] = 100;
+    d[_P.faceShift.index] = 1;
+    d[_P.eyes.index] = 1;
+    d[_P.rainSpan.index] = 182;
+    d[_P.bubbleDots.index] = 1;
+    d[_P.weekCount.index] = 7;
+    return d;
+  }();
+
+  /// These don't ease: the new scene's value is used at once.
+  static const _snap = {_P.feelingAt, _P.weekCount, _P.rainSpan};
+
+  /// Arm angles: when two are nearly a full turn apart, go the short way
+  /// round rather than windmilling.
+  static const _angles = {_P.armNU, _P.armNF, _P.armFU, _P.armFF};
 
   static double _wave(double sec, double period) =>
       math.sin(2 * math.pi * sec / period);
+
+  static double _bell(double x, double centre, double width) {
+    final d = (x - centre) / width;
+    return math.exp(-d * d);
+  }
 
   static double _pop(double sec, double at) {
     final x = ((sec - at) / 0.4).clamp(0.0, 1.0);
@@ -205,213 +350,669 @@ class _Stage {
     return Curves.easeOutBack.transform(x) * out;
   }
 
+  static const _sitBench = <_P, double>{
+    _P.hipX: 112,
+    _P.hipY: 117,
+    _P.legNU: 1.45,
+    _P.legNF: 0.02,
+    _P.legFU: 1.36,
+    _P.legFF: -0.06,
+    _P.bench: 1,
+  };
+
+  static const _sitBed = <_P, double>{
+    _P.hipX: 128,
+    _P.hipY: 121,
+    _P.legNU: 1.45,
+    _P.legNF: 0.02,
+    _P.legFU: 1.36,
+    _P.legFF: -0.06,
+    _P.bed: 1,
+    _P.lamp: 1,
+    _P.phoneRest: 1,
+  };
+
+  static Map<_P, double> _stand(double x) => {
+    _P.hipX: x,
+    _P.hipY: 100,
+    _P.legNU: 0.1,
+    _P.legNF: 0.02,
+    _P.legFU: -0.1,
+    _P.legFF: -0.02,
+  };
+
+  /// Walking on the spot while the ground goes by.
+  static Map<_P, double> _walk(double x, double swing, double sec) {
+    final c = _wave(sec, 1);
+    return {
+      _P.hipX: x,
+      _P.hipY: 100 - 1.5 * _wave(sec, 0.5).abs(),
+      _P.lean: 0.04,
+      _P.legNU: 0.42 * c,
+      _P.legNF: 0.42 * c - 0.15 * (1 - c),
+      _P.legFU: -0.42 * c,
+      _P.legFF: -0.42 * c - 0.15 * (1 + c),
+      _P.armNU: -0.5 * c * swing,
+      _P.armNF: -0.5 * c * swing + 0.35,
+      _P.armFU: 0.5 * c * swing,
+      _P.armFF: 0.5 * c * swing + 0.35,
+      _P.stride: 1,
+      _P.ponySway: c,
+    };
+  }
+
   /// The scene [kind], [sec] seconds into the four-second loop.
-  static _Stage at(StickSceneKind kind, double sec) {
-    final breath = _wave(sec, 4);
+  static _Stage at(StickSceneKind kind, double sec, double? breath) {
+    final slow = _wave(sec, 4);
     switch (kind) {
       case StickSceneKind.sadRain:
         // Little sobs, in bursts.
-        final burst = math.max(0.0, _wave(sec, 4));
+        final burst = math.max(0.0, slow);
         final sob = _wave(sec, 0.5) * burst * burst;
-        return _Stage(
-          hipX: 112,
-          hipY: 117,
-          lean: 0.42 + 0.02 * breath,
-          headTilt: 0.55 + 0.04 * sob,
-          armNU: 0.5,
-          armNF: -1.9 + 0.04 * sob,
-          armFU: 0.75,
-          armFF: -1.6,
-          legNU: 1.45,
-          legNF: -0.22,
-          legFU: 1.36,
-          legFF: -0.3,
-          smile: -1,
-          faceShift: 1,
-          ponySway: 0.4 * breath,
-          rain: 1,
-          cloud: 1,
-          gloom: 1,
-          bg: const Color(0xFFE2E5F1),
-        );
+        return _Stage.of(0xFFE2E5F1, {
+          ..._sitBench,
+          _P.lean: 0.42 + 0.02 * slow,
+          _P.headTilt: 0.55 + 0.04 * sob,
+          _P.armNU: 0.5,
+          _P.armNF: -1.9 + 0.04 * sob,
+          _P.armFU: 0.75,
+          _P.armFF: -1.6,
+          _P.legNF: -0.22,
+          _P.legFF: -0.3,
+          _P.smile: -1,
+          _P.ponySway: 0.4 * slow,
+          _P.rain: 1,
+          _P.cloud: 1,
+          _P.gloom: 1,
+        });
       case StickSceneKind.thinkBack:
-        return _Stage(
-          hipX: 112,
-          hipY: 117,
-          lean: 0.2 + 0.015 * breath,
-          headTilt: -0.22 + 0.06 * breath,
-          armNU: 0.35,
-          armNF: 1.15,
-          armFU: 0.25,
-          armFF: 1.05,
-          legNU: 1.45,
-          legNF: 0,
-          legFU: 1.36,
-          legFF: -0.08,
-          smile: -0.15,
-          faceShift: 1,
-          ponySway: 0.6 * breath,
-          rain: 0.22,
-          cloud: 0.85,
-          cloudDx: 10,
-          gloom: 0.5,
-          sun: 0.2,
-          bubble: 1,
-          trail: 1,
-          bg: const Color(0xFFEBEAF6),
-        );
+        return _Stage.of(0xFFEBEAF6, {
+          ..._sitBench,
+          _P.lean: 0.2 + 0.015 * slow,
+          _P.headTilt: -0.22 + 0.06 * slow,
+          _P.armNU: 0.35,
+          _P.armNF: 1.15,
+          _P.armFU: 0.25,
+          _P.armFF: 1.05,
+          _P.legNF: 0,
+          _P.legFF: -0.08,
+          _P.smile: -0.15,
+          _P.ponySway: 0.6 * slow,
+          _P.rain: 0.22,
+          _P.cloud: 0.85,
+          _P.cloudDx: 10,
+          _P.gloom: 0.5,
+          _P.sun: 0.2,
+          _P.bubble: 1,
+          _P.trail: 1,
+        });
       case StickSceneKind.threeThings:
         // Her hand lifts a little as each one pops up.
         var bump = 0.0;
         for (var k = 0; k < 3; k++) {
-          final d = (sec - (0.6 + 0.9 * k)) / 0.16;
-          bump += math.exp(-d * d);
+          bump += _bell(sec, 0.6 + 0.9 * k, 0.16);
         }
-        return _Stage(
-          hipX: 112,
-          hipY: 117,
-          lean: 0.08 + 0.01 * breath,
-          headTilt: -0.12,
-          armNU: 1.15,
-          armNF: 2.75 + 0.2 * bump,
-          armFU: 0.3,
-          armFF: 1.1,
-          legNU: 1.45,
-          legNF: 0.05,
-          legFU: 1.36,
-          legFF: -0.04,
-          smile: 0.5,
-          faceShift: 1,
-          ponySway: 0.6 * breath,
-          cloud: 0.25,
-          cloudDx: 84,
-          gloom: 0.15,
-          sun: 0.5,
-          trail: 1,
-          items: [for (var k = 0; k < 3; k++) _pop(sec, 0.5 + 0.9 * k)],
-          bg: const Color(0xFFF4EEF6),
-        );
+        return _Stage.of(0xFFF4EEF6, {
+          ..._sitBench,
+          _P.lean: 0.08 + 0.01 * slow,
+          _P.headTilt: -0.12,
+          _P.armNU: 1.15,
+          _P.armNF: 2.75 + 0.2 * bump,
+          _P.armFU: 0.3,
+          _P.armFF: 1.1,
+          _P.legNF: 0.05,
+          _P.legFF: -0.04,
+          _P.smile: 0.5,
+          _P.ponySway: 0.6 * slow,
+          _P.cloud: 0.25,
+          _P.cloudDx: 84,
+          _P.gloom: 0.15,
+          _P.sun: 0.5,
+          _P.trail: 1,
+          _P.item0: _pop(sec, 0.5),
+          _P.item1: _pop(sec, 1.4),
+          _P.item2: _pop(sec, 2.3),
+        });
       case StickSceneKind.askWhy:
-        return _Stage(
-          hipX: 112,
-          hipY: 117,
-          lean: 0.1,
-          headTilt: 0.04 + 0.1 * _wave(sec, 2),
-          armNU: 0.85,
-          armNF: 3.63,
-          armFU: 0.3,
-          armFF: 1.1,
-          legNU: 1.45,
-          legNF: 0.05,
-          legFU: 1.36,
-          legFF: -0.04,
-          smile: 0.35,
-          faceShift: 1,
-          ponySway: _wave(sec, 2),
-          cloudDx: 110,
-          sun: 0.75,
-          trail: 1,
-          items: [
-            for (var k = 0; k < 3; k++)
-              1 + 0.16 * math.exp(-math.pow((sec - (0.5 + 1.2 * k)) / 0.22, 2)),
-          ],
-          question: 1,
-          questionAt: _wave(sec, 2),
-          bg: const Color(0xFFFBF1E6),
-        );
+        return _Stage.of(0xFFFBF1E6, {
+          ..._sitBench,
+          _P.lean: 0.1,
+          _P.headTilt: 0.04 + 0.1 * _wave(sec, 2),
+          _P.armNU: 0.85,
+          _P.armNF: 3.63,
+          _P.armFU: 0.3,
+          _P.armFF: 1.1,
+          _P.legNF: 0.05,
+          _P.legFF: -0.04,
+          _P.smile: 0.35,
+          _P.ponySway: _wave(sec, 2),
+          _P.cloudDx: 110,
+          _P.sun: 0.75,
+          _P.trail: 1,
+          // Each one gets a turn.
+          _P.item0: 1 + 0.16 * _bell(sec, 0.5, 0.22),
+          _P.item1: 1 + 0.16 * _bell(sec, 1.7, 0.22),
+          _P.item2: 1 + 0.16 * _bell(sec, 2.9, 0.22),
+          _P.question: 1,
+          _P.questionBob: _wave(sec, 2),
+        });
       case StickSceneKind.everyEvening:
-        return _Stage(
-          hipX: 178,
-          hipY: 100,
-          lean: 0,
-          headTilt: -0.05,
-          armNU: 1.9,
-          armNF: 2.6 + 0.4 * _wave(sec, 1),
-          armFU: -0.18,
-          armFF: -0.08,
-          legNU: 0.1,
-          legNF: 0.02,
-          legFU: -0.1,
-          legFF: -0.02,
-          smile: 0.8,
-          faceShift: 0.35,
-          ponySway: _wave(sec, 1),
-          cloudDx: 120,
-          sun: 1,
-          sunLow: 1,
-          week: 1,
-          weekFilled: ((sec - 0.3) / 0.45).clamp(0.0, 7.0),
-          bg: const Color(0xFFFFEAD8),
-        );
+        return _Stage.of(0xFFFFEAD8, {
+          ..._stand(178),
+          _P.headTilt: -0.05,
+          _P.armNU: 1.9,
+          _P.armNF: 2.6 + 0.4 * _wave(sec, 1),
+          _P.armFU: -0.18,
+          _P.armFF: -0.08,
+          _P.smile: 0.8,
+          _P.faceShift: 0.35,
+          _P.ponySway: _wave(sec, 1),
+          _P.cloudDx: 120,
+          _P.sun: 1,
+          _P.sunLow: 1,
+          _P.bench: 1,
+          _P.week: 1,
+          _P.weekFilled: ((sec - 0.3) / 0.45).clamp(0.0, 7.0),
+        });
       case StickSceneKind.celebrate:
         // One jump a second.
         final p = sec % 1.0;
         final h = 4 * p * (1 - p);
         final wave = _wave(sec, 0.5);
+        return _Stage.of(0xFFFFF3CF, {
+          _P.hipX: 150,
+          _P.hipY: 100 - 20 * h,
+          _P.armNU: 2.55 + 0.15 * wave,
+          _P.armNF: 2.95,
+          _P.armFU: -2.55 - 0.15 * wave,
+          _P.armFF: -2.95,
+          _P.legNU: 0.3 + 0.25 * h,
+          _P.legNF: -0.1 - 0.5 * h,
+          _P.legFU: -0.3 - 0.25 * h,
+          _P.legFF: 0.1 + 0.5 * h,
+          _P.smile: 1,
+          _P.faceShift: 0,
+          _P.ponyLift: math.max(0.0, 2 * p - 1),
+          _P.ponySway: wave,
+          _P.cloudDx: 120,
+          _P.sun: 1,
+          _P.sparkles: 1,
+        });
+      case StickSceneKind.calmSit:
+        final b = breath ?? 0.5 + 0.5 * slow;
+        return _Stage.of(0xFFE6F3F0, {
+          _P.hipX: 120,
+          _P.hipY: 126 - 1.5 * b,
+          _P.faceShift: 0,
+          _P.eyes: 0,
+          _P.smile: 0.5,
+          _P.legNU: 1.0,
+          _P.legNF: -1.15,
+          _P.legFU: -1.0,
+          _P.legFF: 1.15,
+          _P.armNU: 0.25,
+          _P.armNF: -0.5,
+          _P.armFU: -0.25,
+          _P.armFF: 0.5,
+          _P.aura: 1,
+          _P.auraSize: b,
+          _P.sun: 0.6,
+          _P.ponySway: 0.3 * slow,
+        });
+      case StickSceneKind.okayStand:
+        final w = _wave(sec, 2);
+        return _Stage.of(0xFFF3F1EA, {
+          ..._stand(150),
+          _P.hipY: 100 - 0.8 * math.max(0.0, w),
+          _P.faceShift: 0.2,
+          _P.smile: 0.25,
+          _P.armNU: 0.5,
+          _P.armNF: 1.9 + 0.14 * w,
+          _P.armFU: -0.5,
+          _P.armFF: -1.9 - 0.14 * w,
+          _P.sun: 0.7,
+          _P.cloud: 0.55,
+          _P.cloudDx: -82,
+          _P.ponySway: w,
+        });
+      case StickSceneKind.tiredNod:
+        // Her head sinks slowly, then jerks back up.
+        final t = sec / 4;
+        final droop = t < 0.8 ? (t / 0.8) * (t / 0.8) : 1 - (t - 0.8) / 0.2;
+        return _Stage.of(0xFFD8D9F0, {
+          ..._sitBench,
+          _P.lean: 0.25,
+          _P.headTilt: 0.1 + 0.5 * droop,
+          _P.eyes: 1 - droop,
+          _P.armNU: 0.35,
+          _P.armNF: 1.15,
+          _P.armFU: 0.25,
+          _P.armFF: 1.05,
+          _P.smile: -0.2,
+          _P.zzz: 1,
+          _P.moon: 1,
+          _P.stars: 1,
+          _P.ponySway: 0.3 * slow,
+        });
+      case StickSceneKind.moodySwing:
+        // Up and down with the weather over her.
+        final up = (slow + 1) / 2;
         return _Stage(
-          hipX: 168,
-          hipY: 100 - 20 * h,
-          lean: 0,
-          headTilt: 0,
-          armNU: 2.55 + 0.15 * wave,
-          armNF: 2.95,
-          armFU: -2.55 - 0.15 * wave,
-          armFF: -2.95,
-          legNU: 0.3 + 0.25 * h,
-          legNF: -0.1 - 0.5 * h,
-          legFU: -0.3 - 0.25 * h,
-          legFF: 0.1 + 0.5 * h,
-          smile: 1,
-          faceShift: 0,
-          ponyLift: math.max(0.0, 2 * p - 1),
-          ponySway: wave,
-          cloudDx: 120,
-          sun: 1,
-          bench: 0.3,
-          sparkles: 1,
-          bg: const Color(0xFFFFF3CF),
+          _Stage.of(0, {
+            ..._stand(150),
+            _P.faceShift: 0.2,
+            _P.headTilt: 0.12 * (1 - up),
+            _P.smile: 0.7 * slow,
+            _P.armNU: 0.4 + 0.5 * up,
+            _P.armNF: 1.2 + 1.2 * up,
+            _P.armFU: -0.4 - 0.5 * up,
+            _P.armFF: -1.2 - 1.2 * up,
+            _P.sun: 0.95,
+            _P.cloud: 0.95,
+            _P.gloom: 0.45,
+            _P.cloudDx: -98 + 62 * up,
+            _P.rain: math.max(0.0, 0.4 - up) * 1.2,
+            _P.rainSpan: 56,
+            _P.ponySway: slow,
+          }).v,
+          Color.lerp(const Color(0xFFE6E6F3), const Color(0xFFFFF1D6), up)!,
         );
+      case StickSceneKind.anxiousFidget:
+        final jit = _wave(sec, 0.25);
+        final step = _wave(sec, 1);
+        return _Stage.of(0xFFE8F1EE, {
+          _P.hipX: 140 + 9 * slow,
+          _P.hipY: 100,
+          _P.lean: 0.06,
+          _P.headTilt: 0.08,
+          _P.faceShift: 0.7,
+          _P.armNU: 0.6,
+          _P.armNF: 2.6 + 0.12 * jit,
+          _P.armFU: 0.45,
+          _P.armFF: 2.75 - 0.12 * jit,
+          _P.legNU: 0.16 * step,
+          _P.legNF: 0.16 * step - 0.05,
+          _P.legFU: -0.16 * step,
+          _P.legFF: -0.16 * step - 0.05,
+          _P.smile: -0.6,
+          _P.eyesWide: 1,
+          _P.scribble: 1,
+          _P.sweat: 1,
+          _P.glow: 1,
+          _P.glowHot: 1,
+          _P.ponySway: jit,
+        });
+      case StickSceneKind.angryStomp:
+        // One stomp a second.
+        final p = sec % 1.0;
+        final lift = p < 0.5 ? math.sin(math.pi * p / 0.5) : 0.0;
+        final slam = _bell(p, 0.55, 0.06);
+        final shake = _wave(sec, 0.25);
+        return _Stage.of(0xFFFBE4E0, {
+          ..._stand(140),
+          _P.hipY: 100 + 1.5 * slam,
+          _P.faceShift: 0.6,
+          _P.lean: 0.05,
+          _P.headTilt: 0.12,
+          _P.brow: 1,
+          _P.hot: 1,
+          _P.smile: -0.9,
+          _P.armNU: -0.12 + 0.04 * shake,
+          _P.armNF: -0.05,
+          _P.armFU: 0.28 - 0.04 * shake,
+          _P.armFF: 0.3,
+          _P.legNU: 0.1 + 0.9 * lift,
+          _P.legNF: 0.02 - 1.1 * lift,
+          _P.steam: 1,
+          _P.dust: slam,
+          _P.ponySway: shake,
+        });
+      case StickSceneKind.weatherSick:
+        final shiver = _wave(sec, 0.25);
+        return _Stage.of(0xFFE3EAF0, {
+          ..._sitBench,
+          _P.hipX: 112 + 0.7 * shiver,
+          _P.lean: 0.2,
+          _P.headTilt: 0.2,
+          _P.armNU: 0.3,
+          _P.armNF: -1.2,
+          _P.armFU: 0.4,
+          _P.armFF: -1.0,
+          _P.blanket: 1,
+          _P.thermo: 1,
+          _P.smile: -0.4,
+          _P.eyes: 0.3,
+          _P.cloud: 0.9,
+          _P.gloom: 0.6,
+          _P.rain: 0.3,
+          _P.rainSpan: 70,
+          _P.ponySway: 0.2 * slow,
+        });
+      case StickSceneKind.reachThink:
+        return _Stage.of(0xFFFFF3D9, {
+          ..._stand(110),
+          _P.faceShift: 0.8,
+          _P.headTilt: -0.08 + 0.05 * slow,
+          _P.armNU: 0.85,
+          _P.armNF: 3.63,
+          _P.armFU: -0.1,
+          _P.armFF: 0.1,
+          _P.smile: 0.5,
+          _P.bubble: 1,
+          _P.bubbleDots: 0,
+          _P.friend: 1,
+          _P.trail: 1,
+          _P.sun: 0.8,
+          _P.ponySway: 0.5 * slow,
+        });
+      case StickSceneKind.reachMessage:
+        return _Stage.of(0xFFFFF1DD, {
+          ..._stand(110),
+          _P.faceShift: 0.9,
+          _P.headTilt: 0.2,
+          _P.armNU: 0.7,
+          _P.armNF: 2.5,
+          _P.armFU: 0.55,
+          _P.armFF: 2.35 + 0.1 * _wave(sec, 0.5),
+          _P.smile: 0.6,
+          _P.phone: 1,
+          _P.messages: 1,
+          _P.sun: 0.8,
+        });
+      case StickSceneKind.reachListen:
+        return _Stage.of(0xFFFFF0DA, {
+          ..._stand(110),
+          _P.faceShift: 0.8,
+          _P.headTilt: 0.04 + 0.07 * _wave(sec, 1),
+          _P.armNU: 1.0,
+          _P.armNF: 3.77,
+          _P.armFU: -0.12,
+          _P.armFF: 0.05,
+          _P.smile: 0.85,
+          _P.phone: 1,
+          _P.sound: 1,
+          _P.incoming: 1,
+          _P.sun: 0.9,
+          _P.ponySway: _wave(sec, 1),
+        });
+      case StickSceneKind.walkStart:
+        return _Stage.of(0xFFEAF5EA, {
+          ..._walk(120, 0.6, sec),
+          _P.smile: 0.5,
+          _P.sun: 0.8,
+          _P.tree: 1,
+        });
+      case StickSceneKind.walkBreathe:
+        return _Stage.of(0xFFE6F4EC, {
+          ..._walk(120, 1.1, sec),
+          _P.smile: 0.6,
+          _P.puff: 1,
+          _P.sun: 0.9,
+          _P.tree: 1,
+        });
+      case StickSceneKind.walkWeek:
+        return _Stage.of(0xFFEEF6E0, {
+          ..._walk(120, 0.9, sec),
+          _P.smile: 0.85,
+          _P.week: 1,
+          _P.weekFilled: ((sec - 0.3) / 0.45).clamp(0.0, 7.0),
+          _P.sparkles: 0.45,
+          _P.sun: 1,
+          _P.tree: 1,
+        });
+      case StickSceneKind.dimLights:
+        // The lamp goes from bright to low.
+        final dim = Curves.easeInOut.transform((sec / 2.6).clamp(0.0, 1.0));
+        return _Stage(
+          _Stage.of(0, {
+            ..._stand(168),
+            _P.bed: 1,
+            _P.lamp: 1,
+            _P.lampGlow: 1 - 0.7 * dim,
+            _P.phoneRest: 1,
+            _P.faceShift: 0.9,
+            _P.armNU: 1.7,
+            _P.armNF: 1.9,
+            _P.armFU: -0.15,
+            _P.armFF: -0.05,
+            _P.smile: 0.2,
+            _P.moon: 0.4,
+            _P.stars: 0.3,
+          }).v,
+          Color.lerp(const Color(0xFFFFF0D6), const Color(0xFFEADFD6), dim)!,
+        );
+      case StickSceneKind.slowTime:
+        return _Stage.of(0xFFEBE1DC, {
+          ..._sitBed,
+          _P.lean: 0.12,
+          _P.headTilt: 0.28 + 0.03 * slow,
+          _P.armNU: 0.6,
+          _P.armNF: 2.0,
+          _P.armFU: 0.5,
+          _P.armFF: 1.9,
+          _P.book: 1,
+          _P.lampGlow: 0.45,
+          _P.smile: 0.4,
+          _P.moon: 0.5,
+          _P.stars: 0.4,
+        });
+      case StickSceneKind.writeDown:
+        return _Stage.of(0xFFE6DEDF, {
+          ..._sitBed,
+          _P.lean: 0.14,
+          _P.headTilt: 0.3,
+          _P.armNU: 0.6,
+          _P.armNF: 2.0 + 0.06 * _wave(sec, 0.25),
+          _P.armFU: 0.5,
+          _P.armFF: 1.9,
+          _P.book: 1,
+          _P.writing: 1,
+          _P.note: 1,
+          _P.noteLines: ((sec - 0.4) / 1.0).clamp(0.0, 3.0),
+          _P.lampGlow: 0.4,
+          _P.smile: 0.3,
+          _P.moon: 0.6,
+          _P.stars: 0.5,
+        });
+      case StickSceneKind.quietRoom:
+        // One long yawn.
+        final yawn = _bell(sec, 2, 0.5);
+        return _Stage.of(0xFFD9DBEF, {
+          ..._sitBed,
+          _P.lean: 0.1,
+          _P.headTilt: 0.05 - 0.1 * yawn,
+          _P.armNU: 0.35 + 0.6 * yawn,
+          _P.armNF: 1.15 + 2.4 * yawn,
+          _P.armFU: 0.25,
+          _P.armFF: 1.05,
+          _P.mouthOpen: yawn,
+          _P.eyes: 1 - yawn,
+          _P.smile: 0.2,
+          _P.lampGlow: 0.08,
+          _P.moon: 1,
+          _P.stars: 1,
+        });
+      case StickSceneKind.asleep:
+        return _Stage.of(0xFFCDD0EA, {
+          _P.hipX: 100,
+          _P.hipY: 119 - 0.6 * slow,
+          _P.lean: -1.5,
+          _P.legNU: 1.5,
+          _P.legNF: 1.5,
+          _P.legFU: 1.46,
+          _P.legFF: 1.5,
+          _P.armNU: 1.4,
+          _P.armNF: 1.45,
+          _P.armFU: 1.35,
+          _P.armFF: 1.4,
+          _P.eyes: 0,
+          _P.smile: 0.4,
+          _P.bed: 1,
+          _P.lamp: 1,
+          _P.phoneRest: 1,
+          _P.blanket: 1,
+          _P.tucked: 1,
+          _P.zzz: 1,
+          _P.moon: 1,
+          _P.stars: 1,
+        });
+      case StickSceneKind.noticeBody:
+        return _Stage.of(0xFFEDEAF6, {
+          ..._stand(130),
+          _P.faceShift: 0.1,
+          _P.eyes: 0,
+          _P.armNU: 0.8,
+          _P.armNF: -2.0,
+          _P.armFU: -0.2,
+          _P.armFF: -0.1,
+          _P.glow: 1,
+          _P.sun: 0.5,
+          _P.cloud: 0.4,
+          _P.cloudDx: -60,
+          _P.ponySway: 0.3 * slow,
+        });
+      case StickSceneKind.nameFeeling:
+        return _Stage.of(0xFFEFEBF5, {
+          ..._stand(130),
+          _P.faceShift: 0.7,
+          _P.headTilt: -0.05 + 0.05 * _wave(sec, 2),
+          _P.armNU: 0.85,
+          _P.armNF: 3.63,
+          _P.armFU: -0.15,
+          _P.armFF: 0,
+          _P.feelings: 1,
+          _P.feelingAt: (sec / (4 / 3)).floorToDouble() % 3,
+          _P.trail: 1,
+          _P.smile: 0.1,
+          _P.sun: 0.55,
+          _P.cloud: 0.3,
+          _P.cloudDx: -60,
+        });
+      case StickSceneKind.sayIt:
+        return _Stage.of(0xFFF2EDF3, {
+          ..._stand(130),
+          _P.faceShift: 0.8,
+          _P.armNU: 1.0,
+          _P.armNF: 2.3 + 0.15 * _wave(sec, 1),
+          _P.armFU: -0.15,
+          _P.armFF: 0,
+          _P.mouthOpen: 0.3 + 0.3 * _wave(sec, 0.5),
+          _P.speech: 1,
+          _P.smile: 0.2,
+          _P.sun: 0.65,
+        });
+      case StickSceneKind.riseAndFall:
+        return _Stage.of(0xFFFBF2E4, {
+          ..._stand(130),
+          _P.faceShift: 0.4,
+          _P.armNU: 0.5,
+          _P.armNF: 0.9,
+          _P.armFU: -0.5,
+          _P.armFF: -0.9,
+          _P.smile: 0.7,
+          _P.tide: 1,
+          _P.sun: 0.9,
+          _P.ponySway: _wave(sec, 2),
+        });
+      case StickSceneKind.stopNow:
+        return _Stage.of(0xFFFBE7E0, {
+          ..._stand(140),
+          _P.faceShift: 0.8,
+          _P.brow: 0.8,
+          _P.hot: 0.8,
+          _P.smile: -0.7,
+          _P.armNU: 1.45,
+          _P.armNF: 2.9,
+          _P.armFU: -0.1,
+          _P.armFF: -0.05,
+          _P.pause: 1,
+          _P.steam: 0.35,
+        });
+      case StickSceneKind.stepBack:
+        final c = _wave(sec, 1);
+        return _Stage.of(0xFFF8EAE4, {
+          _P.hipX: 98,
+          _P.hipY: 100,
+          _P.lean: -0.05,
+          _P.legNU: -0.2 * c,
+          _P.legNF: -0.2 * c - 0.08,
+          _P.legFU: 0.2 * c,
+          _P.legFF: 0.2 * c - 0.08,
+          _P.faceShift: 0.9,
+          _P.brow: 0.45,
+          _P.hot: 0.5,
+          _P.smile: -0.45,
+          _P.armNU: 1.0,
+          _P.armNF: 2.4,
+          _P.armFU: 0.7,
+          _P.armFF: 2.2,
+          _P.trigger: 1,
+          _P.steam: 0.12,
+        });
+      case StickSceneKind.breatheOut:
+        return _Stage.of(0xFFF3ECE8, {
+          ..._stand(98),
+          _P.faceShift: 0.8,
+          _P.eyes: 0,
+          _P.brow: 0.1,
+          _P.hot: 0.2,
+          _P.smile: -0.05,
+          _P.armNU: 0.15,
+          _P.armNF: 0.1,
+          _P.armFU: -0.1,
+          _P.armFF: -0.05,
+          _P.puff: 1,
+          _P.trigger: 0.3,
+          _P.week: 1,
+          _P.weekCount: 5,
+          _P.weekFilled: ((sec - 0.3) / 0.65).clamp(0.0, 5.0),
+        });
+      case StickSceneKind.whatINeed:
+        return _Stage.of(0xFFF4EEEA, {
+          ..._stand(98),
+          _P.faceShift: 0.8,
+          _P.headTilt: 0.04 + 0.08 * _wave(sec, 2),
+          _P.armNU: 0.85,
+          _P.armNF: 3.63,
+          _P.armFU: -0.1,
+          _P.armFF: 0,
+          _P.bubble: 1,
+          _P.bubbleDots: 0,
+          _P.bubbleHeart: 1,
+          _P.trail: 1,
+          _P.question: 1,
+          _P.questionBob: _wave(sec, 2),
+          _P.smile: 0.25,
+          _P.sun: 0.4,
+        });
+      case StickSceneKind.comeBack:
+        return _Stage.of(0xFFFFF3DA, {
+          ..._walk(150, 0.7, sec),
+          _P.smile: 0.8,
+          _P.sun: 0.9,
+          _P.sparkles: 0.3,
+        });
     }
   }
 
   static _Stage lerp(_Stage a, _Stage b, double t) {
     if (t >= 1) return b;
     if (t <= 0) return a;
-    double l(double x, double y) => lerpDouble(x, y, t)!;
-    return _Stage(
-      hipX: l(a.hipX, b.hipX),
-      hipY: l(a.hipY, b.hipY),
-      lean: l(a.lean, b.lean),
-      headTilt: l(a.headTilt, b.headTilt),
-      armNU: l(a.armNU, b.armNU),
-      armNF: l(a.armNF, b.armNF),
-      armFU: l(a.armFU, b.armFU),
-      armFF: l(a.armFF, b.armFF),
-      legNU: l(a.legNU, b.legNU),
-      legNF: l(a.legNF, b.legNF),
-      legFU: l(a.legFU, b.legFU),
-      legFF: l(a.legFF, b.legFF),
-      smile: l(a.smile, b.smile),
-      faceShift: l(a.faceShift, b.faceShift),
-      ponyLift: l(a.ponyLift, b.ponyLift),
-      ponySway: l(a.ponySway, b.ponySway),
-      rain: l(a.rain, b.rain),
-      cloud: l(a.cloud, b.cloud),
-      cloudDx: l(a.cloudDx, b.cloudDx),
-      gloom: l(a.gloom, b.gloom),
-      sun: l(a.sun, b.sun),
-      sunLow: l(a.sunLow, b.sunLow),
-      bench: l(a.bench, b.bench),
-      bubble: l(a.bubble, b.bubble),
-      trail: l(a.trail, b.trail),
-      items: [for (var k = 0; k < 3; k++) l(a.items[k], b.items[k])],
-      question: l(a.question, b.question),
-      questionAt: b.questionAt,
-      week: l(a.week, b.week),
-      weekFilled: l(a.weekFilled, b.weekFilled),
-      sparkles: l(a.sparkles, b.sparkles),
-      bg: Color.lerp(a.bg, b.bg, t)!,
-    );
+    final v = List<double>.filled(_P.values.length, 0);
+    for (final p in _P.values) {
+      final i = p.index;
+      var from = a.v[i];
+      final to = b.v[i];
+      if (_snap.contains(p)) {
+        v[i] = to;
+        continue;
+      }
+      if (_angles.contains(p) && (to - from).abs() > math.pi + 0.9) {
+        from += (to > from ? 1 : -1) * 2 * math.pi;
+      }
+      v[i] = lerpDouble(from, to, t)!;
+    }
+    return _Stage(v, Color.lerp(a.bg, b.bg, t)!);
   }
 }
 
@@ -426,6 +1027,9 @@ class _ScenePainter extends CustomPainter {
   static const _ground = 150.0;
   static const _ink = AppColors.ink;
   static const _itemAt = [Offset(160, 48), Offset(190, 30), Offset(218, 50)];
+  static const _red = Color(0xFFF2545B);
+  static const _blue = Color(0xFF6FA0E0);
+  static const _woodDark = Color(0xFF8E6742);
 
   static Offset _dir(double a) => Offset(math.sin(a), math.cos(a));
 
@@ -434,27 +1038,38 @@ class _ScenePainter extends CustomPainter {
     v.dx * math.sin(a) + v.dy * math.cos(a),
   );
 
-  /// A steady pseudo-random number in 0..1 for drop [i].
+  /// A steady pseudo-random number in 0..1 for thing [i].
   static double _rand(int i, int salt) {
     final x = math.sin(i * 12.9898 + salt * 78.233) * 43758.5453;
     return x - x.floorToDouble();
   }
 
+  static Paint _line(Color c, double width) => Paint()
+    ..color = c
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = width
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round;
+
+  static Paint _fill(Color c, [double alpha = 1]) =>
+      Paint()..color = c.withValues(alpha: alpha.clamp(0.0, 1.0));
+
+  static Paint get _thin => _line(_ink.withValues(alpha: 0.22), 1.5);
+
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(22)),
-      Paint()..color = s.bg,
+    final frame = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      const Radius.circular(22),
     );
+    canvas.drawRRect(frame, Paint()..color = s.bg);
     final scale = math.min(
       size.width / _board.width,
       size.height / _board.height,
     );
     canvas
       ..save()
-      ..clipRRect(
-        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(22)),
-      )
+      ..clipRRect(frame)
       ..translate(
         (size.width - _board.width * scale) / 2,
         (size.height - _board.height * scale) / 2,
@@ -462,31 +1077,45 @@ class _ScenePainter extends CustomPainter {
       ..scale(scale);
 
     _sun(canvas);
+    _night(canvas);
     _cloud(canvas);
+    _lamp(canvas);
+    _tide(canvas);
     _groundLine(canvas);
-    _benchBack(canvas);
+    _bench(canvas);
+    _bed(canvas);
     _rain(canvas);
-    final head = _girl(canvas);
-    _thoughts(canvas, head);
+    final g = _girl(canvas);
+    _thoughts(canvas, g.head);
+    _feelings(canvas, g.head);
+    _speech(canvas, g.head);
+    _aboveHead(canvas, g.head);
+    _fromHand(canvas, g.hand);
+    _breathOut(canvas, g.mouth);
+    _note(canvas);
+    _trigger(canvas);
     _weekDots(canvas);
     _sparkles(canvas);
     canvas.restore();
   }
 
+  // -------------------------------------------------------------------------
+  // Sky and room
+  // -------------------------------------------------------------------------
+
   void _sun(Canvas canvas) {
-    if (s.sun <= 0.01) return;
-    final c = Offset(36, lerpDouble(30, 56, s.sunLow)!);
+    final sun = s[_P.sun];
+    if (sun <= 0.01) return;
+    final low = s[_P.sunLow];
+    final c = Offset(36, lerpDouble(30, 56, low)!);
     final color = Color.lerp(
       const Color(0xFFF7C23E),
       const Color(0xFFF2873A),
-      s.sunLow,
-    )!.withValues(alpha: s.sun.clamp(0.0, 1.0));
-    final r = 13.0 * (0.6 + 0.4 * s.sun);
+      low,
+    )!.withValues(alpha: sun.clamp(0.0, 1.0));
+    final r = 13.0 * (0.6 + 0.4 * sun);
     canvas.drawCircle(c, r, Paint()..color = color);
-    final ray = Paint()
-      ..color = color
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
+    final ray = _line(color, 3);
     final turn = sec / 4 * (2 * math.pi / 8);
     for (var i = 0; i < 8; i++) {
       final d = _dir(turn + i * math.pi / 4);
@@ -494,64 +1123,185 @@ class _ScenePainter extends CustomPainter {
     }
   }
 
+  void _night(Canvas canvas) {
+    const gold = Color(0xFFF3DC8A);
+    final moon = s[_P.moon];
+    if (moon > 0.01) {
+      const c = Offset(38, 30);
+      canvas.drawPath(
+        Path.combine(
+          PathOperation.difference,
+          Path()..addOval(Rect.fromCircle(center: c, radius: 13)),
+          Path()..addOval(
+            Rect.fromCircle(center: c + const Offset(7, -4), radius: 11),
+          ),
+        ),
+        _fill(gold, moon),
+      );
+    }
+    final stars = s[_P.stars];
+    if (stars <= 0.01) return;
+    const at = [
+      Offset(78, 20),
+      Offset(112, 38),
+      Offset(150, 16),
+      Offset(176, 40),
+      Offset(222, 22),
+      Offset(60, 52),
+    ];
+    for (var i = 0; i < at.length; i++) {
+      final twinkle = 0.5 + 0.5 * math.sin(math.pi * sec / 2 + i * 2.1);
+      canvas.drawCircle(
+        at[i],
+        1.2 + 1.2 * twinkle,
+        _fill(gold, stars * (0.5 + 0.5 * twinkle)),
+      );
+    }
+  }
+
   void _cloud(Canvas canvas) {
-    if (s.cloud <= 0.01) return;
-    final c = Offset(134 + s.cloudDx, 24);
-    final paint = Paint()
-      ..color = Color.lerp(
-        const Color(0xFFD5DBE8),
-        const Color(0xFF8590A8),
-        s.gloom,
-      )!.withValues(alpha: s.cloud.clamp(0.0, 1.0));
-    final path = Path()
-      ..addOval(Rect.fromCircle(center: c + const Offset(-18, 4), radius: 11))
-      ..addOval(Rect.fromCircle(center: c + const Offset(-3, -3), radius: 15))
-      ..addOval(Rect.fromCircle(center: c + const Offset(14, 1), radius: 12))
-      ..addOval(Rect.fromCircle(center: c + const Offset(27, 6), radius: 8))
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTRB(c.dx - 28, c.dy + 3, c.dx + 34, c.dy + 15),
-          const Radius.circular(7),
+    final cloud = s[_P.cloud];
+    if (cloud <= 0.01) return;
+    final c = Offset(134 + s[_P.cloudDx], 24);
+    canvas.drawPath(
+      Path()
+        ..addOval(Rect.fromCircle(center: c + const Offset(-18, 4), radius: 11))
+        ..addOval(Rect.fromCircle(center: c + const Offset(-3, -3), radius: 15))
+        ..addOval(Rect.fromCircle(center: c + const Offset(14, 1), radius: 12))
+        ..addOval(Rect.fromCircle(center: c + const Offset(27, 6), radius: 8))
+        ..addRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTRB(c.dx - 28, c.dy + 3, c.dx + 34, c.dy + 15),
+            const Radius.circular(7),
+          ),
+        ),
+      _fill(
+        Color.lerp(
+          const Color(0xFFD5DBE8),
+          const Color(0xFF8590A8),
+          s[_P.gloom],
+        )!,
+        cloud,
+      ),
+    );
+  }
+
+  void _lamp(Canvas canvas) {
+    final lamp = s[_P.lamp];
+    if (lamp <= 0.01) return;
+    final glow = s[_P.lampGlow];
+    if (glow > 0.01) {
+      canvas.drawCircle(
+        const Offset(208, 84),
+        30 + 26 * glow,
+        _fill(const Color(0xFFFFE08A), 0.45 * glow * lamp),
+      );
+    }
+    final pole = _line(_woodDark.withValues(alpha: lamp), 3);
+    canvas
+      ..drawLine(const Offset(208, 76), const Offset(208, _ground + 1), pole)
+      ..drawLine(
+        const Offset(200, _ground + 1),
+        const Offset(216, _ground + 1),
+        pole,
+      )
+      ..drawPath(
+        Path()
+          ..moveTo(199, 58)
+          ..lineTo(217, 58)
+          ..lineTo(224, 77)
+          ..lineTo(192, 77)
+          ..close(),
+        _fill(
+          Color.lerp(const Color(0xFFC9B48A), const Color(0xFFF7D774), glow)!,
+          lamp,
         ),
       );
-    canvas.drawPath(path, paint);
+  }
+
+  /// A feeling is a wave: it rises, and it passes.
+  void _tide(Canvas canvas) {
+    final tide = s[_P.tide];
+    if (tide <= 0.01) return;
+    double y(double x) =>
+        92 + 12 * math.sin(x / 200 * 3 * math.pi - sec * math.pi / 2);
+    final path = Path()..moveTo(14, y(14));
+    for (var x = 18.0; x <= 226; x += 4) {
+      path.lineTo(x, y(x));
+    }
+    canvas.drawPath(
+      path,
+      _line(AppColors.lavender.withValues(alpha: 0.4 * tide), 3),
+    );
+    // The feeling she named rides it out of the picture.
+    final p = (sec / 4) % 1.0;
+    final x = 40 + 190 * p;
+    _feelShape(
+      canvas,
+      2,
+      Offset(x, y(x) - 9),
+      0.9,
+      tide * math.sin(math.pi * p),
+    );
   }
 
   void _groundLine(Canvas canvas) {
     canvas.drawLine(
       const Offset(22, _ground + 2),
       const Offset(218, _ground + 2),
-      Paint()
-        ..color = _ink.withValues(alpha: 0.12)
-        ..strokeWidth = 3
-        ..strokeCap = StrokeCap.round,
+      _line(_ink.withValues(alpha: 0.12), 3),
     );
-    if (s.rain <= 0.05) return;
-    // Ripples where the rain lands.
-    for (var i = 0; i < 3; i++) {
-      final p = (sec / 2 + i / 3) % 1.0;
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset(const [64.0, 156.0, 200.0][i], _ground + 3),
-          width: 6 + 16 * p,
-          height: 2 + 3 * p,
-        ),
-        Paint()
-          ..color = const Color(
-            0xFF6FA0E0,
-          ).withValues(alpha: s.rain * (1 - p) * 0.7)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.4,
-      );
+    final stride = s[_P.stride];
+    if (stride > 0.01) {
+      // The ground going by as she walks.
+      final shift = (sec * 70) % 35;
+      final mark = _line(_ink.withValues(alpha: 0.16 * stride), 2);
+      for (var x = 65.0 - shift; x < 214; x += 35) {
+        canvas.drawLine(
+          Offset(x, _ground + 8),
+          Offset(x + 9, _ground + 8),
+          mark,
+        );
+      }
+    }
+    final tree = s[_P.tree];
+    if (tree > 0.01) {
+      const leaf = Color(0xFF6DBF8B);
+      final x = 262 - (sec / 4) * 290;
+      canvas
+        ..drawLine(
+          Offset(x, _ground),
+          Offset(x, _ground - 22),
+          _line(_woodDark.withValues(alpha: tree), 4),
+        )
+        ..drawCircle(Offset(x, _ground - 32), 13, _fill(leaf, tree))
+        ..drawCircle(Offset(x + 8, _ground - 24), 9, _fill(leaf, tree));
+    }
+    final rain = s[_P.rain];
+    if (rain > 0.05) {
+      // Ripples where the rain lands.
+      final middle = 134 + s[_P.cloudDx];
+      final span = s[_P.rainSpan];
+      for (var i = 0; i < 3; i++) {
+        final p = (sec / 2 + i / 3) % 1.0;
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: Offset(
+              middle + const [-0.38, 0.12, 0.36][i] * span,
+              _ground + 3,
+            ),
+            width: 6 + 16 * p,
+            height: 2 + 3 * p,
+          ),
+          _line(_blue.withValues(alpha: rain * (1 - p) * 0.7), 1.4),
+        );
+      }
     }
   }
 
-  void _benchBack(Canvas canvas) {
-    if (s.bench <= 0.01) return;
-    final wood = Paint()
-      ..color = const Color(0xFFB98A5E).withValues(alpha: s.bench);
-    final dark = Paint()
-      ..color = const Color(0xFF8E6742).withValues(alpha: s.bench);
+  void _bench(Canvas canvas) {
+    final bench = s[_P.bench];
+    if (bench <= 0.01) return;
     RRect plank(double top) => RRect.fromRectAndRadius(
       Rect.fromLTRB(40, top, 138, top + 7),
       const Radius.circular(3),
@@ -562,59 +1312,82 @@ class _ScenePainter extends CustomPainter {
           Rect.fromLTRB(x, 94, x + 5, _ground + 2),
           const Radius.circular(2),
         ),
-        dark,
+        _fill(_woodDark, bench),
       );
     }
+    final wood = _fill(const Color(0xFFB98A5E), bench);
     canvas
       ..drawRRect(plank(94), wood)
       ..drawRRect(plank(120), wood);
   }
 
-  void _rain(Canvas canvas) {
-    if (s.rain <= 0.02) return;
-    const drops = 26;
-    final paint = Paint()
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    for (var i = 0; i < drops; i++) {
-      // Fewer drops as it eases.
-      if (i / drops >= s.rain) continue;
-      final x = 34 + _rand(i, 1) * 182 + s.cloudDx * 0.4;
-      final falls = 2 + i % 3;
-      final y = 40 + ((sec / 4 * falls + _rand(i, 2)) % 1.0) * (_ground - 46);
-      paint.color = const Color(
-        0xFF6FA0E0,
-      ).withValues(alpha: 0.35 + 0.45 * _rand(i, 3));
-      canvas.drawLine(Offset(x, y), Offset(x - 2.5, y + 9), paint);
+  void _bed(Canvas canvas) {
+    final bed = s[_P.bed];
+    if (bed <= 0.01) return;
+    RRect box(double l, double t, double r, double b, double radius) =>
+        RRect.fromRectAndRadius(
+          Rect.fromLTRB(l, t, r, b),
+          Radius.circular(radius),
+        );
+    final dark = _fill(_woodDark, bed);
+    final edge = _line(_ink.withValues(alpha: 0.18 * bed), 1.5);
+    final mattress = box(38, 124, 153, 136, 5);
+    final pillow = box(43, 114, 75, 125, 5);
+    canvas
+      ..drawRRect(box(32, 98, 40, _ground + 2, 3), dark)
+      ..drawRRect(box(146, 136, 151, _ground + 2, 2), dark)
+      ..drawRRect(box(38, 134, 153, 142, 3), dark)
+      ..drawRRect(mattress, _fill(const Color(0xFFF7F4FC), bed))
+      ..drawRRect(mattress, edge)
+      ..drawRRect(pillow, _fill(AppColors.white, bed))
+      ..drawRRect(pillow, edge);
+    final rest = s[_P.phoneRest];
+    if (rest > 0.01) {
+      // Her phone, put away for the night.
+      canvas.drawRRect(box(84, 120, 98, 124, 2), _fill(_ink, 0.75 * rest));
     }
   }
 
-  /// Draws her; returns where her head is (for the thought trail).
-  Offset _girl(Canvas canvas) {
+  void _rain(Canvas canvas) {
+    final rain = s[_P.rain];
+    if (rain <= 0.02) return;
+    const drops = 26;
+    final middle = 134 + s[_P.cloudDx];
+    final span = s[_P.rainSpan];
+    for (var i = 0; i < drops; i++) {
+      // Fewer drops as it eases.
+      if (i / drops >= rain) continue;
+      final x = middle + (_rand(i, 1) - 0.5) * span;
+      final falls = 2 + i % 3;
+      final y = 40 + ((sec / 4 * falls + _rand(i, 2)) % 1.0) * (_ground - 46);
+      canvas.drawLine(
+        Offset(x, y),
+        Offset(x - 2.5, y + 9),
+        _line(_blue.withValues(alpha: 0.35 + 0.45 * _rand(i, 3)), 2),
+      );
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Her
+  // -------------------------------------------------------------------------
+
+  /// Draws her; returns where her head, near hand and mouth are.
+  ({Offset head, Offset hand, Offset mouth}) _girl(Canvas canvas) {
     const torso = 38.0, upperArm = 18.0, foreArm = 17.0;
     const thigh = 24.0, shin = 26.0, headR = 12.0;
-    final hip = Offset(s.hipX, s.hipY);
-    final up = Offset(math.sin(s.lean), -math.cos(s.lean));
+    final hip = Offset(s[_P.hipX], s[_P.hipY]);
+    final lean = s[_P.lean];
+    final up = Offset(math.sin(lean), -math.cos(lean));
     final shoulder = hip + up * torso;
-    final headAngle = s.lean + s.headTilt;
+    final headAngle = lean + s[_P.headTilt];
     final head =
         shoulder +
         Offset(math.sin(headAngle), -math.cos(headAngle)) * (headR + 4);
+    final near = _line(_ink, 5);
+    final far = _line(Color.lerp(s.bg, _ink, 0.55)!, 5);
 
-    final near = Paint()
-      ..color = _ink
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-    final far = Paint()
-      ..color = Color.lerp(s.bg, _ink, 0.55)!
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-
-    void limb(
+    Offset limb(
       Offset from,
       double a1,
       double l1,
@@ -631,17 +1404,52 @@ class _ScenePainter extends CustomPainter {
           ..lineTo(end.dx, end.dy),
         p,
       );
+      return end;
+    }
+
+    // A slow breathing ring behind her.
+    final aura = s[_P.aura];
+    if (aura > 0.01) {
+      final c = hip - const Offset(0, 24);
+      final r = 32 + 22 * s[_P.auraSize];
+      canvas
+        ..drawCircle(c, r, _fill(AppColors.mint, 0.14 * aura))
+        ..drawCircle(
+          c,
+          r,
+          _line(AppColors.mint.withValues(alpha: 0.45 * aura), 2),
+        );
+    }
+
+    // Dust when she stomps.
+    final dust = s[_P.dust];
+    if (dust > 0.02) {
+      final foot = Offset(hip.dx + 6, _ground);
+      for (final d in [-1.0, 1.0]) {
+        canvas.drawLine(
+          foot + Offset(d * 6, -1),
+          foot + Offset(d * (10 + 8 * dust), -4),
+          _line(_ink.withValues(alpha: 0.35 * dust), 2),
+        );
+      }
     }
 
     // Behind her: the far leg and arm.
-    limb(hip, s.legFU, thigh, s.legFF, shin, far);
-    limb(shoulder, s.armFU, upperArm, s.armFF, foreArm, far);
+    limb(hip, s[_P.legFU], thigh, s[_P.legFF], shin, far);
+    final farHand = limb(
+      shoulder,
+      s[_P.armFU],
+      upperArm,
+      s[_P.armFF],
+      foreArm,
+      far,
+    );
 
     // Ponytail, from the back of her head.
     final tailBase = head + _rot(const Offset(-10, -5), headAngle * 0.4);
-    final tailEnd =
-        tailBase + Offset(-11 - 3 * s.ponySway, 17 - 30 * s.ponyLift);
-    final tailMid = tailBase + Offset(-15, 3 - 12 * s.ponyLift);
+    final lift = s[_P.ponyLift], sway = s[_P.ponySway];
+    final tailEnd = tailBase + Offset(-11 - 3 * sway, 17 - 30 * lift);
+    final tailMid = tailBase + Offset(-15, 3 - 12 * lift);
     canvas.drawPath(
       Path()
         ..moveTo(tailBase.dx, tailBase.dy)
@@ -649,13 +1457,26 @@ class _ScenePainter extends CustomPainter {
       near,
     );
 
+    // A feeling in her chest.
+    final glow = s[_P.glow];
+    if (glow > 0.01) {
+      final hot = s[_P.glowHot];
+      final beat =
+          0.5 + 0.5 * math.sin(2 * math.pi * sec / (hot > 0.5 ? 0.5 : 2));
+      final c = hip + up * 26;
+      final color = Color.lerp(AppColors.lavender, _red, hot)!;
+      canvas
+        ..drawCircle(c, 9 + 5 * beat, _fill(color, 0.22 * glow))
+        ..drawCircle(c, 5 + 2 * beat, _fill(color, 0.4 * glow));
+    }
+
     // Body.
     canvas.drawLine(hip, shoulder, near);
-    limb(hip, s.legNU, thigh, s.legNF, shin, near);
+    limb(hip, s[_P.legNU], thigh, s[_P.legNF], shin, near);
 
-    // Skirt, draping along her legs.
-    final legs = (_dir(s.legNU) + _dir(s.legFU)) / 2;
-    final sitting = legs.dx.clamp(0.0, 1.0);
+    // Skirt: a flared dress standing; over her lap sitting.
+    final legs = (_dir(s[_P.legNU]) + _dir(s[_P.legFU])) / 2;
+    final sitting = (legs.dx.abs() * (1 - s[_P.tucked])).clamp(0.0, 1.0);
     final waist = hip + up * 10;
     final p1 = Offset(-up.dy, up.dx);
     final knee = hip + legs * 18;
@@ -675,100 +1496,287 @@ class _ScenePainter extends CustomPainter {
       ..lineTo(hemBack.dx, hemBack.dy)
       ..lineTo(back.dx, back.dy)
       ..close();
-    canvas
-      ..drawPath(skirt, Paint()..color = AppColors.lavender)
-      ..drawPath(
-        skirt,
-        Paint()
-          ..color = AppColors.lavender
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3
-          ..strokeJoin = StrokeJoin.round,
-      );
+    if (s[_P.tucked] < 0.5) {
+      canvas
+        ..drawPath(skirt, _fill(AppColors.lavender))
+        ..drawPath(skirt, _line(AppColors.lavender, 3));
+    }
+
+    // A blanket hides her arms; otherwise the near arm goes on last.
+    final blanket = s[_P.blanket];
+    final nearHand =
+        shoulder + _dir(s[_P.armNU]) * upperArm + _dir(s[_P.armNF]) * foreArm;
+    if (blanket > 0.5) {
+      limb(shoulder, s[_P.armNU], upperArm, s[_P.armNF], foreArm, near);
+      _blanket(canvas, hip, shoulder, knee, blanket);
+    }
 
     // Head, with a small bow where the ponytail starts.
     canvas
-      ..drawCircle(head, headR, Paint()..color = AppColors.white)
       ..drawCircle(
         head,
         headR,
-        Paint()
-          ..color = _ink
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 4,
+        _fill(Color.lerp(AppColors.white, const Color(0xFFFFC2BA), s[_P.hot])!),
       )
-      ..drawCircle(tailBase, 3.2, Paint()..color = const Color(0xFFE85D9A));
+      ..drawCircle(head, headR, _line(_ink, 4))
+      ..drawCircle(tailBase, 3.2, _fill(const Color(0xFFE85D9A)));
+    final mouth = _face(canvas, head, headAngle);
 
-    // Face.
-    Offset onFace(double x, double y) => head + _rot(Offset(x, y), headAngle);
-    final dot = Paint()..color = _ink;
-    canvas
-      ..drawCircle(onFace(-3.5 + 4 * s.faceShift, -2), 1.5, dot)
-      ..drawCircle(onFace(3.5 + 2 * s.faceShift, -2), 1.5, dot);
-    final mx = 3 * s.faceShift;
-    final m0 = onFace(mx - 3.6, 5), m1 = onFace(mx + 3.6, 5);
-    final mc = onFace(mx, 5 + 4.5 * s.smile);
-    canvas.drawPath(
-      Path()
-        ..moveTo(m0.dx, m0.dy)
-        ..quadraticBezierTo(mc.dx, mc.dy, m1.dx, m1.dy),
-      Paint()
-        ..color = _ink
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8
-        ..strokeCap = StrokeCap.round,
-    );
-
-    // In front: the near arm.
-    limb(shoulder, s.armNU, upperArm, s.armNF, foreArm, near);
-    return head;
-  }
-
-  void _thoughts(Canvas canvas, Offset head) {
-    final line = Paint()
-      ..color = _ink.withValues(alpha: 0.22)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    if (s.trail > 0.01) {
-      const steps = [Offset(15, -13), Offset(24, -23), Offset(34, -31)];
-      for (var i = 0; i < 3; i++) {
-        final r = (2.2 + i) * s.trail;
-        canvas
-          ..drawCircle(head + steps[i], r, Paint()..color = AppColors.white)
-          ..drawCircle(head + steps[i], r, line);
+    // What she's holding, then the arm in front.
+    if (blanket <= 0.5) {
+      final book = s[_P.book];
+      if (book > 0.01) {
+        _book(canvas, Offset.lerp(nearHand, farHand, 0.5)!, book);
       }
-    }
-    if (s.bubble > 0.01) {
-      final box = RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: const Offset(192, 40),
-          width: 66 * s.bubble,
-          height: 38 * s.bubble,
-        ),
-        const Radius.circular(19),
-      );
-      canvas
-        ..drawRRect(box, Paint()..color = AppColors.white)
-        ..drawRRect(box, line);
-      for (var i = 0; i < 3; i++) {
-        final pulse = 0.5 + 0.5 * math.sin(2 * math.pi * (sec - i * 0.25));
-        canvas.drawCircle(
-          Offset(178.0 + i * 14, 40),
-          (2.4 + 1.8 * pulse) * s.bubble,
-          Paint()
-            ..color = AppColors.lavender.withValues(alpha: 0.5 + 0.5 * pulse),
+      limb(shoulder, s[_P.armNU], upperArm, s[_P.armNF], foreArm, near);
+      final phone = s[_P.phone];
+      if (phone > 0.01) {
+        canvas
+          ..save()
+          ..translate(nearHand.dx, nearHand.dy)
+          ..rotate(-s[_P.armNF])
+          ..drawRRect(
+            RRect.fromRectAndRadius(
+              const Rect.fromLTRB(-4.5, -3, 4.5, 12),
+              const Radius.circular(2.5),
+            ),
+            _fill(_ink, phone),
+          )
+          ..drawRRect(
+            RRect.fromRectAndRadius(
+              const Rect.fromLTRB(-3, -1, 3, 9.5),
+              const Radius.circular(1.5),
+            ),
+            _fill(const Color(0xFF9AD8FF), phone),
+          )
+          ..restore();
+      }
+      final writing = s[_P.writing];
+      if (writing > 0.01) {
+        canvas.drawLine(
+          nearHand + const Offset(-1, 1),
+          nearHand + const Offset(6, -9),
+          _line(const Color(0xFFF29A38).withValues(alpha: writing), 2.4),
         );
       }
     }
+    return (head: head, hand: nearHand, mouth: mouth);
+  }
+
+  void _blanket(
+    Canvas canvas,
+    Offset hip,
+    Offset shoulder,
+    Offset knee,
+    double a,
+  ) {
+    const teal = Color(0xFF7CC4B8);
+    final stripe = _line(const Color(0xFFBFE6DF).withValues(alpha: a), 3);
+    if (s[_P.tucked] > 0.5) {
+      // Lying down: tucked in from her chest to her toes.
+      canvas
+        ..drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTRB(hip.dx - 26, hip.dy - 10, 154, hip.dy + 8),
+            const Radius.circular(9),
+          ),
+          _fill(teal, a),
+        )
+        ..drawLine(
+          Offset(hip.dx - 18, hip.dy - 5),
+          Offset(146, hip.dy - 5),
+          stripe,
+        );
+      return;
+    }
+    // Sitting: wrapped round her shoulders and over her lap.
+    final wrap = Path()
+      ..moveTo(shoulder.dx - 11, shoulder.dy - 1)
+      ..quadraticBezierTo(
+        shoulder.dx,
+        shoulder.dy - 9,
+        shoulder.dx + 11,
+        shoulder.dy + 1,
+      )
+      ..lineTo(knee.dx + 6, knee.dy - 4)
+      ..lineTo(knee.dx + 4, knee.dy + 10)
+      ..lineTo(hip.dx - 11, hip.dy + 8)
+      ..close();
+    canvas
+      ..drawPath(wrap, _fill(teal, a))
+      ..drawPath(wrap, _line(teal.withValues(alpha: a), 3))
+      ..drawLine(
+        Offset.lerp(shoulder, hip, 0.45)! + const Offset(-8, 0),
+        Offset.lerp(shoulder, knee, 0.55)! + const Offset(4, 0),
+        stripe,
+      );
+  }
+
+  void _book(Canvas canvas, Offset c, double a) {
+    Path page(double side) => Path()
+      ..moveTo(c.dx, c.dy - 3)
+      ..lineTo(c.dx + side * 10, c.dy - 7)
+      ..lineTo(c.dx + side * 10, c.dy + 2)
+      ..lineTo(c.dx, c.dy + 6)
+      ..close();
+    for (final side in [-1.0, 1.0]) {
+      canvas
+        ..drawPath(page(side), _fill(AppColors.white, a))
+        ..drawPath(
+          page(side),
+          _line(AppColors.lavender.withValues(alpha: a), 1.6),
+        );
+    }
+  }
+
+  /// Draws her face; returns where her mouth is.
+  Offset _face(Canvas canvas, Offset head, double headAngle) {
+    Offset at(double x, double y) => head + _rot(Offset(x, y), headAngle);
+    final shift = s[_P.faceShift];
+    final x1 = -3.5 + 4 * shift, x2 = 3.5 + 2 * shift;
+    if (s[_P.eyes] < 0.5) {
+      // Closed: two little lids.
+      for (final x in [x1, x2]) {
+        canvas.drawLine(at(x - 1.8, -1.6), at(x + 1.8, -1.6), _line(_ink, 1.6));
+      }
+    } else {
+      final r = 1.5 + 0.8 * s[_P.eyesWide];
+      canvas
+        ..drawCircle(at(x1, -2), r, _fill(_ink))
+        ..drawCircle(at(x2, -2), r, _fill(_ink));
+    }
+    final brow = s[_P.brow];
+    if (brow > 0.05) {
+      final p = _line(_ink.withValues(alpha: brow.clamp(0.0, 1.0)), 1.8);
+      canvas
+        ..drawLine(at(x1 - 2.6, -7.2), at(x1 + 2.2, -4.9), p)
+        ..drawLine(at(x2 + 2.6, -7.2), at(x2 - 2.2, -4.9), p);
+    }
+    final mx = 3 * shift;
+    final open = s[_P.mouthOpen];
+    if (open > 0.12) {
+      // A yawn, or talking.
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: at(mx, 5.5),
+          width: 3 + 2.5 * open,
+          height: 2 + 5 * open,
+        ),
+        _fill(_ink),
+      );
+    } else {
+      final m0 = at(mx - 3.6, 5), m1 = at(mx + 3.6, 5);
+      final mc = at(mx, 5 + 4.5 * s[_P.smile]);
+      canvas.drawPath(
+        Path()
+          ..moveTo(m0.dx, m0.dy)
+          ..quadraticBezierTo(mc.dx, mc.dy, m1.dx, m1.dy),
+        _line(_ink, 1.8),
+      );
+    }
+    final thermo = s[_P.thermo];
+    if (thermo > 0.01) {
+      final from = at(mx + 2, 5.5), tip = at(mx + 13, 8);
+      canvas
+        ..drawLine(
+          from,
+          tip,
+          _line(AppColors.white.withValues(alpha: thermo), 3.2),
+        )
+        ..drawLine(from, tip, _line(_ink.withValues(alpha: 0.35 * thermo), 1))
+        ..drawCircle(tip, 2, _fill(_red, thermo));
+    }
+    return at(mx + 5, 5);
+  }
+
+  // -------------------------------------------------------------------------
+  // Thoughts and words
+  // -------------------------------------------------------------------------
+
+  Offset _bubbleAt(Offset head) => Offset(
+    (head.dx + 62).clamp(60.0, 200.0),
+    (head.dy - 22).clamp(27.0, 140.0),
+  );
+
+  void _trailTo(Canvas canvas, Offset head, Offset target, double a) {
+    if (a <= 0.01) return;
+    final from = head + const Offset(14, -10);
+    for (final (i, t) in const [0.12, 0.48, 0.86].indexed) {
+      final c = Offset.lerp(from, target, t)!;
+      final r = (2.2 + i) * a;
+      canvas
+        ..drawCircle(c, r, _fill(AppColors.white))
+        ..drawCircle(c, r, _thin);
+    }
+  }
+
+  void _thoughts(Canvas canvas, Offset head) {
+    final at = _bubbleAt(head);
+    final bubble = s[_P.bubble];
+    final showsItems = s[_P.item0] + s[_P.item1] + s[_P.item2] > 0.02;
+    _trailTo(
+      canvas,
+      head,
+      showsItems
+          ? _itemAt[0] + const Offset(-16, 10)
+          : at + const Offset(-30, 12),
+      s[_P.trail] * (1 - s[_P.feelings]).clamp(0.0, 1.0),
+    );
+    if (bubble > 0.01) {
+      final box = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: at, width: 66 * bubble, height: 38 * bubble),
+        const Radius.circular(19),
+      );
+      canvas
+        ..drawRRect(box, _fill(AppColors.white))
+        ..drawRRect(box, _thin);
+      final dots = s[_P.bubbleDots] * bubble;
+      if (dots > 0.01) {
+        for (var i = 0; i < 3; i++) {
+          final pulse = 0.5 + 0.5 * math.sin(2 * math.pi * (sec - i * 0.25));
+          canvas.drawCircle(
+            at + Offset(-14.0 + i * 14, 0),
+            (2.4 + 1.8 * pulse) * dots,
+            _fill(AppColors.lavender, 0.5 + 0.5 * pulse),
+          );
+        }
+      }
+      final friend = s[_P.friend] * bubble;
+      if (friend > 0.01) {
+        // Someone she hasn't spoken to in a while.
+        final c = at + Offset(0, 1 - 1.5 * math.sin(math.pi * sec / 2));
+        final ink = _ink.withValues(alpha: friend.clamp(0.0, 1.0));
+        canvas
+          ..drawCircle(c, 9 * friend, _fill(const Color(0xFFFFF3D9)))
+          ..drawCircle(c, 9 * friend, _line(ink, 2.4))
+          ..drawCircle(c + const Offset(-3, -2), 1.3, _fill(_ink, friend))
+          ..drawCircle(c + const Offset(3, -2), 1.3, _fill(_ink, friend))
+          ..drawPath(
+            Path()
+              ..moveTo(c.dx - 3.5, c.dy + 2.5)
+              ..quadraticBezierTo(c.dx, c.dy + 6.5, c.dx + 3.5, c.dy + 2.5),
+            _line(ink, 1.6),
+          );
+      }
+      final heart = s[_P.bubbleHeart] * bubble;
+      if (heart > 0.01) {
+        canvas
+          ..save()
+          ..translate(at.dx, at.dy)
+          ..scale(1.2 * heart * (1 + 0.12 * math.sin(2 * math.pi * sec)));
+        _heart(canvas);
+        canvas.restore();
+      }
+    }
+    final sizes = [s[_P.item0], s[_P.item1], s[_P.item2]];
     for (var k = 0; k < 3; k++) {
-      final size = s.items[k];
-      if (size <= 0.01) continue;
+      if (sizes[k] <= 0.01) continue;
       canvas
         ..save()
         ..translate(_itemAt[k].dx, _itemAt[k].dy)
-        ..scale(size)
-        ..drawCircle(Offset.zero, 14, Paint()..color = AppColors.white)
-        ..drawCircle(Offset.zero, 14, line);
+        ..scale(sizes[k])
+        ..drawCircle(Offset.zero, 14, _fill(AppColors.white))
+        ..drawCircle(Offset.zero, 14, _thin);
       switch (k) {
         case 0:
           _heart(canvas);
@@ -779,13 +1787,12 @@ class _ScenePainter extends CustomPainter {
       }
       canvas.restore();
     }
-    if (s.question > 0.01) {
-      final p = head + Offset(-3, -30 - 3 * s.questionAt);
-      final ink = Paint()
-        ..color = AppColors.lavender.withValues(alpha: s.question)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.8
-        ..strokeCap = StrokeCap.round;
+    final question = s[_P.question];
+    if (question > 0.01) {
+      final p = head + Offset(-3, -30 - 3 * s[_P.questionBob]);
+      final color = AppColors.lavender.withValues(
+        alpha: question.clamp(0.0, 1.0),
+      );
       canvas
         ..drawPath(
           Path()
@@ -799,17 +1806,342 @@ class _ScenePainter extends CustomPainter {
               p.dy - 5,
             )
             ..cubicTo(p.dx + 5, p.dy - 1, p.dx, p.dy - 1, p.dx, p.dy + 3),
-          ink,
+          _line(color, 2.8),
         )
-        ..drawCircle(
-          p + const Offset(0, 8),
-          1.8,
-          Paint()..color = AppColors.lavender.withValues(alpha: s.question),
+        ..drawCircle(p + const Offset(0, 8), 1.8, Paint()..color = color);
+    }
+  }
+
+  /// A feeling as a little shape: 0 angry, 1 anxious, 2 sad.
+  void _feelShape(Canvas canvas, int i, Offset c, double size, double a) {
+    if (a <= 0.01) return;
+    canvas
+      ..save()
+      ..translate(c.dx, c.dy)
+      ..scale(size);
+    switch (i) {
+      case 0:
+        final star = Path();
+        for (var k = 0; k < 20; k++) {
+          final r = k.isEven ? 8.5 : 5.0;
+          final ang = k * math.pi / 10 - math.pi / 2;
+          final p = Offset(math.cos(ang), math.sin(ang)) * r;
+          k == 0 ? star.moveTo(p.dx, p.dy) : star.lineTo(p.dx, p.dy);
+        }
+        canvas.drawPath(star..close(), _fill(_red, a));
+      case 1:
+        final p = _line(
+          const Color(0xFF34B27D).withValues(alpha: a.clamp(0.0, 1.0)),
+          2.2,
+        );
+        for (final y in [-5.0, 0.0, 5.0]) {
+          final w = Path()..moveTo(-8, y);
+          for (var k = 0; k < 4; k++) {
+            w.quadraticBezierTo(
+              -6.0 + k * 4,
+              y + (k.isEven ? -2.5 : 2.5),
+              -4.0 + k * 4,
+              y,
+            );
+          }
+          canvas.drawPath(w, p);
+        }
+      default:
+        canvas.drawPath(
+          Path()
+            ..moveTo(-6, 3)
+            ..cubicTo(-10, -4, -3, -9, 1, -6)
+            ..cubicTo(4, -4, 3, -1, 6, 0)
+            ..cubicTo(11, 3, 8, 9, 2, 8)
+            ..cubicTo(-2, 8, -4, 7, -6, 3)
+            ..close(),
+          _fill(const Color(0xFF8E5BD6), a),
+        );
+    }
+    canvas.restore();
+  }
+
+  void _feelings(Canvas canvas, Offset head) {
+    final a = s[_P.feelings];
+    if (a <= 0.01) return;
+    final at = Offset(
+      (head.dx + 60).clamp(60.0, 190.0),
+      (head.dy - 22).clamp(27.0, 140.0),
+    );
+    _trailTo(canvas, head, at + const Offset(-42, 12), a);
+    final box = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: at, width: 92 * a, height: 40 * a),
+      const Radius.circular(20),
+    );
+    canvas
+      ..drawRRect(box, _fill(AppColors.white))
+      ..drawRRect(box, _thin);
+    final picked = s[_P.feelingAt].round();
+    for (var i = 0; i < 3; i++) {
+      final lit = i == picked;
+      _feelShape(
+        canvas,
+        i,
+        at + Offset(-28.0 + i * 28, 0),
+        lit ? 1.15 : 0.8,
+        a * (lit ? 1 : 0.4),
+      );
+    }
+  }
+
+  void _speech(Canvas canvas, Offset head) {
+    final a = s[_P.speech];
+    if (a > 0.01) {
+      // What she says out loud.
+      final at = head + const Offset(46, -22);
+      final box = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: at, width: 44 * a, height: 30 * a),
+        const Radius.circular(12),
+      );
+      canvas
+        ..drawPath(
+          Path()
+            ..moveTo(at.dx - 16, at.dy + 12)
+            ..lineTo(at.dx - 26, at.dy + 22)
+            ..lineTo(at.dx - 6, at.dy + 14)
+            ..close(),
+          _fill(AppColors.white, a),
+        )
+        ..drawRRect(box, _fill(AppColors.white))
+        ..drawRRect(box, _thin);
+      _feelShape(canvas, 2, at, 1.1 * a, a);
+    }
+    final incoming = s[_P.incoming];
+    if (incoming > 0.01) {
+      // Their reply.
+      final at = Offset(
+        196 + 14 * (1 - incoming),
+        66 + 2.5 * math.sin(math.pi * sec / 2),
+      );
+      final box = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: at, width: 36, height: 26),
+        const Radius.circular(11),
+      );
+      final white = _fill(AppColors.white, incoming);
+      canvas
+        ..drawPath(
+          Path()
+            ..moveTo(at.dx + 8, at.dy + 10)
+            ..lineTo(at.dx + 16, at.dy + 20)
+            ..lineTo(at.dx - 2, at.dy + 12)
+            ..close(),
+          white,
+        )
+        ..drawRRect(box, white)
+        ..drawRRect(box, _thin)
+        ..save()
+        ..translate(at.dx, at.dy)
+        ..scale(0.95 + 0.1 * math.sin(2 * math.pi * sec));
+      _heart(canvas, incoming);
+      canvas.restore();
+    }
+  }
+
+  /// Sleep, steam, worry, a pause: what shows over her head.
+  void _aboveHead(Canvas canvas, Offset head) {
+    final zzz = s[_P.zzz];
+    if (zzz > 0.01) {
+      for (var i = 0; i < 3; i++) {
+        final p = (sec / 2 + i / 3) % 1.0;
+        final c = head + Offset(16 + 12 * p, -12 - 30 * p);
+        final size = 3.0 + 4 * p;
+        canvas.drawPath(
+          Path()
+            ..moveTo(c.dx - size, c.dy - size)
+            ..lineTo(c.dx + size, c.dy - size)
+            ..lineTo(c.dx - size, c.dy + size)
+            ..lineTo(c.dx + size, c.dy + size),
+          _line(_ink.withValues(alpha: 0.55 * zzz * math.sin(math.pi * p)), 2),
+        );
+      }
+    }
+    final steam = s[_P.steam];
+    if (steam > 0.01) {
+      for (var i = 0; i < 4; i++) {
+        final side = i.isEven ? -1.0 : 1.0;
+        final p = (sec + i * 0.25) % 1.0;
+        final c = head + Offset(side * (12 + 7 * p), -10 - 16 * p);
+        final a = steam * (1 - p);
+        canvas
+          ..drawCircle(c, 2.5 + 4 * p, _fill(AppColors.white, a))
+          ..drawCircle(
+            c,
+            2.5 + 4 * p,
+            _line(_ink.withValues(alpha: (0.4 * a).clamp(0.0, 1.0)), 1.4),
+          );
+      }
+    }
+    final scribble = s[_P.scribble];
+    if (scribble > 0.01) {
+      // A tangle of worry, turning.
+      final c = head + const Offset(0, -25);
+      final path = Path();
+      for (var k = 0; k <= 60; k++) {
+        final ang = k * 0.42 + sec * math.pi / 2;
+        final r = 6 + 5 * math.sin(k * 1.3);
+        final p = c + Offset(math.cos(ang) * r * 1.3, math.sin(ang) * r * 0.8);
+        k == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+      }
+      canvas.drawPath(
+        path,
+        _line(_ink.withValues(alpha: 0.55 * scribble), 1.6),
+      );
+    }
+    final sweat = s[_P.sweat];
+    if (sweat > 0.01) {
+      for (var i = 0; i < 2; i++) {
+        final side = i == 0 ? -1.0 : 1.0;
+        final p = (sec * 2 + i * 0.5) % 1.0;
+        canvas.drawCircle(
+          head + Offset(side * (13 + 8 * p), -7 + 9 * p),
+          2.2,
+          _fill(_blue, sweat * (1 - p)),
+        );
+      }
+    }
+    final pause = s[_P.pause];
+    if (pause > 0.01) {
+      final c = head + const Offset(0, -28);
+      final r = 11 * (0.9 + 0.1 * math.sin(math.pi * sec)) * pause;
+      canvas
+        ..drawCircle(c, r, _fill(AppColors.white, pause))
+        ..drawCircle(c, r, _line(_ink.withValues(alpha: 0.3 * pause), 1.5));
+      for (final x in [-3.2, 3.2]) {
+        canvas.drawLine(
+          c + Offset(x, -4.5),
+          c + Offset(x, 4.5),
+          _line(_ink.withValues(alpha: pause.clamp(0.0, 1.0)), 3),
+        );
+      }
+    }
+  }
+
+  /// What comes from the phone in her hand.
+  void _fromHand(Canvas canvas, Offset hand) {
+    final messages = s[_P.messages];
+    if (messages > 0.01) {
+      for (var i = 0; i < 3; i++) {
+        final p = (sec / 2 + i / 3) % 1.0;
+        final c = hand + Offset(12 + 44 * p, -10 - 48 * p);
+        final a = (messages * math.sin(math.pi * p)).clamp(0.0, 1.0);
+        final box = RRect.fromRectAndRadius(
+          Rect.fromCenter(center: c, width: 20 + 6 * p, height: 14 + 4 * p),
+          const Radius.circular(7),
+        );
+        canvas
+          ..drawRRect(box, _fill(AppColors.white, a))
+          ..drawRRect(box, _line(AppColors.lavender.withValues(alpha: a), 1.5));
+        if (i == 0) {
+          canvas
+            ..save()
+            ..translate(c.dx, c.dy)
+            ..scale(0.6);
+          _heart(canvas, a);
+          canvas.restore();
+        } else {
+          for (final x in [-4.0, 0.0, 4.0]) {
+            canvas.drawCircle(
+              c + Offset(x, 0),
+              1.3,
+              _fill(AppColors.lavender, a),
+            );
+          }
+        }
+      }
+    }
+    final sound = s[_P.sound];
+    if (sound > 0.01) {
+      for (var i = 0; i < 3; i++) {
+        final pulse = 0.5 + 0.5 * math.sin(2 * math.pi * (sec - i * 0.2));
+        canvas.drawArc(
+          Rect.fromCircle(
+            center: hand + const Offset(6, -4),
+            radius: 8.0 + i * 5,
+          ),
+          -math.pi / 4,
+          math.pi / 2,
+          false,
+          _line(
+            AppColors.lavender.withValues(
+              alpha: (sound * pulse).clamp(0.0, 1.0),
+            ),
+            2,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Long, slow breaths out.
+  void _breathOut(Canvas canvas, Offset mouth) {
+    final puff = s[_P.puff];
+    if (puff <= 0.01) return;
+    for (var i = 0; i < 3; i++) {
+      final p = (sec / 2 + i / 3) % 1.0;
+      canvas.drawCircle(
+        mouth + Offset(8 + 30 * p, 1 - 3 * p),
+        2 + 4 * p,
+        _line(_blue.withValues(alpha: (puff * (1 - p)).clamp(0.0, 1.0)), 1.6),
+      );
+    }
+  }
+
+  /// Tomorrow's list, off her mind and onto paper.
+  void _note(Canvas canvas) {
+    final note = s[_P.note];
+    if (note <= 0.01) return;
+    final card = RRect.fromRectAndRadius(
+      const Rect.fromLTRB(152, 20, 196, 70),
+      const Radius.circular(8),
+    );
+    canvas
+      ..drawRRect(card, _fill(AppColors.white, note))
+      ..drawRRect(card, _thin);
+    final lines = s[_P.noteLines];
+    for (var i = 0; i < 3; i++) {
+      final done = (lines - i).clamp(0.0, 1.0);
+      if (done <= 0) continue;
+      final y = 33.0 + i * 12;
+      canvas
+        ..drawCircle(Offset(160, y), 2, _fill(AppColors.mint, note))
+        ..drawLine(
+          Offset(166, y),
+          Offset(166 + 24 * done, y),
+          _line(_ink.withValues(alpha: 0.5 * note), 2),
         );
     }
   }
 
-  void _heart(Canvas canvas) {
+  /// Whatever set her off.
+  void _trigger(Canvas canvas) {
+    final trigger = s[_P.trigger];
+    if (trigger <= 0.01) return;
+    const c = Offset(206, 106);
+    final size = (9 + 8 * trigger) * (1 + 0.08 * math.sin(2 * math.pi * sec));
+    final spark = Path();
+    for (var k = 0; k < 16; k++) {
+      final r = k.isEven ? size : size * 0.55;
+      final ang = k * math.pi / 8 + sec * math.pi / 8;
+      final p = c + Offset(math.cos(ang), math.sin(ang)) * r;
+      k == 0 ? spark.moveTo(p.dx, p.dy) : spark.lineTo(p.dx, p.dy);
+    }
+    final white = AppColors.white.withValues(alpha: trigger.clamp(0.0, 1.0));
+    canvas
+      ..drawPath(spark..close(), _fill(_red, trigger))
+      ..drawLine(
+        c + const Offset(0, -5),
+        c + const Offset(0, 1),
+        _line(white, 2.6),
+      )
+      ..drawCircle(c + const Offset(0, 5), 1.6, Paint()..color = white);
+  }
+
+  void _heart(Canvas canvas, [double alpha = 1]) {
     const r = 7.0;
     canvas.drawPath(
       Path()
@@ -817,12 +2149,12 @@ class _ScenePainter extends CustomPainter {
         ..cubicTo(-r * 1.4, -r * 0.1, -r * 0.6, -r * 1.1, 0, -r * 0.3)
         ..cubicTo(r * 0.6, -r * 1.1, r * 1.4, -r * 0.1, 0, r * 0.85)
         ..close(),
-      Paint()..color = const Color(0xFFF2545B),
+      _fill(_red, alpha),
     );
   }
 
   void _cup(Canvas canvas) {
-    final cup = Paint()..color = const Color(0xFFE9804C);
+    const cup = Color(0xFFE9804C);
     canvas
       ..drawRRect(
         RRect.fromRectAndCorners(
@@ -830,23 +2162,16 @@ class _ScenePainter extends CustomPainter {
           bottomLeft: const Radius.circular(4),
           bottomRight: const Radius.circular(4),
         ),
-        cup,
+        _fill(cup),
       )
       ..drawArc(
         const Rect.fromLTRB(1, 0, 9, 6),
         -math.pi / 2,
         math.pi,
         false,
-        Paint()
-          ..color = const Color(0xFFE9804C)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.8,
+        _line(cup, 1.8),
       );
-    final steam = Paint()
-      ..color = _ink.withValues(alpha: 0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4
-      ..strokeCap = StrokeCap.round;
+    final steam = _line(_ink.withValues(alpha: 0.3), 1.4);
     for (final x in [-3.0, 1.0]) {
       canvas.drawPath(
         Path()
@@ -865,68 +2190,62 @@ class _ScenePainter extends CustomPainter {
       final p = Offset(math.cos(a), math.sin(a)) * r;
       i == 0 ? star.moveTo(p.dx, p.dy) : star.lineTo(p.dx, p.dy);
     }
-    canvas.drawPath(star..close(), Paint()..color = const Color(0xFFF7C23E));
+    canvas.drawPath(star..close(), _fill(const Color(0xFFF7C23E)));
   }
 
-  /// Seven evenings, ticking off one by one.
+  /// Days (or breaths), ticking off one by one.
   void _weekDots(Canvas canvas) {
-    if (s.week <= 0.01) return;
-    for (var i = 0; i < 7; i++) {
-      final c = Offset(64.0 + i * 15, 24);
-      final fill = (s.weekFilled - i).clamp(0.0, 1.0);
+    final week = s[_P.week];
+    if (week <= 0.01) return;
+    final count = s[_P.weekCount].round();
+    final filled = s[_P.weekFilled];
+    final start = 120 - (count - 1) * 7.5;
+    for (var i = 0; i < count; i++) {
+      final c = Offset(start + i * 15, 24);
+      final fill = (filled - i).clamp(0.0, 1.0);
       canvas
-        ..drawCircle(
-          c,
-          5,
-          Paint()..color = AppColors.white.withValues(alpha: s.week),
-        )
-        ..drawCircle(
-          c,
-          5,
-          Paint()
-            ..color = _ink.withValues(alpha: 0.2 * s.week)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.4,
-        );
+        ..drawCircle(c, 5, _fill(AppColors.white, week))
+        ..drawCircle(c, 5, _line(_ink.withValues(alpha: 0.2 * week), 1.4));
       if (fill > 0) {
         canvas.drawCircle(
           c,
           5 * Curves.easeOutBack.transform(fill),
-          Paint()..color = AppColors.mint.withValues(alpha: s.week),
+          _fill(AppColors.mint, week),
         );
       }
     }
   }
 
   void _sparkles(Canvas canvas) {
-    if (s.sparkles <= 0.01) return;
+    final sparkles = s[_P.sparkles];
+    if (sparkles <= 0.01) return;
     const at = [
-      Offset(118, 44),
-      Offset(214, 36),
-      Offset(104, 96),
-      Offset(222, 92),
-      Offset(140, 18),
-      Offset(196, 126),
+      Offset(98, 44),
+      Offset(204, 36),
+      Offset(88, 96),
+      Offset(212, 92),
+      Offset(122, 16),
+      Offset(186, 126),
     ];
     for (var i = 0; i < at.length; i++) {
       final twinkle = 0.5 + 0.5 * math.sin(2 * math.pi * sec + i * 1.7);
-      final size = (3 + 5 * twinkle) * s.sparkles;
+      final size = (3 + 5 * twinkle) * sparkles;
       final c = at[i];
-      final path = Path()
-        ..moveTo(c.dx, c.dy - size)
-        ..lineTo(c.dx + size * 0.28, c.dy - size * 0.28)
-        ..lineTo(c.dx + size, c.dy)
-        ..lineTo(c.dx + size * 0.28, c.dy + size * 0.28)
-        ..lineTo(c.dx, c.dy + size)
-        ..lineTo(c.dx - size * 0.28, c.dy + size * 0.28)
-        ..lineTo(c.dx - size, c.dy)
-        ..lineTo(c.dx - size * 0.28, c.dy - size * 0.28)
-        ..close();
       canvas.drawPath(
-        path,
-        Paint()
-          ..color = (i.isEven ? const Color(0xFFF7C23E) : AppColors.lavender)
-              .withValues(alpha: s.sparkles),
+        Path()
+          ..moveTo(c.dx, c.dy - size)
+          ..lineTo(c.dx + size * 0.28, c.dy - size * 0.28)
+          ..lineTo(c.dx + size, c.dy)
+          ..lineTo(c.dx + size * 0.28, c.dy + size * 0.28)
+          ..lineTo(c.dx, c.dy + size)
+          ..lineTo(c.dx - size * 0.28, c.dy + size * 0.28)
+          ..lineTo(c.dx - size, c.dy)
+          ..lineTo(c.dx - size * 0.28, c.dy - size * 0.28)
+          ..close(),
+        _fill(
+          i.isEven ? const Color(0xFFF7C23E) : AppColors.lavender,
+          sparkles,
+        ),
       );
     }
   }

@@ -49,6 +49,8 @@ class CareItem {
     required this.steps,
     this.breathing,
     this.scenes,
+    this.opening,
+    this.doneScene = StickSceneKind.celebrate,
   });
 
   final String id;
@@ -65,6 +67,11 @@ class CareItem {
   /// An animated scene for each step (same length as [steps]), shown above
   /// the words.
   final List<StickSceneKind>? scenes;
+
+  /// How she is as the practice opens (she moves from this into the first
+  /// step's scene); and how she ends up when it's done.
+  final StickSceneKind? opening;
+  final StickSceneKind doneScene;
 }
 
 /// A group of practices, like "Healthy sleep".
@@ -117,6 +124,15 @@ const _sleep = CareTopic(
         'Keep the room cool, dark and quiet.',
         'Go to bed at about the same time every night, weekends too.',
       ],
+      opening: StickSceneKind.tiredNod,
+      scenes: [
+        StickSceneKind.dimLights,
+        StickSceneKind.slowTime,
+        StickSceneKind.writeDown,
+        StickSceneKind.quietRoom,
+        StickSceneKind.asleep,
+      ],
+      doneScene: StickSceneKind.asleep,
     ),
     CareItem(
       id: 'breath-478',
@@ -250,6 +266,7 @@ const _mood = CareTopic(
         'Try it every evening this week.',
       ],
       // The rain clears as she finds her three good things.
+      opening: StickSceneKind.sadRain,
       scenes: [
         StickSceneKind.thinkBack,
         StickSceneKind.threeThings,
@@ -289,6 +306,12 @@ const _mood = CareTopic(
         'Send them a message or give them a call.',
         'Ask how they are, and listen.',
       ],
+      opening: StickSceneKind.celebrate,
+      scenes: [
+        StickSceneKind.reachThink,
+        StickSceneKind.reachMessage,
+        StickSceneKind.reachListen,
+      ],
     ),
   ],
 );
@@ -312,6 +335,13 @@ const _emotions = CareTopic(
         'Say it quietly: "I\'m feeling ___ right now."',
         'Remind yourself: feelings rise and fall. This one will too.',
       ],
+      opening: StickSceneKind.moodySwing,
+      scenes: [
+        StickSceneKind.noticeBody,
+        StickSceneKind.nameFeeling,
+        StickSceneKind.sayIt,
+        StickSceneKind.riseAndFall,
+      ],
     ),
     CareItem(
       id: 'cool-down',
@@ -324,6 +354,14 @@ const _emotions = CareTopic(
         'Breathe out slowly, longer than you breathe in, five times.',
         'Ask: what do I actually need right now?',
         'Come back when your body feels calmer.',
+      ],
+      opening: StickSceneKind.angryStomp,
+      scenes: [
+        StickSceneKind.stopNow,
+        StickSceneKind.stepBack,
+        StickSceneKind.breatheOut,
+        StickSceneKind.whatINeed,
+        StickSceneKind.comeBack,
       ],
     ),
     CareItem(
@@ -530,6 +568,12 @@ const _move = CareTopic(
         'After a meal, take a relaxed 10-minute walk.',
         'Swing your arms and breathe deeply.',
         'Build up to 30 minutes most days.',
+      ],
+      opening: StickSceneKind.calmSit,
+      scenes: [
+        StickSceneKind.walkStart,
+        StickSceneKind.walkBreathe,
+        StickSceneKind.walkWeek,
       ],
     ),
     CareItem(

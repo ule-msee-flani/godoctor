@@ -56,6 +56,21 @@ extension MoodLook on Mood {
   };
 }
 
+extension MoodScene on Mood {
+  /// The little animated scene that goes with the feeling.
+  StickSceneKind get scene => switch (this) {
+    Mood.happy => StickSceneKind.celebrate,
+    Mood.sad => StickSceneKind.sadRain,
+    Mood.anxious => StickSceneKind.anxiousFidget,
+    Mood.angry => StickSceneKind.angryStomp,
+    Mood.underTheWeather => StickSceneKind.weatherSick,
+    Mood.tired => StickSceneKind.tiredNod,
+    Mood.moody => StickSceneKind.moodySwing,
+    Mood.calm => StickSceneKind.calmSit,
+    Mood.okay => StickSceneKind.okayStand,
+  };
+}
+
 /// A saved mood, including the first set of names ("great", "low"...).
 Mood? moodFromKey(String? key) => switch (key) {
   'great' || 'good' => Mood.happy,
@@ -245,6 +260,7 @@ class _Answer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final scene = mood.scene;
     final (gradient, title, line) = switch (mood) {
       Mood.happy => (
         AppColors.mintGradient,
@@ -294,7 +310,9 @@ class _Answer extends StatelessWidget {
     };
 
     Widget practice(String label, String item, {bool strong = true}) {
-      void onPressed() => context.push('/patient/practice/$item');
+      // She carries on from how she is on this card.
+      void onPressed() =>
+          context.push('/patient/practice/$item?from=${scene.name}');
       const icon = Icon(LucideIcons.play, size: 16);
       return strong
           ? FilledButton.icon(
@@ -334,7 +352,6 @@ class _Answer extends StatelessWidget {
       },
     ];
 
-    final scene = mood == Mood.sad ? StickSceneKind.sadRain : null;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
       decoration: BoxDecoration(
@@ -344,31 +361,17 @@ class _Answer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sad: a little scene says it first; the words come under it.
-          if (scene != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8, bottom: 12),
-              child: AspectRatio(
-                aspectRatio: 2,
-                child: StickScene(scene: scene),
-              ),
+          // A little scene says it first; the words come under it.
+          Padding(
+            padding: const EdgeInsets.only(right: 8, bottom: 12),
+            child: AspectRatio(
+              aspectRatio: 1.8,
+              child: StickScene(scene: scene),
             ),
+          ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (scene == null) ...[
-                Container(
-                  width: 52,
-                  height: 52,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: MoodGlyph(mood: mood, size: 34),
-                ),
-                const SizedBox(width: 12),
-              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -363,6 +363,10 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Under the weather'));
     await _pump(tester);
     expect(profiles.mood, 'under_the_weather');
+    expect(
+      find.bySemanticsLabel(RegExp('wrapped in a blanket')),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Fever'));
     expect(unwell, 'Fever');
     expect(tester.takeException(), isNull);

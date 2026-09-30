@@ -182,7 +182,7 @@ void main() {
       expect(tester.takeException(), isNull, reason: kind.name);
     }
     expect(
-      find.bySemanticsLabel('The girl jumps for joy in the sun.'),
+      find.bySemanticsLabel('The girl walks back, calm and smiling.'),
       findsOneWidget,
     );
     await tester.pumpWidget(const SizedBox());
@@ -211,6 +211,59 @@ void main() {
     await _pump(tester, 10);
     expect(find.text('Nicely done.'), findsOneWidget);
     expect(showing(), StickSceneKind.celebrate);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  test('every feeling has a scene; scenes match their steps', () {
+    expect({for (final m in Mood.values) m.scene}.length, Mood.values.length);
+    expect(Mood.sad.scene, StickSceneKind.sadRain);
+    expect(Mood.underTheWeather.scene, StickSceneKind.weatherSick);
+    var withScenes = 0;
+    for (final t in kCareTopics) {
+      for (final i in t.items) {
+        final scenes = i.scenes;
+        if (scenes == null) continue;
+        withScenes++;
+        expect(scenes.length, i.steps.length, reason: i.id);
+        expect(i.opening, isNotNull, reason: i.id);
+      }
+    }
+    expect(withScenes, 6);
+    expect(careItem('wind-down')!.$2.doneScene, StickSceneKind.asleep);
+    expect(careItem('cool-down')!.$2.doneScene, StickSceneKind.celebrate);
+  });
+
+  testWidgets('wind-down ends with her asleep, not jumping', (tester) async {
+    await _host(
+      tester,
+      const PracticeScreen(itemId: 'wind-down', from: 'tiredNod'),
+    );
+    StickSceneKind showing() =>
+        tester.widget<StickScene>(find.byType(StickScene)).scene;
+    expect(showing(), StickSceneKind.dimLights);
+    for (var i = 0; i < 4; i++) {
+      await tester.tap(find.text('Next'));
+      await _pump(tester, 10);
+    }
+    expect(showing(), StickSceneKind.asleep);
+    await tester.tap(find.text('I did it'));
+    await _pump(tester, 10);
+    expect(find.text('Nicely done.'), findsOneWidget);
+    expect(showing(), StickSceneKind.asleep);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('guided breathing: she breathes with the count', (tester) async {
+    await _host(tester, const PracticeScreen(itemId: 'box-breathing'));
+    StickScene scene() => tester.widget<StickScene>(find.byType(StickScene));
+    expect(scene().scene, StickSceneKind.calmSit);
+    await tester.tap(find.text('Start'));
+    await tester.pump(const Duration(seconds: 1));
+    final early = scene().breath!;
+    await tester.pump(const Duration(seconds: 2));
+    expect(scene().breath, greaterThan(early), reason: 'breathing in');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
