@@ -196,6 +196,12 @@ class _StickSceneState extends State<StickScene> with TickerProviderStateMixin {
             final sec = _loop.value * _loopSeconds;
             final t = Curves.easeInOutCubic.transform(_blend.value);
             final to = _Stage.at(widget.scene, sec, widget.breath);
+            // How fast she's moving up or down, so her hair can lag behind.
+            final just = _Stage.at(
+              widget.scene,
+              (sec - 0.05) % _loopSeconds,
+              widget.breath,
+            );
             return CustomPaint(
               size: Size.infinite,
               painter: _ScenePainter(
@@ -203,6 +209,7 @@ class _StickSceneState extends State<StickScene> with TickerProviderStateMixin {
                     ? to
                     : _Stage.lerp(_Stage.at(_prev, sec, widget.breath), to, t),
                 sec,
+                (to[_P.hipY] - just[_P.hipY]) / 0.05,
               ),
             );
           },
@@ -301,6 +308,11 @@ enum _P {
   trigger,
   puff,
   dust,
+  // Where her eyes look (-1..1), squash (-) and stretch (+), floating light.
+  lookX,
+  lookY,
+  squash,
+  motes,
 }
 
 class _Stage {
@@ -420,6 +432,7 @@ class _Stage {
           _P.legNF: -0.22,
           _P.legFF: -0.3,
           _P.smile: -1,
+          _P.lookY: 1,
           _P.ponySway: 0.4 * slow,
           _P.rain: 1,
           _P.cloud: 1,
@@ -437,6 +450,8 @@ class _Stage {
           _P.legNF: 0,
           _P.legFF: -0.08,
           _P.smile: -0.15,
+          _P.lookX: 0.6,
+          _P.lookY: -1,
           _P.ponySway: 0.6 * slow,
           _P.rain: 0.22,
           _P.cloud: 0.85,
@@ -463,6 +478,8 @@ class _Stage {
           _P.legNF: 0.05,
           _P.legFF: -0.04,
           _P.smile: 0.5,
+          _P.lookX: 1,
+          _P.lookY: -0.7,
           _P.ponySway: 0.6 * slow,
           _P.cloud: 0.25,
           _P.cloudDx: 84,
@@ -485,6 +502,8 @@ class _Stage {
           _P.legNF: 0.05,
           _P.legFF: -0.04,
           _P.smile: 0.35,
+          _P.lookX: 0.5,
+          _P.lookY: -1,
           _P.ponySway: _wave(sec, 2),
           _P.cloudDx: 110,
           _P.sun: 0.75,
@@ -511,32 +530,40 @@ class _Stage {
           _P.sun: 1,
           _P.sunLow: 1,
           _P.bench: 1,
+          _P.motes: 0.5,
           _P.week: 1,
           _P.weekFilled: ((sec - 0.3) / 0.45).clamp(0.0, 7.0),
         });
       case StickSceneKind.celebrate:
-        // One jump a second.
+        // One jump a second: she dips (landing from the last jump runs
+        // into getting ready for the next), springs up stretched, and
+        // lands with a little squash.
         final p = sec % 1.0;
-        final h = 4 * p * (1 - p);
+        final air = p >= 0.16 && p < 0.84 ? (p - 0.16) / 0.68 : -1.0;
+        final h = air < 0 ? 0.0 : 4 * air * (1 - air);
+        final dipT = p >= 0.84 ? p - 0.84 : p + 0.16;
+        final dip = air < 0 ? math.sin(math.pi * dipT / 0.32) : 0.0;
+        final stretch = air >= 0 && air < 0.3 ? 0.09 * (1 - air / 0.3) : 0.0;
         final wave = _wave(sec, 0.5);
         return _Stage.of(0xFFFFF3CF, {
           _P.hipX: 150,
-          _P.hipY: 100 - 20 * h,
-          _P.armNU: 2.55 + 0.15 * wave,
-          _P.armNF: 2.95,
-          _P.armFU: -2.55 - 0.15 * wave,
-          _P.armFF: -2.95,
-          _P.legNU: 0.3 + 0.25 * h,
-          _P.legNF: -0.1 - 0.5 * h,
-          _P.legFU: -0.3 - 0.25 * h,
-          _P.legFF: 0.1 + 0.5 * h,
+          _P.hipY: 100 - 22 * h + 7 * dip,
+          _P.armNU: 2.55 + 0.15 * wave - 1.3 * dip,
+          _P.armNF: 2.95 - 0.9 * dip,
+          _P.armFU: -2.55 - 0.15 * wave + 1.3 * dip,
+          _P.armFF: -2.95 + 0.9 * dip,
+          _P.legNU: 0.3 + 0.25 * h + 0.5 * dip,
+          _P.legNF: -0.1 - 0.5 * h - 0.75 * dip,
+          _P.legFU: -0.3 - 0.25 * h - 0.5 * dip,
+          _P.legFF: 0.1 + 0.5 * h + 0.75 * dip,
+          _P.squash: stretch - 0.1 * dip,
           _P.smile: 1,
           _P.faceShift: 0,
-          _P.ponyLift: math.max(0.0, 2 * p - 1),
           _P.ponySway: wave,
           _P.cloudDx: 120,
           _P.sun: 1,
           _P.sparkles: 1,
+          _P.motes: 0.6,
         });
       case StickSceneKind.calmSit:
         final b = breath ?? 0.5 + 0.5 * slow;
@@ -556,6 +583,7 @@ class _Stage {
           _P.armFF: 0.5,
           _P.aura: 1,
           _P.auraSize: b,
+          _P.motes: 0.8,
           _P.sun: 0.6,
           _P.ponySway: 0.3 * slow,
         });
@@ -636,6 +664,7 @@ class _Stage {
           _P.legFF: -0.16 * step - 0.05,
           _P.smile: -0.6,
           _P.eyesWide: 1,
+          _P.lookX: _wave(sec, 0.8) > 0 ? 0.9 : -0.9,
           _P.scribble: 1,
           _P.sweat: 1,
           _P.glow: 1,
@@ -701,6 +730,8 @@ class _Stage {
           _P.bubble: 1,
           _P.bubbleDots: 0,
           _P.friend: 1,
+          _P.lookX: 0.6,
+          _P.lookY: -1,
           _P.trail: 1,
           _P.sun: 0.8,
           _P.ponySway: 0.5 * slow,
@@ -714,6 +745,8 @@ class _Stage {
           _P.armNF: 2.5,
           _P.armFU: 0.55,
           _P.armFF: 2.35 + 0.1 * _wave(sec, 0.5),
+          _P.lookX: 0.6,
+          _P.lookY: 1,
           _P.smile: 0.6,
           _P.phone: 1,
           _P.messages: 1,
@@ -791,6 +824,7 @@ class _Stage {
           _P.armFU: 0.5,
           _P.armFF: 1.9,
           _P.book: 1,
+          _P.lookY: 1,
           _P.lampGlow: 0.45,
           _P.smile: 0.4,
           _P.moon: 0.5,
@@ -807,6 +841,8 @@ class _Stage {
           _P.armFF: 1.9,
           _P.book: 1,
           _P.writing: 1,
+          _P.lookX: 0.4,
+          _P.lookY: 1,
           _P.note: 1,
           _P.noteLines: ((sec - 0.4) / 1.0).clamp(0.0, 3.0),
           _P.lampGlow: 0.4,
@@ -881,6 +917,8 @@ class _Stage {
           _P.armFU: -0.15,
           _P.armFF: 0,
           _P.feelings: 1,
+          _P.lookX: 0.7,
+          _P.lookY: -0.8,
           _P.feelingAt: (sec / (4 / 3)).floorToDouble() % 3,
           _P.trail: 1,
           _P.smile: 0.1,
@@ -912,6 +950,7 @@ class _Stage {
           _P.smile: 0.7,
           _P.tide: 1,
           _P.sun: 0.9,
+          _P.motes: 0.6,
           _P.ponySway: _wave(sec, 2),
         });
       case StickSceneKind.stopNow:
@@ -979,6 +1018,8 @@ class _Stage {
           _P.bubble: 1,
           _P.bubbleDots: 0,
           _P.bubbleHeart: 1,
+          _P.lookX: 0.4,
+          _P.lookY: -1,
           _P.trail: 1,
           _P.question: 1,
           _P.questionBob: _wave(sec, 2),
@@ -1017,10 +1058,16 @@ class _Stage {
 }
 
 class _ScenePainter extends CustomPainter {
-  _ScenePainter(this.s, this.sec);
+  _ScenePainter(this.s, this.sec, [this.vy = 0]);
 
   final _Stage s;
   final double sec;
+
+  /// How fast she's moving down (+) or up (-), board units a second.
+  final double vy;
+
+  /// The board as far as it shows, edge to edge (wider cards show more).
+  late double _left, _right, _bottom;
 
   /// The drawing is laid out on a 240 x 180 board, then scaled to fit.
   static const _board = Size(240, 180);
@@ -1062,30 +1109,47 @@ class _ScenePainter extends CustomPainter {
       Offset.zero & size,
       const Radius.circular(22),
     );
-    canvas.drawRRect(frame, Paint()..color = s.bg);
+    // A soft sky: lighter at the top.
+    canvas.drawRRect(
+      frame,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color.lerp(s.bg, AppColors.white, 0.55)!, s.bg],
+        ).createShader(Offset.zero & size),
+    );
     final scale = math.min(
       size.width / _board.width,
       size.height / _board.height,
     );
+    final dx = (size.width - _board.width * scale) / 2;
+    final dy = (size.height - _board.height * scale) / 2;
+    _left = -dx / scale;
+    _right = (size.width - dx) / scale;
+    _bottom = (size.height - dy) / scale;
     canvas
       ..save()
       ..clipRRect(frame)
-      ..translate(
-        (size.width - _board.width * scale) / 2,
-        (size.height - _board.height * scale) / 2,
-      )
+      ..translate(dx, dy)
       ..scale(scale);
 
+    final indoor = s[_P.bed].clamp(0.0, 1.0);
     _sun(canvas);
+    _window(canvas, indoor);
     _night(canvas);
     _cloud(canvas);
+    _hills(canvas, 1 - indoor);
     _lamp(canvas);
     _tide(canvas);
+    _floor(canvas, indoor);
     _groundLine(canvas);
+    _grass(canvas, 1 - indoor);
     _bench(canvas);
     _bed(canvas);
     _rain(canvas);
     final g = _girl(canvas);
+    _motes(canvas);
     _thoughts(canvas, g.head);
     _feelings(canvas, g.head);
     _speech(canvas, g.head);
@@ -1141,6 +1205,12 @@ class _ScenePainter extends CustomPainter {
     }
     final stars = s[_P.stars];
     if (stars <= 0.01) return;
+    const window = [
+      Offset(26, 18),
+      Offset(52, 19),
+      Offset(50, 44),
+      Offset(25, 45),
+    ];
     const at = [
       Offset(78, 20),
       Offset(112, 38),
@@ -1149,10 +1219,11 @@ class _ScenePainter extends CustomPainter {
       Offset(222, 22),
       Offset(60, 52),
     ];
-    for (var i = 0; i < at.length; i++) {
+    final spots = s[_P.bed] > 0.5 ? window : at;
+    for (var i = 0; i < spots.length; i++) {
       final twinkle = 0.5 + 0.5 * math.sin(math.pi * sec / 2 + i * 2.1);
       canvas.drawCircle(
-        at[i],
+        spots[i],
         1.2 + 1.2 * twinkle,
         _fill(gold, stars * (0.5 + 0.5 * twinkle)),
       );
@@ -1243,6 +1314,122 @@ class _ScenePainter extends CustomPainter {
       0.9,
       tide * math.sin(math.pi * p),
     );
+  }
+
+  /// Indoors: a window on the wall, with the night outside.
+  void _window(Canvas canvas, double a) {
+    if (a <= 0.01) return;
+    final frame = RRect.fromRectAndRadius(
+      const Rect.fromLTRB(14, 6, 64, 56),
+      const Radius.circular(6),
+    );
+    final glass = RRect.fromRectAndRadius(
+      const Rect.fromLTRB(18, 10, 60, 52),
+      const Radius.circular(4),
+    );
+    final wood = _fill(const Color(0xFFF2EADF), a);
+    canvas
+      ..drawRRect(frame, wood)
+      ..drawRRect(
+        glass,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF26305E).withValues(alpha: a),
+              const Color(0xFF4A5A98).withValues(alpha: a),
+            ],
+          ).createShader(glass.outerRect),
+      )
+      ..drawLine(
+        const Offset(39, 10),
+        const Offset(39, 52),
+        _line(const Color(0xFFF2EADF).withValues(alpha: a), 2.4),
+      )
+      ..drawLine(
+        const Offset(18, 31),
+        const Offset(60, 31),
+        _line(const Color(0xFFF2EADF).withValues(alpha: a), 2.4),
+      );
+  }
+
+  /// Outdoors: soft hills far away (they drift by as she walks).
+  void _hills(Canvas canvas, double a) {
+    if (a <= 0.01) return;
+    final walking = s[_P.stride] > 0.01;
+    for (final (base, height, period, tone, speed) in const [
+      (126.0, 11.0, 120.0, 0.05, 30.0),
+      (138.0, 7.0, 60.0, 0.085, 60.0),
+    ]) {
+      final shift = walking ? (sec * speed) % period : 0.0;
+      double y(double x) {
+        final t = 2 * math.pi * (x + shift) / period;
+        return base -
+            height * (0.55 + 0.3 * math.sin(t) + 0.15 * math.sin(2 * t + 1));
+      }
+
+      final path = Path()..moveTo(_left, _bottom);
+      for (var x = _left; x <= _right + 4; x += 4) {
+        path.lineTo(x, y(x));
+      }
+      path
+        ..lineTo(_right, _bottom)
+        ..close();
+      canvas.drawPath(path, _fill(Color.lerp(s.bg, _ink, tone)!, a));
+    }
+  }
+
+  /// The ground she stands on, edge to edge: grass and earth outside, a
+  /// wooden floor inside.
+  void _floor(Canvas canvas, double indoor) {
+    final outside = Color.lerp(s.bg, _ink, 0.07)!;
+    final inside = Color.lerp(s.bg, const Color(0xFFB98A5E), 0.4)!;
+    canvas.drawRect(
+      Rect.fromLTRB(_left, _ground + 2, _right, _bottom),
+      _fill(Color.lerp(outside, inside, indoor)!),
+    );
+  }
+
+  /// Tufts of grass outside (passing by as she walks).
+  void _grass(Canvas canvas, double a) {
+    if (a <= 0.01) return;
+    final alpha = a * (s[_P.sun] > 0.3 ? 1 : 0.5);
+    final shift = s[_P.stride] > 0.01 ? (sec * 70) % 70 : 0.0;
+    final blade = _line(const Color(0xFF6DBF8B).withValues(alpha: alpha), 1.8);
+    for (var x = 18.0 - shift; x < _right; x += 70) {
+      if (x < _left) continue;
+      for (final (dx, lean, h) in const [
+        (-3.0, -2.0, 5.0),
+        (0.0, 0.5, 7.0),
+        (3.0, 2.5, 5.5),
+      ]) {
+        canvas.drawLine(
+          Offset(x + dx, _ground + 2),
+          Offset(x + dx + lean, _ground + 2 - h),
+          blade,
+        );
+      }
+    }
+  }
+
+  /// Specks of light drifting up through the air.
+  void _motes(Canvas canvas) {
+    final motes = s[_P.motes];
+    if (motes <= 0.01) return;
+    for (var i = 0; i < 12; i++) {
+      final rise = (sec / 4 * (1 + i % 2) + _rand(i, 8)) % 1.0;
+      final x =
+          _left +
+          _rand(i, 7) * (_right - _left) +
+          6 * math.sin(sec * math.pi / 2 + i);
+      final y = _ground - 6 - rise * 136;
+      canvas.drawCircle(
+        Offset(x, y),
+        1.1 + 1.3 * _rand(i, 9),
+        _fill(AppColors.white, 0.7 * motes * math.sin(math.pi * rise)),
+      );
+    }
   }
 
   void _groundLine(Canvas canvas) {
@@ -1377,6 +1564,7 @@ class _ScenePainter extends CustomPainter {
   static const _skin = Color(0xFFB97852);
   static const _skinShade = Color(0xFF9A5F40);
   static const _hair = Color(0xFF2A1A14);
+  static const _hairShine = Color(0xFF6A4637);
   static const _jumper = Color(0xFF5468D4);
   static const _jumperShade = Color(0xFF3F52BA);
   static const _jumperLight = Color(0xFF8496EE);
@@ -1395,12 +1583,22 @@ class _ScenePainter extends CustomPainter {
     final up = Offset(math.sin(lean), -math.cos(lean));
     final side = Offset(-up.dy, up.dx);
     Offset body(double x, double y) => hip + up * y + side * x;
-    final shoulder = hip + up * torso;
+    // She's always breathing, a little.
+    final shoulder = hip + up * (torso + 0.9 * math.sin(2 * math.pi * sec / 4));
     final headAngle = lean + s[_P.headTilt];
     final head =
         shoulder +
         Offset(math.sin(headAngle), -math.cos(headAngle)) * (headR + 4);
     final shift = s[_P.faceShift];
+    // Stretched as she springs up, squashed as she lands.
+    final squash = s[_P.squash];
+    if (squash.abs() > 0.001) {
+      canvas
+        ..save()
+        ..translate(hip.dx, _ground)
+        ..scale(1 - 0.5 * squash, 1 + squash)
+        ..translate(-hip.dx, -_ground);
+    }
     // Facing us, her arms and legs sit at the sides; side-on they line up.
     final front = 1 - shift;
     final nearShoulder = shoulder + side * (9 * front) - up * 3;
@@ -1507,11 +1705,20 @@ class _ScenePainter extends CustomPainter {
           Offset.lerp(const Offset(0, -13), const Offset(-11.5, -6), shift)! +
               Offset(-2 * sway, -4 * lift),
           headAngle * 0.6,
-        );
+        ) +
+        // Her puff of hair lags a little behind her, up or down.
+        Offset(0, (-vy * 0.02).clamp(-5.0, 5.0));
     // A bright tie where the puff meets her head (tucked behind it).
     final toHead = head - bunAt;
     canvas
       ..drawCircle(bunAt, 7, _fill(_hair))
+      ..drawArc(
+        Rect.fromCircle(center: bunAt, radius: 4.6),
+        -math.pi * 0.95,
+        math.pi * 0.42,
+        false,
+        _line(_hairShine, 1.5),
+      )
       ..drawCircle(bunAt + toHead / toHead.distance * 6, 2.6, _fill(_sock));
 
     // A feeling in her chest.
@@ -1596,7 +1803,13 @@ class _ScenePainter extends CustomPainter {
       )
       // Ribbed hem and a soft collar.
       ..drawLine(body(-14, -5), body(14, -5), _line(_jumperShade, 3.4))
-      ..drawLine(body(-5, 37.5), body(5, 37.5), _line(_jumperLight, 3.6));
+      ..drawLine(body(-5, 37.5), body(5, 37.5), _line(_jumperLight, 3.6))
+      // Light catching the front of the jumper.
+      ..drawLine(
+        body(12.2, 30),
+        body(13.6, 4),
+        _line(_jumperLight.withValues(alpha: 0.55), 1.6),
+      );
 
     // A blanket hides her arms; otherwise the near arm goes on last.
     final blanket = s[_P.blanket];
@@ -1619,7 +1832,15 @@ class _ScenePainter extends CustomPainter {
       ..save()
       ..clipPath(Path()..addOval(Rect.fromCircle(center: head, radius: headR)))
       ..drawCircle(onHead(-3 * shift, -12.5), 8, _fill(_hair))
-      ..restore();
+      ..restore()
+      // A shine on her hair.
+      ..drawArc(
+        Rect.fromCircle(center: onHead(-1.8 * shift, -1.3), radius: headR),
+        -math.pi * 0.86 + headAngle,
+        math.pi * 0.34,
+        false,
+        _line(_hairShine, 1.6),
+      );
     final mouth = _face(canvas, head, headAngle);
 
     // What she's holding, then the arm in front.
@@ -1660,6 +1881,7 @@ class _ScenePainter extends CustomPainter {
         );
       }
     }
+    if (squash.abs() > 0.001) canvas.restore();
     return (head: head, hand: nearHand, mouth: mouth);
   }
 
@@ -1755,18 +1977,37 @@ class _ScenePainter extends CustomPainter {
         );
       }
     } else {
+      // A blink now and then (twice in a row, sometimes).
+      final blink = [
+        1.15,
+        3.05,
+        3.27,
+      ].map((c) => _Stage._bell(sec, c, 0.045)).reduce(math.max);
       final wide = 1 + 0.35 * s[_P.eyesWide];
+      final lx = 0.8 * s[_P.lookX], ly = 0.7 * s[_P.lookY];
       for (final x in [x1, x2]) {
+        if (blink > 0.7) {
+          canvas.drawLine(
+            at(x - 1.6, -0.6 + ly),
+            at(x + 1.6, -0.6 + ly),
+            _line(eyeInk, 1.3),
+          );
+          continue;
+        }
         canvas
           ..drawOval(
             Rect.fromCenter(
-              center: at(x, -0.8),
+              center: at(x + lx, -0.8 + ly),
               width: 2.5 * wide,
-              height: 3.3 * wide,
+              height: 3.3 * wide * (1 - 0.85 * blink),
             ),
             _fill(eyeInk),
           )
-          ..drawCircle(at(x + 0.5, -1.6), 0.6, _fill(AppColors.white));
+          ..drawCircle(
+            at(x + 0.5 + lx, -1.6 + ly),
+            0.6,
+            _fill(AppColors.white),
+          );
       }
     }
     // Brows: soft, or drawn in hard when she's cross.
