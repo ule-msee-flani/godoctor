@@ -177,6 +177,12 @@ class _IntakeFormScreenState extends ConsumerState<IntakeFormScreen> {
                     _WhereItHurts(
                       open: _showMap,
                       picked: _areas,
+                      female:
+                          ref
+                              .watch(currentPatientProfileProvider)
+                              .valueOrNull
+                              ?.gender ==
+                          'female',
                       onOpen: () => setState(() => _showMap = !_showMap),
                       onChanged: _areasChanged,
                     ),
@@ -273,10 +279,14 @@ class _WhereItHurts extends StatelessWidget {
     required this.picked,
     required this.onOpen,
     required this.onChanged,
+    this.female = false,
   });
 
   final bool open;
   final List<String> picked;
+
+  /// Show a woman's body.
+  final bool female;
   final VoidCallback onOpen;
   final ValueChanged<List<String>> onChanged;
 
@@ -346,7 +356,11 @@ class _WhereItHurts extends StatelessWidget {
             child: open
                 ? Padding(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                    child: BodyMap(picked: picked, onChanged: onChanged),
+                    child: BodyMap(
+                      picked: picked,
+                      onChanged: onChanged,
+                      female: female,
+                    ),
                   )
                 : const SizedBox(width: double.infinity),
           ),

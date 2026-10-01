@@ -24,6 +24,7 @@ import 'package:godoctor_app/features/patient/health/health_card.dart';
 import 'package:godoctor_app/features/patient/health/readings.dart';
 import 'package:godoctor_app/features/patient/home/mood_check_in.dart';
 import 'package:godoctor_app/features/patient/intake/body_map.dart';
+import 'package:godoctor_app/features/patient/intake/body_shapes.dart';
 import 'package:godoctor_app/features/patient/screens/patient_home_screen.dart'
     show shortPlace;
 import 'package:godoctor_app/services/pharmacy_hours.dart';
@@ -386,25 +387,44 @@ void main() {
       ),
       const [],
     );
-    final box = tester.getRect(
-      find
-          .descendant(
-            of: find.byType(BodyMap),
-            matching: find.byType(GestureDetector),
-          )
-          .first,
-    );
-    // The chest sits about a quarter of the way down, in the middle.
-    await tester.tapAt(Offset(box.center.dx, box.top + box.height * 0.27));
+    final figure = find.byKey(const ValueKey('body-figure'));
+    Rect box() => tester.getRect(figure);
+    // The chest sits about a quarter of the way down, in the middle (a tap
+    // between the two sides still counts).
+    Offset chest() => Offset(box().center.dx, box().top + box().height * 0.27);
+    await tester.tapAt(chest());
     await tester.pump();
     expect(picked, ['chest']);
     await tester.tap(find.text('Skin'));
     await tester.pump();
     expect(picked, ['chest', 'skin']);
-    await tester.tapAt(Offset(box.center.dx, box.top + box.height * 0.27));
+    await tester.tapAt(chest());
     await tester.pump();
     expect(picked, ['skin']);
+
+    // Turn her round: the middle of the back is the back.
+    await tester.tap(find.text('Back').first);
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.tapAt(
+      Offset(box().center.dx - 10, box().top + box().height * 0.32),
+    );
+    await tester.pump();
+    expect(picked, ['skin', 'back']);
     expect(tester.takeException(), isNull);
+  });
+
+  test('body shapes map to the right places', () {
+    BodyShape s(String slug, [String side = 'left']) =>
+        BodyShape(slug, side, '');
+    expect(areaForShape(s('chest'), back: false), 'chest');
+    expect(areaForShape(s('biceps', 'right'), back: false), 'arm_r');
+    expect(areaForShape(s('calves'), back: true), 'leg_l');
+    expect(areaForShape(s('lower-back'), back: true), 'back');
+    expect(areaForShape(s('neck'), back: false), 'throat');
+    expect(areaForShape(s('neck'), back: true), 'back');
+    expect(areaForShape(s('hair'), back: false), 'head');
   });
 
   testWidgets('readings: latest number big, level, trend, list', (
