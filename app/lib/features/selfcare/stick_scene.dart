@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 
-/// Moments acted out by a stick girl: one for each feeling, and one for
-/// each step of the practices that go with them.
+/// Moments acted out by a girl in a big blue jumper: one for each feeling,
+/// and one for each step of the practices that go with them.
 enum StickSceneKind {
   // Sad, and "Three good things".
   sadRain,
@@ -111,7 +111,7 @@ extension StickSceneWords on StickSceneKind {
   };
 }
 
-/// An animated stick-figure scene, drawn live (no video, no image files).
+/// An animated illustrated scene, drawn live (no video, no image files).
 /// Changing [scene] doesn't cut: she moves from one pose to the next and the
 /// world changes around her.
 class StickScene extends StatefulWidget {
@@ -834,7 +834,7 @@ class _Stage {
         });
       case StickSceneKind.asleep:
         return _Stage.of(0xFFCDD0EA, {
-          _P.hipX: 100,
+          _P.hipX: 110,
           _P.hipY: 119 - 0.6 * slow,
           _P.lean: -1.5,
           _P.legNU: 1.5,
@@ -1372,45 +1372,60 @@ class _ScenePainter extends CustomPainter {
   // Her
   // -------------------------------------------------------------------------
 
+  // Her look: an oversized blue jumper, a pink skirt peeking out, bright
+  // socks and chunky boots, and a puff of hair.
+  static const _skin = Color(0xFFB97852);
+  static const _skinShade = Color(0xFF9A5F40);
+  static const _hair = Color(0xFF2A1A14);
+  static const _jumper = Color(0xFF5468D4);
+  static const _jumperShade = Color(0xFF3F52BA);
+  static const _jumperLight = Color(0xFF8496EE);
+  static const _skirt = Color(0xFFF4A2BD);
+  static const _sock = Color(0xFFFF5B2E);
+  static const _sockShade = Color(0xFFD9461E);
+  static const _boot = Color(0xFF1F1F2A);
+  static const _sole = Color(0xFF4A4A5C);
+
   /// Draws her; returns where her head, near hand and mouth are.
   ({Offset head, Offset hand, Offset mouth}) _girl(Canvas canvas) {
     const torso = 38.0, upperArm = 18.0, foreArm = 17.0;
-    const thigh = 24.0, shin = 26.0, headR = 12.0;
+    const thigh = 24.0, shin = 21.0, headR = 10.5;
     final hip = Offset(s[_P.hipX], s[_P.hipY]);
     final lean = s[_P.lean];
     final up = Offset(math.sin(lean), -math.cos(lean));
+    final side = Offset(-up.dy, up.dx);
+    Offset body(double x, double y) => hip + up * y + side * x;
     final shoulder = hip + up * torso;
     final headAngle = lean + s[_P.headTilt];
     final head =
         shoulder +
         Offset(math.sin(headAngle), -math.cos(headAngle)) * (headR + 4);
-    final near = _line(_ink, 5);
-    final far = _line(Color.lerp(s.bg, _ink, 0.55)!, 5);
+    final shift = s[_P.faceShift];
+    // Facing us, her arms and legs sit at the sides; side-on they line up.
+    final front = 1 - shift;
+    final nearShoulder = shoulder + side * (9 * front) - up * 3;
+    final farShoulder = shoulder - side * (9 * front) - up * 3;
+    final nearHip = hip + side * (5 * front);
+    final farHip = hip - side * (5 * front);
+    final tucked = s[_P.tucked] > 0.5;
 
-    Offset limb(
-      Offset from,
-      double a1,
-      double l1,
-      double a2,
-      double l2,
-      Paint p,
-    ) {
-      final mid = from + _dir(a1) * l1;
-      final end = mid + _dir(a2) * l2;
-      canvas.drawPath(
-        Path()
-          ..moveTo(from.dx, from.dy)
-          ..lineTo(mid.dx, mid.dy)
-          ..lineTo(end.dx, end.dy),
-        p,
+    // Her shadow on the ground (smaller as she jumps).
+    if (s[_P.bench] < 0.5 && s[_P.bed] < 0.5) {
+      final lift = ((100 - hip.dy) / 24).clamp(0.0, 1.0);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(hip.dx, _ground + 2),
+          width: 46 * (1 - 0.35 * lift),
+          height: 6 * (1 - 0.3 * lift),
+        ),
+        _fill(_ink, 0.1 * (1 - 0.5 * lift)),
       );
-      return end;
     }
 
     // A slow breathing ring behind her.
     final aura = s[_P.aura];
     if (aura > 0.01) {
-      final c = hip - const Offset(0, 24);
+      final c = hip - const Offset(0, 22);
       final r = 32 + 22 * s[_P.auraSize];
       canvas
         ..drawCircle(c, r, _fill(AppColors.mint, 0.14 * aura))
@@ -1424,38 +1439,80 @@ class _ScenePainter extends CustomPainter {
     // Dust when she stomps.
     final dust = s[_P.dust];
     if (dust > 0.02) {
-      final foot = Offset(hip.dx + 6, _ground);
+      final foot = Offset(hip.dx + 8, _ground);
       for (final d in [-1.0, 1.0]) {
         canvas.drawLine(
-          foot + Offset(d * 6, -1),
-          foot + Offset(d * (10 + 8 * dust), -4),
+          foot + Offset(d * 8, -1),
+          foot + Offset(d * (12 + 8 * dust), -4),
           _line(_ink.withValues(alpha: 0.35 * dust), 2),
         );
       }
     }
 
-    // Behind her: the far leg and arm.
-    limb(hip, s[_P.legFU], thigh, s[_P.legFF], shin, far);
-    final farHand = limb(
-      shoulder,
-      s[_P.armFU],
-      upperArm,
-      s[_P.armFF],
-      foreArm,
-      far,
-    );
+    void leg(Offset from, double a1, double a2, {required bool near}) {
+      final knee = from + _dir(a1) * thigh;
+      final d = _dir(a2);
+      final ankle = knee + d * shin;
+      final skin = near ? _skin : _skinShade;
+      canvas
+        ..drawLine(from, knee, _line(skin, 7.5))
+        ..drawLine(knee, ankle, _line(skin, 6.5))
+        // Bright socks.
+        ..drawLine(
+          Offset.lerp(knee, ankle, 0.35)!,
+          ankle,
+          _line(near ? _sock : _sockShade, 7.4),
+        );
+      // Chunky boots, toes forward (outwards when she faces us).
+      final toeSign = near || shift > 0.5 ? 1.0 : -1.0;
+      final toe = Offset(d.dy, -d.dx) * toeSign;
+      canvas
+        ..drawLine(ankle - d * 4, ankle + d * 1.5, _line(_boot, 10.5))
+        ..drawLine(ankle + d * 2, ankle + d * 2 + toe * 7, _line(_boot, 9))
+        ..drawLine(
+          ankle + d * 6.2 - toe * 3.5,
+          ankle + d * 6.2 + toe * 9.5,
+          _line(_sole, 2.8),
+        )
+        ..drawCircle(ankle - d * 1.6 + toe * 2.4, 0.95, _fill(AppColors.white))
+        ..drawCircle(ankle + d * 0.8 + toe * 4.4, 0.95, _fill(AppColors.white));
+    }
 
-    // Ponytail, from the back of her head.
-    final tailBase = head + _rot(const Offset(-10, -5), headAngle * 0.4);
+    Offset arm(Offset from, double a1, double a2, {required bool near}) {
+      final elbow = from + _dir(a1) * upperArm;
+      final d = _dir(a2);
+      final hand = elbow + d * foreArm;
+      final wrist = elbow + d * (foreArm - 3.5);
+      final sleeve = near ? _jumper : _jumperShade;
+      canvas
+        ..drawLine(from, elbow, _line(sleeve, 9.5))
+        ..drawLine(elbow, wrist, _line(sleeve, 8.5))
+        // A rolled cuff, then her hand.
+        ..drawLine(
+          wrist - d * 1.2,
+          wrist + d * 0.6,
+          _line(near ? _jumperLight : _jumper, 9.5),
+        )
+        ..drawCircle(hand, 3.5, _fill(near ? _skin : _skinShade));
+      return hand;
+    }
+
+    // Behind her: the far leg and arm, and her puff of hair.
+    leg(farHip, s[_P.legFU], s[_P.legFF], near: false);
+    final farHand = arm(farShoulder, s[_P.armFU], s[_P.armFF], near: false);
     final lift = s[_P.ponyLift], sway = s[_P.ponySway];
-    final tailEnd = tailBase + Offset(-11 - 3 * sway, 17 - 30 * lift);
-    final tailMid = tailBase + Offset(-15, 3 - 12 * lift);
-    canvas.drawPath(
-      Path()
-        ..moveTo(tailBase.dx, tailBase.dy)
-        ..quadraticBezierTo(tailMid.dx, tailMid.dy, tailEnd.dx, tailEnd.dy),
-      near,
-    );
+    final bunAt =
+        head +
+        _rot(
+          Offset.lerp(const Offset(0, -13), const Offset(-11.5, -6), shift)! +
+              Offset(-2 * sway, -4 * lift),
+          headAngle * 0.6,
+        );
+    // A bright tie where the puff meets her head (tucked behind it).
+    final toHead = head - bunAt;
+    canvas
+      ..drawCircle(bunAt, 7, _fill(_hair))
+      ..drawCircle(bunAt + toHead / toHead.distance * 6, 2.6, _fill(_sock));
 
     // A feeling in her chest.
     final glow = s[_P.glow];
@@ -1463,63 +1520,106 @@ class _ScenePainter extends CustomPainter {
       final hot = s[_P.glowHot];
       final beat =
           0.5 + 0.5 * math.sin(2 * math.pi * sec / (hot > 0.5 ? 0.5 : 2));
-      final c = hip + up * 26;
+      final c = body(0, 25);
       final color = Color.lerp(AppColors.lavender, _red, hot)!;
       canvas
-        ..drawCircle(c, 9 + 5 * beat, _fill(color, 0.22 * glow))
-        ..drawCircle(c, 5 + 2 * beat, _fill(color, 0.4 * glow));
+        ..drawCircle(c, 13 + 6 * beat, _fill(color, 0.2 * glow))
+        ..drawCircle(c, 8 + 3 * beat, _fill(color, 0.3 * glow));
     }
 
-    // Body.
-    canvas.drawLine(hip, shoulder, near);
-    limb(hip, s[_P.legNU], thigh, s[_P.legNF], shin, near);
+    leg(nearHip, s[_P.legNU], s[_P.legNF], near: true);
 
-    // Skirt: a flared dress standing; over her lap sitting.
+    // Skirt, peeking out under the jumper (over her lap when sitting).
     final legs = (_dir(s[_P.legNU]) + _dir(s[_P.legFU])) / 2;
-    final sitting = (legs.dx.abs() * (1 - s[_P.tucked])).clamp(0.0, 1.0);
-    final waist = hip + up * 10;
-    final p1 = Offset(-up.dy, up.dx);
-    final knee = hip + legs * 18;
+    final sitting = (legs.dx.abs() * (tucked ? 0 : 1)).clamp(0.0, 1.0);
+    final waist = hip + up * 6;
+    final knee = hip + legs * 19;
     Offset mix(Offset standing, Offset seated) =>
         Offset.lerp(standing, seated, sitting)!;
-    final front = waist + p1 * 5, back = waist - p1 * 5;
-    final hemFront = mix(hip - up * 14 + p1 * 12, knee + const Offset(0, 8));
-    final hemBack = mix(hip - up * 14 - p1 * 12, hip + const Offset(-7, 7));
+    final skirtFront = waist + side * 9, skirtBack = waist - side * 9;
+    final hemFront = mix(hip - up * 15 + side * 15, knee + const Offset(1, 7));
+    final hemBack = mix(hip - up * 15 - side * 15, hip + const Offset(-9, 7));
     final lap = mix(
-      Offset.lerp(front, hemFront, 0.5)!,
+      Offset.lerp(skirtFront, hemFront, 0.5)!,
       knee + const Offset(0, -5),
     );
-    final skirt = Path()
-      ..moveTo(front.dx, front.dy)
-      ..lineTo(lap.dx, lap.dy)
-      ..lineTo(hemFront.dx, hemFront.dy)
-      ..lineTo(hemBack.dx, hemBack.dy)
-      ..lineTo(back.dx, back.dy)
-      ..close();
-    if (s[_P.tucked] < 0.5) {
+    if (!tucked) {
+      final skirt = Path()
+        ..moveTo(skirtFront.dx, skirtFront.dy)
+        ..lineTo(lap.dx, lap.dy)
+        ..lineTo(hemFront.dx, hemFront.dy)
+        ..lineTo(hemBack.dx, hemBack.dy)
+        ..lineTo(skirtBack.dx, skirtBack.dy)
+        ..close();
       canvas
-        ..drawPath(skirt, _fill(AppColors.lavender))
-        ..drawPath(skirt, _line(AppColors.lavender, 3));
+        ..drawPath(skirt, _fill(_skirt))
+        ..drawPath(skirt, _line(_skirt, 3));
     }
+
+    // The big comfy jumper.
+    Path shape(List<Offset> pts) {
+      final path = Path();
+      for (final (i, q) in pts.indexed) {
+        final w = body(q.dx, q.dy);
+        i == 0 ? path.moveTo(w.dx, w.dy) : path.lineTo(w.dx, w.dy);
+      }
+      return path..close();
+    }
+
+    final jumper = shape(const [
+      Offset(-10, 38),
+      Offset(10, 38),
+      Offset(13.5, 31),
+      Offset(15, 8),
+      Offset(15.5, -4),
+      Offset(12, -7.5),
+      Offset(-12, -7.5),
+      Offset(-15.5, -4),
+      Offset(-15, 8),
+      Offset(-13.5, 31),
+    ]);
+    canvas
+      ..drawPath(jumper, _fill(_jumper))
+      ..drawPath(jumper, _line(_jumper, 4))
+      // Shade on the side away from the light.
+      ..drawPath(
+        shape(const [
+          Offset(-10, 38),
+          Offset(-4, 38),
+          Offset(-6.5, -7.5),
+          Offset(-12, -7.5),
+          Offset(-15.5, -4),
+          Offset(-15, 8),
+          Offset(-13.5, 31),
+        ]),
+        _fill(_jumperShade, 0.25 + 0.35 * shift),
+      )
+      // Ribbed hem and a soft collar.
+      ..drawLine(body(-14, -5), body(14, -5), _line(_jumperShade, 3.4))
+      ..drawLine(body(-5, 37.5), body(5, 37.5), _line(_jumperLight, 3.6));
 
     // A blanket hides her arms; otherwise the near arm goes on last.
     final blanket = s[_P.blanket];
-    final nearHand =
-        shoulder + _dir(s[_P.armNU]) * upperArm + _dir(s[_P.armNF]) * foreArm;
+    var nearHand =
+        nearShoulder +
+        _dir(s[_P.armNU]) * upperArm +
+        _dir(s[_P.armNF]) * foreArm;
     if (blanket > 0.5) {
-      limb(shoulder, s[_P.armNU], upperArm, s[_P.armNF], foreArm, near);
+      nearHand = arm(nearShoulder, s[_P.armNU], s[_P.armNF], near: true);
       _blanket(canvas, hip, shoulder, knee, blanket);
     }
 
-    // Head, with a small bow where the ponytail starts.
+    // Neck, head, hair.
+    final skin = Color.lerp(_skin, const Color(0xFFD5604C), 0.55 * s[_P.hot])!;
+    Offset onHead(double x, double y) => head + _rot(Offset(x, y), headAngle);
     canvas
-      ..drawCircle(
-        head,
-        headR,
-        _fill(Color.lerp(AppColors.white, const Color(0xFFFFC2BA), s[_P.hot])!),
-      )
-      ..drawCircle(head, headR, _line(_ink, 4))
-      ..drawCircle(tailBase, 3.2, _fill(const Color(0xFFE85D9A)));
+      ..drawLine(shoulder - up * 1, head, _line(_skinShade, 5.5))
+      ..drawCircle(onHead(-1.8 * shift, -1.3), headR + 1.6, _fill(_hair))
+      ..drawCircle(head, headR, _fill(skin))
+      ..save()
+      ..clipPath(Path()..addOval(Rect.fromCircle(center: head, radius: headR)))
+      ..drawCircle(onHead(-3 * shift, -12.5), 8, _fill(_hair))
+      ..restore();
     final mouth = _face(canvas, head, headAngle);
 
     // What she's holding, then the arm in front.
@@ -1528,7 +1628,7 @@ class _ScenePainter extends CustomPainter {
       if (book > 0.01) {
         _book(canvas, Offset.lerp(nearHand, farHand, 0.5)!, book);
       }
-      limb(shoulder, s[_P.armNU], upperArm, s[_P.armNF], foreArm, near);
+      nearHand = arm(nearShoulder, s[_P.armNU], s[_P.armNF], near: true);
       final phone = s[_P.phone];
       if (phone > 0.01) {
         canvas
@@ -1632,51 +1732,91 @@ class _ScenePainter extends CustomPainter {
   /// Draws her face; returns where her mouth is.
   Offset _face(Canvas canvas, Offset head, double headAngle) {
     Offset at(double x, double y) => head + _rot(Offset(x, y), headAngle);
+    const eyeInk = Color(0xFF241614);
     final shift = s[_P.faceShift];
-    final x1 = -3.5 + 4 * shift, x2 = 3.5 + 2 * shift;
+    final x1 = -3.2 + 4.4 * shift, x2 = 3.2 + 2.6 * shift;
+    // Rosy cheeks.
+    for (final x in [x1 - 1.4, x2 + 1.2]) {
+      canvas.drawOval(
+        Rect.fromCenter(center: at(x, 3.4), width: 3.8, height: 2.3),
+        _fill(const Color(0xFFF07C8C), 0.5),
+      );
+    }
     if (s[_P.eyes] < 0.5) {
-      // Closed: two little lids.
+      // Closed: soft curved lids.
       for (final x in [x1, x2]) {
-        canvas.drawLine(at(x - 1.8, -1.6), at(x + 1.8, -1.6), _line(_ink, 1.6));
+        final a = at(x - 1.9, -0.8), b = at(x + 1.9, -0.8);
+        final c = at(x, 1);
+        canvas.drawPath(
+          Path()
+            ..moveTo(a.dx, a.dy)
+            ..quadraticBezierTo(c.dx, c.dy, b.dx, b.dy),
+          _line(eyeInk, 1.4),
+        );
       }
     } else {
-      final r = 1.5 + 0.8 * s[_P.eyesWide];
-      canvas
-        ..drawCircle(at(x1, -2), r, _fill(_ink))
-        ..drawCircle(at(x2, -2), r, _fill(_ink));
+      final wide = 1 + 0.35 * s[_P.eyesWide];
+      for (final x in [x1, x2]) {
+        canvas
+          ..drawOval(
+            Rect.fromCenter(
+              center: at(x, -0.8),
+              width: 2.5 * wide,
+              height: 3.3 * wide,
+            ),
+            _fill(eyeInk),
+          )
+          ..drawCircle(at(x + 0.5, -1.6), 0.6, _fill(AppColors.white));
+      }
     }
-    final brow = s[_P.brow];
-    if (brow > 0.05) {
-      final p = _line(_ink.withValues(alpha: brow.clamp(0.0, 1.0)), 1.8);
-      canvas
-        ..drawLine(at(x1 - 2.6, -7.2), at(x1 + 2.2, -4.9), p)
-        ..drawLine(at(x2 + 2.6, -7.2), at(x2 - 2.2, -4.9), p);
+    // Brows: soft, or drawn in hard when she's cross.
+    final brow = s[_P.brow].clamp(0.0, 1.0);
+    final browPaint = _line(eyeInk.withValues(alpha: 0.75 + 0.25 * brow), 1.3);
+    canvas
+      ..drawLine(
+        at(x1 - 2, -4.6 - 1.4 * brow),
+        at(x1 + 1.8, -4.9 + 1.2 * brow),
+        browPaint,
+      )
+      ..drawLine(
+        at(x2 + 2, -4.6 - 1.4 * brow),
+        at(x2 - 1.8, -4.9 + 1.2 * brow),
+        browPaint,
+      );
+    // A little nose, side-on.
+    if (shift > 0.4) {
+      canvas.drawCircle(
+        at(x2 + 3.2, 1.6),
+        1.1,
+        _fill(_skinShade, (shift - 0.4) / 0.6),
+      );
     }
-    final mx = 3 * shift;
+    const lips = Color(0xFF6B2A2A);
+    final mx = 2.8 * shift;
     final open = s[_P.mouthOpen];
     if (open > 0.12) {
       // A yawn, or talking.
       canvas.drawOval(
         Rect.fromCenter(
-          center: at(mx, 5.5),
-          width: 3 + 2.5 * open,
-          height: 2 + 5 * open,
+          center: at(mx, 5),
+          width: 2.8 + 2.2 * open,
+          height: 1.8 + 4.2 * open,
         ),
-        _fill(_ink),
+        _fill(lips),
       );
     } else {
-      final m0 = at(mx - 3.6, 5), m1 = at(mx + 3.6, 5);
-      final mc = at(mx, 5 + 4.5 * s[_P.smile]);
+      final m0 = at(mx - 3, 4.6), m1 = at(mx + 3, 4.6);
+      final mc = at(mx, 4.6 + 3.8 * s[_P.smile]);
       canvas.drawPath(
         Path()
           ..moveTo(m0.dx, m0.dy)
           ..quadraticBezierTo(mc.dx, mc.dy, m1.dx, m1.dy),
-        _line(_ink, 1.8),
+        _line(lips, 1.5),
       );
     }
     final thermo = s[_P.thermo];
     if (thermo > 0.01) {
-      final from = at(mx + 2, 5.5), tip = at(mx + 13, 8);
+      final from = at(mx + 2, 5), tip = at(mx + 12, 7.5);
       canvas
         ..drawLine(
           from,
@@ -1686,7 +1826,7 @@ class _ScenePainter extends CustomPainter {
         ..drawLine(from, tip, _line(_ink.withValues(alpha: 0.35 * thermo), 1))
         ..drawCircle(tip, 2, _fill(_red, thermo));
     }
-    return at(mx + 5, 5);
+    return at(mx + 4, 4.6);
   }
 
   // -------------------------------------------------------------------------
