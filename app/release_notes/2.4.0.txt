@@ -1,0 +1,3 @@
+"Where does it hurt?" now shows a realistic human body, front and back
+The animations feel more alive: she blinks, breathes, looks around, and the scenes have more depth
+Fixed: your mood no longer picks itself after you tap Change
