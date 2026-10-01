@@ -139,6 +139,20 @@ class _MoodCheckInState extends ConsumerState<MoodCheckIn> {
     }
   }
 
+  /// "Change": forget today's mood for real, so it doesn't come back when
+  /// Home is scrolled away and back, or the app is reopened.
+  Future<void> _change() async {
+    setState(() {
+      _picked = null;
+      _asking = true;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_todayKey());
+    } catch (_) {}
+    if (mounted) ref.invalidate(todaysMoodProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     final saved = ref.watch(todaysMoodProvider).valueOrNull;
@@ -152,10 +166,7 @@ class _MoodCheckInState extends ConsumerState<MoodCheckIn> {
               mood: mood,
               unwellOptions: _unwellOptions,
               onUnwell: widget.onUnwell,
-              onChange: () => setState(() {
-                _picked = null;
-                _asking = true;
-              }),
+              onChange: _change,
             ),
     );
   }

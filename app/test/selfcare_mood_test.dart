@@ -267,4 +267,48 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('"Change" forgets the mood: it stays unpicked after Home '
+      'rebuilds the card (scrolling away and back, reopening the app)', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(412, 915);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    Future<void> showCard() async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            theme: AppTheme.patientTheme,
+            home: Scaffold(body: MoodCheckIn(onUnwell: (_, _) {})),
+          ),
+        ),
+      );
+      await _pump(tester);
+    }
+
+    await showCard();
+    await tester.drag(find.byType(ListView).first, const Offset(-300, 0));
+    await _pump(tester);
+    await tester.tap(find.bySemanticsLabel('Under the weather'));
+    await _pump(tester);
+    expect(find.text('Sorry you\'re under the weather.'), findsOneWidget);
+
+    // A real pick is remembered for the day.
+    await tester.pumpWidget(const SizedBox());
+    await showCard();
+    expect(find.text('Sorry you\'re under the weather.'), findsOneWidget);
+
+    // "Change", then the card is built afresh: still nothing picked.
+    await tester.tap(find.text('Change'));
+    await _pump(tester);
+    expect(find.text('How do you feel today?'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await showCard();
+    expect(find.text('How do you feel today?'), findsOneWidget);
+    expect(find.text('Sorry you\'re under the weather.'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
 }
