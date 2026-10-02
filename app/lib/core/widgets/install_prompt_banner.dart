@@ -4,12 +4,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/app_colors.dart';
 import '../../services/pwa_install_service.dart';
+import 'home_screen_guide.dart';
 
 const _dismissedKey = 'install_prompt_dismissed';
 
 /// Shown after the patient's first successful action (per spec), not on
-/// landing. Gives iOS users the manual walkthrough (no native install
-/// prompt exists there) and a lighter nudge elsewhere.
+/// landing, in a browser only: on an iPhone or iPad it opens the Add to
+/// Home Screen steps; on an Android phone, where to get the app.
 class InstallPromptBanner extends StatefulWidget {
   const InstallPromptBanner({super.key});
 
@@ -53,11 +54,8 @@ class _InstallPromptBannerState extends State<InstallPromptBanner> {
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: service.isIOS
-              ? () => showDialog(
-                  context: context,
-                  builder: (_) => const _IosInstallDialog(),
-                )
+          onTap: service.isIOS || service.isAndroid
+              ? HomeScreenGuide.open
               : null,
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -81,13 +79,21 @@ class _InstallPromptBannerState extends State<InstallPromptBanner> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Install GoDoctor',
+                        service.isAndroid
+                            ? 'Get GoDoctor for Android'
+                            : service.isIOS
+                            ? 'Add GoDoctor to your Home Screen'
+                            : 'Install GoDoctor',
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       Text(
-                        service.isIOS
-                            ? 'Add it to your home screen for faster access and notifications.'
-                            : 'Look for the install icon in your browser\'s address bar, or use its menu.',
+                        service.isAndroid
+                            ? 'The app for your phone. Tap to get it.'
+                            : service.isIOS
+                            ? 'It opens full screen, like any other app. Tap '
+                                  'to see how.'
+                            : 'Look for the install icon in your browser\'s '
+                                  'address bar, or use its menu.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -101,66 +107,6 @@ class _InstallPromptBannerState extends State<InstallPromptBanner> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _IosInstallDialog extends StatelessWidget {
-  const _IosInstallDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add to Home Screen'),
-      content: const Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _Step(number: 1, text: 'Tap the Share icon in Safari\'s toolbar.'),
-          _Step(number: 2, text: 'Scroll down and tap "Add to Home Screen".'),
-          _Step(number: 3, text: 'Tap "Add" in the top-right corner.'),
-          SizedBox(height: 8),
-          Text(
-            'Notifications only work once GoDoctor is installed this way.',
-            style: TextStyle(fontSize: 12, color: AppColors.inkFaint),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Got it'),
-        ),
-      ],
-    );
-  }
-}
-
-class _Step extends StatelessWidget {
-  const _Step({required this.number, required this.text});
-
-  final int number;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 11,
-            backgroundColor: AppColors.primary,
-            child: Text(
-              '$number',
-              style: const TextStyle(fontSize: 12, color: Colors.white),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text)),
-        ],
       ),
     );
   }

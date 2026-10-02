@@ -247,7 +247,9 @@ class _AppVersionTileState extends ConsumerState<AppVersionTile> {
     if (!inAppUpdatesSupported) {
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('The web app always has the latest version.'),
+          content: Text(
+            'GoDoctor updates itself. You\'re on the latest version.',
+          ),
         ),
       );
       return;
@@ -284,6 +286,10 @@ class _AppVersionTileState extends ConsumerState<AppVersionTile> {
           ? 'Checking…'
           : update != null
           ? 'Version ${update.version} is ready to install'
+          : !inAppUpdatesSupported
+          ? (installed == null
+                ? 'Updates automatically'
+                : 'Version ${installed.version} · Updates automatically')
           : installed == null
           ? 'Check for updates'
           : 'Version ${installed.version} · Check for updates',

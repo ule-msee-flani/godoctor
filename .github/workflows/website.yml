@@ -1,0 +1,155 @@
+# Publishes https://ule-msee-flani.github.io/godoctor/ on GitHub Pages:
+#   /       the download page (website/): Android app and iOS
+#   /app/   GoDoctor itself, for iPhone and iPad (added to the Home Screen),
+#           built from the latest release so it matches the Android app.
+#
+# Runs:
+#   - after each release (release-apk.yml starts it), for the new version;
+#   - when the download page changes on main;
+#   - by hand: GitHub > Actions > "Publish website" > Run workflow.
+# When only app code changes on main, it just checks that the web build
+# still compiles (nothing is published).
+#
+# Pages must be set to "GitHub Actions" (Settings > Pages > Build and
+# deployment > Source). Until then this builds but doesn't publish.
+#
+# Repository secrets used:
+#   APP_ENV   contents of app/.env (Supabase URL + anon key)
+name: Publish website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - 'app/**'
+      - '.github/workflows/website.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      publish: ${{ steps.what.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # tags, to find the latest release
+
+      - name: Work out what to build
+        id: what
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          LATEST=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          SITE_CHANGED=false
+          if [ "$EVENT" = "push" ]; then
+            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+               || git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -q '^website/'; then
+              SITE_CHANGED=true
+            fi
+          fi
+          if [ "$EVENT" = "workflow_dispatch" ] || [ "$SITE_CHANGED" = "true" ]; then
+            # Publish: the latest release's app with today's download page.
+            REF="$LATEST"; VERSION="${LATEST#v}"; PUBLISH=true
+          else
+            # App code changed: just check the web build still compiles.
+            REF="$GITHUB_SHA"; VERSION=""; PUBLISH=false
+          fi
+          test -n "$REF" || { echo "::error::No release tag found"; exit 1; }
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+          echo "Building the app from $REF (publish: $PUBLISH)"
+
+      - name: Check out the app to build
+        run: git worktree add --detach "$RUNNER_TEMP/rel" "${{ steps.what.outputs.ref }}"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+          cache: true
+
+      - name: App configuration (.env)
+        working-directory: ${{ runner.temp }}/rel/app
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          test -n "$APP_ENV" || { echo "::error::APP_ENV secret is missing"; exit 1; }
+          printf '%s\n' "$APP_ENV" > .env
+
+      - name: Build the web app
+        working-directory: ${{ runner.temp }}/rel/app
+        env:
+          VERSION: ${{ steps.what.outputs.version }}
+        run: |
+          flutter pub get
+          ARGS="--release --base-href /godoctor/app/"
+          if [ -n "$VERSION" ]; then ARGS="$ARGS --build-name=$VERSION"; fi
+          set +e
+          flutter build web $ARGS 2>&1 | tee build.log
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            # Show the compile errors on the run's summary page.
+            grep -E 'Error:|error:|Error ' build.log | head -25 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit "$STATUS"
+          fi
+          rm -f .env
+
+      - name: Put the site together
+        if: steps.what.outputs.publish == 'true'
+        run: |
+          mkdir -p site
+          cp -r website/. site/
+          cp -r "$RUNNER_TEMP/rel/app/build/web" site/app
+          touch site/.nojekyll
+          ls -la site site/app
+
+      - name: Is Pages set to GitHub Actions?
+        id: pages
+        if: steps.what.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TYPE=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages" | jq -r '.build_type // empty' || true)
+          echo "Pages build type: ${TYPE:-unknown}"
+          if [ "$TYPE" = "workflow" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Built, but not published: set Settings > Pages > Source to 'GitHub Actions', then run this workflow again."
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.what.outputs.publish == 'true' && steps.pages.outputs.ready == 'true'
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -13,6 +13,7 @@ import 'services/app_update.dart';
 import 'services/live_updates.dart';
 import 'services/push_service.dart';
 import 'features/call/call_overlay.dart';
+import 'core/widgets/home_screen_guide.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,9 +62,12 @@ class GoDoctorApp extends ConsumerWidget {
       // The launch video plays over the app while it starts up; a call in
       // progress floats over every screen.
       builder: (context, child) => SplashGate(
-        child: CallOverlay(
-          router: router,
-          child: child ?? const SizedBox.shrink(),
+        // In a phone's browser: how to get GoDoctor as an app.
+        child: HomeScreenGuide(
+          child: CallOverlay(
+            router: router,
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
       ),
     );

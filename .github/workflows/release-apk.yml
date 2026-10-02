@@ -1,6 +1,7 @@
 # Builds the signed Android APK on GitHub's machines and publishes it as a
-# GitHub Release. The download page (docs/, GitHub Pages) always offers the
-# latest release's .apk, so publishing here is all a new version needs.
+# GitHub Release. The download page (website/, GitHub Pages) always offers
+# the latest release's .apk; afterwards this starts website.yml, which
+# publishes the same version for iOS (the app on the web, at /app/).
 #
 # Each release also carries version.json, which the installed app reads
 # (releases/latest/download/version.json) to offer the update in-app. Its
@@ -28,6 +29,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # to start website.yml after the release
 
 concurrency:
   group: release-apk
@@ -147,6 +149,11 @@ jobs:
             app/version.json
           generate_release_notes: true
           make_latest: true
+
+      - name: Publish this version for iOS too (website.yml)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run website.yml --ref main -R "${{ github.repository }}"
 
       - name: Remove the signing key from the runner
         if: always()

@@ -1,28 +1,40 @@
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
+
 import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 
-/// Detects install-to-home-screen state so the UI can nudge patients at the
-/// right moment (per spec: "prompt users to install after their first
-/// successful action, not on landing").
-///
-/// Deliberately does NOT try to capture and replay the `beforeinstallprompt`
-/// event to trigger Android/desktop Chrome's native install UI programmatically
-/// -- that event only fires under specific engagement heuristics that can't be
-/// exercised/verified outside a real deployed HTTPS origin, so replaying it
-/// wrong would be silent dead code. Chrome/Edge/desktop already surface their
-/// own install affordance (address-bar icon) once the manifest + service
-/// worker are valid, which `flutter create --platforms=web` already set up;
-/// this service just tells the UI when to *remind* the user to look for it,
-/// and gives iOS Safari (which has no such icon) explicit steps instead.
+import 'home_screen_browser.dart';
+
+export 'home_screen_browser.dart';
+
+/// What the browser tells us about this visit: is GoDoctor already opened
+/// from the Home Screen, and on which kind of phone and browser.
 class PwaInstallService {
   PwaInstallService._();
 
   static final PwaInstallService instance = PwaInstallService._();
 
+  String get _ua {
+    try {
+      return web.window.navigator.userAgent;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// Opened from the Home Screen (full screen, no browser around it).
   bool get isRunningStandalone {
     if (!kIsWeb) return false;
     try {
-      return web.window.matchMedia('(display-mode: standalone)').matches;
+      if (web.window.matchMedia('(display-mode: standalone)').matches) {
+        return true;
+      }
+      // iPhone and iPad say so on navigator.standalone.
+      final standalone = (web.window.navigator as JSObject).getProperty(
+        'standalone'.toJS,
+      );
+      return standalone.dartify() == true;
     } catch (_) {
       return false;
     }
@@ -31,11 +43,36 @@ class PwaInstallService {
   bool get isIOS {
     if (!kIsWeb) return false;
     try {
-      final ua = web.window.navigator.userAgent;
-      return RegExp(r'iPhone|iPad|iPod', caseSensitive: false).hasMatch(ua);
+      return isAppleMobile(
+        _ua,
+        maxTouchPoints: web.window.navigator.maxTouchPoints,
+      );
     } catch (_) {
       return false;
     }
+  }
+
+  bool get isAndroid => kIsWeb && isAndroidDevice(_ua);
+
+  HomeScreenBrowser get browser => homeScreenBrowserFor(_ua);
+
+  /// iPads keep Safari's buttons at the top of the screen.
+  bool get isIPad => isIOS && !RegExp(r'iPhone|iPod').hasMatch(_ua);
+
+  /// This page's address (to copy into Safari).
+  String get currentUrl {
+    try {
+      return web.window.location.href;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// Opens [url] in this tab (the download page, for Android phones).
+  void open(String url) {
+    try {
+      web.window.location.href = url;
+    } catch (_) {}
   }
 
   /// Whether the install nudge is worth showing at all right now.
