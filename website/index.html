@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GoDoctor — Download</title>
+<meta name="description" content="Get GoDoctor for Android or iOS: talk to a doctor and get medicine delivered, on demand, across Kenya.">
+<meta name="theme-color" content="#1B63F2">
+
+<meta property="og:title" content="GoDoctor — Download">
+<meta property="og:description" content="Talk to a doctor and get medicine delivered, on demand, across Kenya.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="icon-512.png">
+
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --primary:#1B63F2;
+    --primary-dark:#0D3E8F;
+    --primary-soft:#E8F0FE;
+    --primary-softer:#F5F8FF;
+    --ink:#0B1730;
+    --ink-soft:#57617A;
+    --ink-faint:#9AA8C3;
+    --border:#E3E9F5;
+    --surface:#FFFFFF;
+    --bg:var(--primary-softer);
+    --radius:18px;
+    --shadow:0 1px 2px rgba(11,23,48,.04), 0 12px 32px rgba(11,23,48,.08);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#F2F6FF; --ink-soft:#A8B4CE; --ink-faint:#6C7896;
+      --border:#1E2B47; --surface:#111C33; --bg:#0A1222;
+      --primary-soft:#14294F; --primary-softer:#0F1E38;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.4);
+    }
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:""; position:fixed; inset:0 0 auto 0; height:420px; z-index:-1;
+    background:radial-gradient(90% 100% at 50% 0%, var(--primary-soft) 0%, transparent 70%);
+  }
+
+  .wrap{max-width:560px; margin:0 auto; padding:48px 20px 64px}
+  @media (max-width:480px){ .wrap{padding:32px 16px 48px} }
+
+  header{text-align:center; margin-bottom:28px}
+  .logo{width:88px; height:88px; border-radius:22px; display:block; margin:0 auto 18px; box-shadow:var(--shadow)}
+  h1{font-size:2rem; font-weight:700; letter-spacing:-.02em; margin:0 0 8px}
+  .tagline{color:var(--ink-soft); font-size:1.0625rem; margin:0 auto; max-width:38ch}
+
+  /* The two cards; the one for this phone goes first. */
+  main{display:flex; flex-direction:column}
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:24px; margin-bottom:16px;
+  }
+  .card.first{order:-1; border-color:rgba(27,99,242,.35)}
+
+  .platform{display:flex; align-items:center; gap:12px; margin:0 0 18px}
+  .platform .glyph{
+    width:44px; height:44px; border-radius:13px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--primary-soft); color:var(--primary);
+  }
+  @media (prefers-color-scheme: dark){ .platform .glyph{color:#7FA8FF} }
+  .platform h2{font-size:1.1875rem; font-weight:700; margin:0; letter-spacing:-.01em}
+  .platform p{margin:0; font-size:.875rem; color:var(--ink-soft)}
+  .badge{
+    margin-left:auto; flex:none; font-size:.75rem; font-weight:600;
+    padding:4px 10px; border-radius:20px; background:var(--primary); color:#fff;
+  }
+  .badge[hidden]{display:none}
+
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; padding:17px 24px; border:0; border-radius:14px;
+    background:var(--primary); color:#fff;
+    font:600 1.0625rem/1 Inter,sans-serif; text-decoration:none; cursor:pointer;
+    transition:background .15s ease, transform .1s ease, box-shadow .15s ease;
+    box-shadow:0 4px 14px rgba(27,99,242,.3);
+  }
+  .btn:hover{background:var(--primary-dark); box-shadow:0 6px 20px rgba(27,99,242,.38)}
+  .btn:active{transform:translateY(1px)}
+  .btn:focus-visible{outline:3px solid var(--primary); outline-offset:3px}
+  .btn.quiet{background:var(--primary-soft); color:var(--primary); box-shadow:none}
+  .btn.quiet:hover{background:var(--border)}
+  @media (prefers-color-scheme: dark){ .btn.quiet{color:#BFD3FF} }
+  .btn[aria-disabled="true"]{background:var(--primary-soft); color:var(--ink-faint); box-shadow:none; cursor:default; pointer-events:none}
+  .btn svg{flex:none}
+
+  .meta{display:flex; justify-content:center; flex-wrap:wrap; gap:6px 14px; margin-top:14px; font-size:.875rem; color:var(--ink-soft)}
+  .meta:empty{display:none}
+  .meta span{display:inline-flex; align-items:center; gap:5px; white-space:nowrap}
+  .dot{width:4px; height:4px; border-radius:50%; background:var(--ink-faint); flex:none}
+
+  .note{margin:14px 0 0; padding:12px 14px; border-radius:11px; background:var(--primary-softer); border:1px solid var(--border); font-size:.875rem; color:var(--ink-soft)}
+  .note strong{color:var(--ink); font-weight:600}
+
+  details{margin-top:16px; border-top:1px solid var(--border); padding-top:14px}
+  summary{
+    cursor:pointer; list-style:none; font-weight:600; font-size:.9375rem; color:var(--ink);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+"; font-size:1.25rem; line-height:1; color:var(--ink-faint)}
+  details[open] summary::after{content:"–"}
+  details h3{font-size:.8125rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); margin:18px 0 12px}
+
+  ol{margin:14px 0 0; padding:0; list-style:none; counter-reset:step}
+  ol li{counter-increment:step; position:relative; padding:0 0 16px 40px; font-size:.9375rem; color:var(--ink-soft)}
+  ol li:last-child{padding-bottom:0}
+  ol li::before{
+    content:counter(step); position:absolute; left:0; top:-1px;
+    width:26px; height:26px; border-radius:50%;
+    background:var(--primary-soft); color:var(--primary);
+    font-size:.8125rem; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+  }
+  @media (prefers-color-scheme: dark){ ol li::before{color:#7FA8FF} }
+  ol li b{color:var(--ink); font-weight:600}
+  .key{
+    display:inline-flex; align-items:center; justify-content:center; vertical-align:-3px;
+    min-width:22px; height:22px; padding:0 5px; border-radius:6px;
+    border:1px solid var(--border); background:var(--primary-softer); color:var(--primary);
+    font-size:.75rem; font-weight:700;
+  }
+
+  footer{text-align:center; margin-top:28px; font-size:.875rem; color:var(--ink-faint)}
+  footer a{color:var(--primary); text-decoration:none; font-weight:500}
+  @media (prefers-color-scheme: dark){ footer a{color:#7FA8FF} }
+  footer a:hover{text-decoration:underline}
+  .sep{margin:0 8px; opacity:.5}
+
+  .spin{animation:spin 1s linear infinite; transform-origin:center}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img src="icon.png" srcset="icon.png 192w, icon-512.png 512w" sizes="88px"
+         alt="GoDoctor app icon" class="logo" width="88" height="88">
+    <h1>GoDoctor</h1>
+    <p class="tagline">Talk to a doctor and get medicine delivered — on demand, across Kenya.</p>
+  </header>
+
+  <main>
+    <!-- Android -->
+    <section class="card" id="android" aria-labelledby="android-title">
+      <div class="platform">
+        <div class="glyph" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22a11.4 11.4 0 0 0-9.84 0L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/>
+          </svg>
+        </div>
+        <div>
+          <h2 id="android-title">GoDoctor for Android</h2>
+          <p>Phones and tablets</p>
+        </div>
+        <span class="badge" id="android-badge" hidden>Your phone</span>
+      </div>
+
+      <a id="dl" class="btn" aria-disabled="true" href="#" aria-describedby="meta">
+        <svg id="dl-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+             class="spin" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-6.22-8.56"/>
+        </svg>
+        <span id="dl-text">Checking for the latest version…</span>
+      </a>
+      <div class="meta" id="meta" role="status" aria-live="polite"></div>
+      <p class="note" id="note" hidden></p>
+
+      <details>
+        <summary>How to install on Android</summary>
+        <ol>
+          <li>Tap <b>Download for Android</b>. Chrome may warn that this type of file can harm your device — it says that for every app installed outside the Play Store. Choose <b>Download anyway</b>.</li>
+          <li>Open the downloaded <b>.apk</b> file from your notifications or the <b>Downloads</b> folder.</li>
+          <li>If Android asks, tap <b>Settings</b>, turn on <b>Allow from this source</b>, then go back.</li>
+          <li>Tap <b>Install</b>, then <b>Open</b>, and sign in to get started.</li>
+        </ol>
+      </details>
+    </section>
+
+    <!-- iOS -->
+    <section class="card" id="ios" aria-labelledby="ios-title">
+      <div class="platform">
+        <div class="glyph" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/>
+          </svg>
+        </div>
+        <div>
+          <h2 id="ios-title">GoDoctor for iOS</h2>
+          <p>iPhone and iPad</p>
+        </div>
+        <span class="badge" id="ios-badge" hidden>Your iPhone</span>
+      </div>
+
+      <a id="open-ios" class="btn" href="app/">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7 17 17 7"/><path d="M8 7h9v9"/>
+        </svg>
+        <span>Get GoDoctor for iOS</span>
+      </a>
+      <p class="note">No App Store needed. Open GoDoctor, then add it to your <strong>Home Screen</strong> — it opens full screen with its own icon, just like any other app.</p>
+
+      <details id="ios-steps">
+        <summary>How to add it to your Home Screen</summary>
+        <h3>In Safari</h3>
+        <ol>
+          <li>Tap <b>Get GoDoctor for iOS</b> above.</li>
+          <li>Tap <span class="key">•••</span> at the bottom of the screen, then <b>Share</b>. On older iPhones, tap the <b>Share</b> button <span class="key">↑</span> straight away.</li>
+          <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+          <li>Keep <b>Open as Web App</b> on if you see it, then tap <b>Add</b>. GoDoctor is now on your Home Screen.</li>
+        </ol>
+        <h3>In Chrome</h3>
+        <ol>
+          <li>Tap the <b>Share</b> button <span class="key">↑</span> in the address bar, at the top right.</li>
+          <li>Tap <b>Add to Home Screen</b> (scroll down, or tap <b>More</b>, if you don't see it), then <b>Add</b>.</li>
+        </ol>
+        <p class="note">Opened this page from WhatsApp, Instagram or another app? Open it in <strong>Safari</strong> first: tap <span class="key">•••</span> and choose <b>Open in Safari</b>.</p>
+      </details>
+    </section>
+  </main>
+
+  <footer>
+    <a href="https://github.com/ule-msee-flani/godoctor/releases">All versions</a>
+    <span class="sep">·</span>
+    <a href="https://github.com/ule-msee-flani/godoctor/issues">Report a problem</a>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var REPO = 'ule-msee-flani/godoctor';
+
+  // Show this phone's option first.
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPhone|iPad|iPod/.test(ua) ||
+              (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/.test(ua);
+  var androidCard = document.getElementById('android');
+  var iosCard = document.getElementById('ios');
+  if (isIOS) {
+    iosCard.classList.add('first');
+    document.getElementById('ios-badge').hidden = false;
+    document.getElementById('dl').classList.add('quiet');
+    document.getElementById('ios-steps').open = true;
+  } else if (isAndroid) {
+    androidCard.classList.add('first');
+    document.getElementById('android-badge').hidden = false;
+    document.getElementById('open-ios').classList.add('quiet');
+  }
+
+  // The latest Android release.
+  var btn   = document.getElementById('dl');
+  var icon  = document.getElementById('dl-icon');
+  var label = document.getElementById('dl-text');
+  var meta  = document.getElementById('meta');
+  var note  = document.getElementById('note');
+
+  var ICONS = {
+    down: '<path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+    ext:  '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/>'
+  };
+
+  function setIcon(kind) { icon.classList.remove('spin'); icon.innerHTML = ICONS[kind]; }
+
+  function bytes(n) {
+    if (!n && n !== 0) return null;
+    return n >= 1073741824 ? (n / 1073741824).toFixed(1) + ' GB' : Math.round(n / 1048576) + ' MB';
+  }
+
+  function when(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return null;
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function chips(parts) {
+    meta.innerHTML = parts.filter(Boolean)
+      .map(function (p) { return '<span>' + p + '</span>'; })
+      .join('<span class="dot" aria-hidden="true"></span>');
+  }
+
+  function fallback(message) {
+    setIcon('ext');
+    label.textContent = 'See all versions';
+    btn.href = 'https://github.com/' + REPO + '/releases';
+    btn.removeAttribute('aria-disabled');
+    chips([]);
+    note.hidden = false;
+    note.innerHTML = message;
+  }
+
+  fetch('https://api.github.com/repos/' + REPO + '/releases/latest', {
+    headers: { Accept: 'application/vnd.github+json' }
+  })
+    .then(function (r) {
+      if (r.status === 404) return null;
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function (rel) {
+      if (!rel) { fallback('<strong>Coming soon.</strong> The Android app will appear here shortly.'); return; }
+      var apks = (rel.assets || []).filter(function (a) { return /\.apk$/i.test(a.name); });
+      // Most phones are 64-bit; the "-32bit" file is for older ones.
+      var apk = apks.filter(function (a) { return !/32bit/i.test(a.name); })[0] || apks[0];
+      if (!apk) { fallback('<strong>Coming soon.</strong> The Android app will appear here shortly.'); return; }
+
+      setIcon('down');
+      label.textContent = 'Download for Android';
+      btn.href = apk.browser_download_url;
+      btn.setAttribute('download', '');
+      btn.removeAttribute('aria-disabled');
+      chips([rel.tag_name, bytes(apk.size), when(rel.published_at)]);
+      note.hidden = false;
+      note.innerHTML = 'Android 8.0 or newer. Installs directly — not via the Play Store.';
+    })
+    .catch(function () {
+      fallback('<strong>Couldn\'t check for the latest version just now.</strong> Check your connection, or see all versions.');
+    });
+})();
+</script>
+</body>
+</html>
