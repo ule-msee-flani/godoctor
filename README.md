@@ -6,9 +6,11 @@ product/technical spec this build follows.
 
 ### **[⬇ Download the app](https://ule-msee-flani.github.io/godoctor/)**
 
-The download page always serves the latest published release, with install
-steps for Android. Its source is in [`docs/`](docs/) and it's published with
-GitHub Pages from `main` — no build step, no action needed per release.
+The download page offers GoDoctor for Android (the latest release's APK) and
+GoDoctor for iOS (the app itself at `/app/`, added to the Home Screen). Its
+source is in [`website/`](website/); `.github/workflows/website.yml` builds the
+app for the web from the latest release and publishes both with GitHub Pages
+after every release — no action needed.
 
 ## Repo layout
 
