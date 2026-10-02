@@ -41,8 +41,9 @@ jobs:
     timeout-minutes: 30
     outputs:
       publish: ${{ steps.what.outputs.publish }}
+      ready: ${{ steps.pages.outputs.ready }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0   # tags, to find the latest release
 
@@ -144,7 +145,7 @@ jobs:
 
   deploy:
     needs: build
-    if: needs.build.outputs.publish == 'true'
+    if: needs.build.outputs.publish == 'true' && needs.build.outputs.ready == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
