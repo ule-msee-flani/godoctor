@@ -2,10 +2,14 @@
 #   /       the download page (website/): Android app and iOS
 #   /app/   GoDoctor itself, for iPhone and iPad (added to the Home Screen),
 #           built from the latest release so it matches the Android app.
+#   /hq/    GoDoctor HQ, the company console for staff (erp/), built from
+#           main. Unlisted: nothing links to it and it asks search engines
+#           not to index it. Staff sign in, and the database checks every
+#           permission, so the address alone gives nobody anything.
 #
 # Runs:
 #   - after each release (release-apk.yml starts it), for the new version;
-#   - when the download page changes on main;
+#   - when the download page or HQ changes on main;
 #   - by hand: GitHub > Actions > "Publish website" > Run workflow.
 # When only app code changes on main, it just checks that the web build
 # still compiles (nothing is published).
@@ -22,6 +26,7 @@ on:
     branches: [main]
     paths:
       - 'website/**'
+      - 'erp/**'
       - 'app/**'
       - '.github/workflows/website.yml'
   workflow_dispatch:
@@ -57,12 +62,12 @@ jobs:
           SITE_CHANGED=false
           if [ "$EVENT" = "push" ]; then
             if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
-               || git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -q '^website/'; then
+               || git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -qE '^(website|erp)/'; then
               SITE_CHANGED=true
             fi
           fi
           if [ "$EVENT" = "workflow_dispatch" ] || [ "$SITE_CHANGED" = "true" ]; then
-            # Publish: the latest release's app with today's download page.
+            # Publish: the latest release's app with today's download page and HQ.
             REF="$LATEST"; VERSION="${LATEST#v}"; PUBLISH=true
           else
             # App code changed: just check the web build still compiles.
@@ -76,6 +81,28 @@ jobs:
 
       - name: Check out the app to build
         run: git worktree add --detach "$RUNNER_TEMP/rel" "${{ steps.what.outputs.ref }}"
+
+      - uses: actions/setup-node@v5
+        if: steps.what.outputs.publish == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: erp/package-lock.json
+
+      - name: Build GoDoctor HQ
+        if: steps.what.outputs.publish == 'true'
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          # The same Supabase address and public key as the app:
+          # erp/vite.config.ts reads them from app/.env.
+          trap 'rm -f "$GITHUB_WORKSPACE/app/.env"' EXIT
+          printf '%s\n' "$APP_ENV" > app/.env
+          grep -qE '^\s*SUPABASE_URL\s*=\s*\S' app/.env && grep -qE '^\s*SUPABASE_ANON_KEY\s*=\s*\S' app/.env \
+            || { echo "::error::APP_ENV needs SUPABASE_URL and SUPABASE_ANON_KEY"; exit 1; }
+          cd erp
+          npm ci --no-audit --no-fund
+          npm run build
 
       - uses: subosito/flutter-action@v2
         with:
@@ -118,8 +145,9 @@ jobs:
           mkdir -p site
           cp -r website/. site/
           cp -r "$RUNNER_TEMP/rel/app/build/web" site/app
+          cp -r erp/dist site/hq
           touch site/.nojekyll
-          ls -la site site/app
+          ls -la site site/app site/hq
 
       - name: Is Pages set to GitHub Actions?
         id: pages

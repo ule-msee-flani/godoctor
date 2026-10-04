@@ -16,8 +16,32 @@ after every release — no action needed.
 
 ```
 app/                  Flutter web app (PWA) -- patient, doctor, chemist, admin UI
+erp/                  GoDoctor HQ -- the company console for staff (React + Vite)
 supabase/migrations/  Numbered SQL migrations: schema, RLS, matching logic, storage
+supabase/functions/   Edge functions: push, inventory-sync, erp-staff (HQ accounts)
 supabase/seed/        Starter KEML drug catalog (~100 rows)
+```
+
+### GoDoctor HQ (`erp/`)
+
+The back office: patients, doctors and pharmacies (verification, licences),
+consultations, orders, payments and payout statements, support tickets,
+reviews, announcements, staff with roles and permissions, and an activity log
+that can't be edited. It talks to the same Supabase project as the app; every
+page reads `erp_*` views and functions that check the signed-in staff
+member's role (`erp_can`), and opening someone's health information needs a
+reason and is logged.
+
+It's published unlisted at `/godoctor/hq/` by `website.yml` whenever `erp/`
+changes. Users whose role is `admin` are always HQ administrators; they add
+everyone else under Staff (the `erp-staff` function creates the account and
+shows a temporary password once). To work on it locally:
+
+```
+cd erp
+npm install
+npm run dev        # reads the Supabase URL + anon key from ../app/.env
+npm run build      # type-check and build into erp/dist
 ```
 
 ## One-time setup
