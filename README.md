@@ -177,6 +177,43 @@ npx supabase db query --linked -f file.sql   # run a one-off SQL/data file
 files that aren't schema, like the medicine information, live in
 `supabase/seed/` and are loaded with `db query -f`.
 
+### Backups and keeping Supabase awake
+
+On Supabase's free plan a project pauses after a week without activity, and
+there are no backups. Two scheduled workflows cover that:
+
+- **Keep Supabase awake** (`keep-awake.yml`, daily) reads one row so the
+  project never counts as inactive. A failed run (GitHub emails you) usually
+  means it paused anyway: Supabase dashboard > Restore. It also adds an empty
+  commit when main has had none for 45 days, because GitHub switches off
+  scheduled jobs after 60 days without commits.
+- **Back up data** (`backup.yml`, Sundays 02:23 Kenya time) dumps the whole
+  database with the read-only role `godoctor_backup`, downloads every stored
+  file through the `backup-files` function, and locks it all with
+  [age](https://github.com/FiloSottile/age) before keeping it as a run
+  artifact for 90 days (Actions > Back up data > a run > Artifacts).
+
+Only `secrets/godoctor-backup-key.txt` (git-ignored) can open a backup; keep
+copies of it off this laptop. Secrets: `BACKUP_DB_URL` (the role's sign-in,
+through the session pooler), `BACKUP_FILES_TOKEN` (also set on the Supabase
+functions) and `APP_ENV`. If the database is recreated from migrations, the
+role exists but needs a new password and a new `BACKUP_DB_URL`.
+
+To restore, into a new, empty Supabase project:
+
+```
+age -d -i godoctor-backup-key.txt godoctor-backup-<date>.tar.gz.age | tar -xz
+psql --single-transaction --variable ON_ERROR_STOP=1 \
+  --file backup/database/roles.sql --file backup/database/schema.sql \
+  --command 'SET session_replication_role = replica' \
+  --file backup/database/data.sql --dbname "<new project's connection string>"
+```
+
+Then upload `backup/files/<bucket>/...` to the same buckets with overwrite on
+(the file records came back with the database), deploy `supabase/functions/`
+with their secrets, and point `app/.env` and the `APP_ENV` secret at the new
+project.
+
 ## What's real vs. stubbed in this pass
 
 Everything in the spec's "build now" list is implemented against live

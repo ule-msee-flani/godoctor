@@ -1,0 +1,114 @@
+# Weekly encrypted backup of everything GoDoctor stores: the whole database
+# (accounts, profiles, consultations, prescriptions, orders, payments, HQ
+# records) and every stored file (licences, documents, photos, voice notes).
+#
+# The backup is locked with age before it leaves the runner. The public key
+# below can only lock; the private key that opens backups is kept by the
+# owner and is never on GitHub, so the artifact is useless to anyone else.
+# Each backup is kept for 90 days, about 13 weekly copies: Actions >
+# "Back up data" > a run > Artifacts. README > Backups explains how to
+# restore one.
+#
+# Repository secrets used:
+#   BACKUP_DB_URL        read-only database sign-in (role godoctor_backup)
+#   BACKUP_FILES_TOKEN   lets the backup-files function list stored files
+#   APP_ENV              contents of app/.env (for the Supabase URL)
+name: Back up data
+
+on:
+  schedule:
+    - cron: '23 23 * * 6'   # Saturday 23:23 UTC = Sunday 02:23 in Kenya
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/backup.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+env:
+  # Public half of the backup key: it locks backups and can't open them.
+  AGE_RECIPIENT: age1p7fgdnv03tle5gmsshdrngqp9ylw7l805lndh023p70qu5haessqa634pm
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # supabase/config.toml tells the CLI which Postgres version to dump with.
+      - uses: actions/checkout@v5
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Dump the database
+        env:
+          DB_URL: ${{ secrets.BACKUP_DB_URL }}
+        run: |
+          test -n "$DB_URL" || { echo "::error::The BACKUP_DB_URL secret is missing"; exit 1; }
+          # Hide the password on its own too, in case a tool prints just that.
+          echo "::add-mask::$(printf '%s' "$DB_URL" | sed -E 's#^[^:]+://[^:]+:([^@]+)@.*#\1#')"
+          OUT="$RUNNER_TEMP/backup/database"
+          mkdir -p "$OUT"
+          supabase db dump --db-url "$DB_URL" -f "$OUT/roles.sql" --role-only
+          supabase db dump --db-url "$DB_URL" -f "$OUT/schema.sql"
+          supabase db dump --db-url "$DB_URL" -f "$OUT/data.sql" --data-only --use-copy
+          ls -la "$OUT"
+          # A dump this small means something went wrong.
+          test "$(stat -c %s "$OUT/data.sql")" -gt 100000 \
+            || { echo "::error::data.sql is suspiciously small"; exit 1; }
+
+      - name: Download the stored files
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+          TOKEN: ${{ secrets.BACKUP_FILES_TOKEN }}
+        run: |
+          test -n "$TOKEN" || { echo "::error::The BACKUP_FILES_TOKEN secret is missing"; exit 1; }
+          URL=$(printf '%s\n' "$APP_ENV" | sed -nE 's/^\s*SUPABASE_URL\s*=\s*//p' | tr -d '\r')
+          OUT="$RUNNER_TEMP/backup/files"
+          LIST="$RUNNER_TEMP/files.json"
+          mkdir -p "$OUT"
+          curl -fsS --retry 3 -X POST -H "x-backup-token: $TOKEN" "$URL/functions/v1/backup-files" > "$LIST"
+          jq -r '.files[] | [.bucket, .path, .url] | @tsv' "$LIST" |
+            while IFS=$'\t' read -r bucket path url; do
+              mkdir -p "$OUT/$bucket/$(dirname "$path")"
+              curl -fsS --retry 3 -o "$OUT/$bucket/$path" "$url"
+            done
+          # What should be there, without the (short-lived) download links.
+          jq '[.files[] | {bucket, path, size}]' "$LIST" > "$RUNNER_TEMP/backup/files.json"
+          rm "$LIST"
+          WANT=$(jq length "$RUNNER_TEMP/backup/files.json")
+          GOT=$(find "$OUT" -type f | wc -l)
+          echo "$GOT of $WANT files downloaded."
+          test "$GOT" -eq "$WANT" || { echo "::error::Only $GOT of $WANT files downloaded"; exit 1; }
+
+      - name: Lock the backup
+        id: lock
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq age > /dev/null
+          NAME="godoctor-backup-$(date -u +%Y-%m-%d)"
+          cd "$RUNNER_TEMP"
+          printf '%s\n' \
+            "GoDoctor backup, made $(date -u '+%Y-%m-%d %H:%M') UTC." \
+            "database/  roles.sql, schema.sql, data.sql (Supabase CLI dump)" \
+            "files/     every stored file, by bucket; files.json lists them" \
+            "README > Backups in the repo explains how to restore." > backup/README.txt
+          tar -czf - backup | age -r "$AGE_RECIPIENT" -o "$NAME.tar.gz.age"
+          rm -rf backup
+          SIZE=$(du -h "$NAME.tar.gz.age" | cut -f1)
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "Locked backup **$NAME** ($SIZE) is under Artifacts below; it's kept for 90 days." >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.lock.outputs.name }}
+          path: ${{ runner.temp }}/${{ steps.lock.outputs.name }}.tar.gz.age
+          retention-days: 90
+          compression-level: 0
+          if-no-files-found: error

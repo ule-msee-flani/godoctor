@@ -1,0 +1,61 @@
+# Keeps GoDoctor's Supabase project awake. Supabase pauses free projects
+# after a week without database activity, and a paused project stops the app
+# and HQ until someone presses Restore in the Supabase dashboard. Once a day
+# this reads one row of the public medicine list, so there's always activity.
+# If Supabase doesn't answer, the run fails and GitHub emails you.
+#
+# GitHub also switches off scheduled jobs (this one and the weekly backup)
+# when a public repo has had no commits for 60 days. If main has had none for
+# 45 days, this adds an empty commit so they keep running.
+#
+# Repository secret used:
+#   APP_ENV   contents of app/.env (Supabase URL + public anon key)
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: '17 6 * * *'   # every day, 09:17 in Kenya
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/keep-awake.yml'
+
+permissions:
+  contents: write   # only for the empty commit after 45 quiet days
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read one row from the database
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          URL=$(printf '%s\n' "$APP_ENV" | sed -nE 's/^\s*SUPABASE_URL\s*=\s*//p' | tr -d '\r')
+          KEY=$(printf '%s\n' "$APP_ENV" | sed -nE 's/^\s*SUPABASE_ANON_KEY\s*=\s*//p' | tr -d '\r')
+          test -n "$URL" && test -n "$KEY" \
+            || { echo "::error::APP_ENV needs SUPABASE_URL and SUPABASE_ANON_KEY"; exit 1; }
+          echo "::add-mask::$KEY"
+          if curl -fsS --retry 3 --retry-delay 30 -o /dev/null \
+               -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+               "$URL/rest/v1/drugs?select=id&limit=1"; then
+            echo "Supabase answered."
+          else
+            echo "::error::Supabase didn't answer. If the project is paused, open the Supabase dashboard and press Restore."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - name: Keep the scheduled jobs switched on
+        run: |
+          DAYS=$(( ($(date +%s) - $(git log -1 --format=%ct)) / 86400 ))
+          echo "Last commit on main: $DAYS days ago."
+          if [ "$DAYS" -ge 45 ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "Keep scheduled jobs running (no commits for $DAYS days)"
+            git push
+          fi
