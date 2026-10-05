@@ -188,8 +188,9 @@ there are no backups. Two scheduled workflows cover that:
   commit when main has had none for 45 days, because GitHub switches off
   scheduled jobs after 60 days without commits.
 - **Back up data** (`backup.yml`, Sundays 02:23 Kenya time) dumps the whole
-  database with the read-only role `godoctor_backup`, downloads every stored
-  file through the `backup-files` function, and locks it all with
+  database (every schema, structure and data, with `pg_dump` 17) as the
+  read-only role `godoctor_backup`, downloads every stored file through the
+  `backup-files` function, and locks it all with
   [age](https://github.com/FiloSottile/age) before keeping it as a run
   artifact for 90 days (Actions > Back up data > a run > Artifacts).
 
@@ -199,18 +200,28 @@ through the session pooler), `BACKUP_FILES_TOKEN` (also set on the Supabase
 functions) and `APP_ENV`. If the database is recreated from migrations, the
 role exists but needs a new password and a new `BACKUP_DB_URL`.
 
-To restore, into a new, empty Supabase project:
+To open a backup and see what's in it (`tables.txt` has the row counts):
 
 ```
 age -d -i godoctor-backup-key.txt godoctor-backup-<date>.tar.gz.age | tar -xz
-psql --single-transaction --variable ON_ERROR_STOP=1 \
-  --file backup/database/roles.sql --file backup/database/schema.sql \
-  --command 'SET session_replication_role = replica' \
-  --file backup/database/data.sql --dbname "<new project's connection string>"
+pg_restore --list backup/database/godoctor.dump
+```
+
+`pg_restore` can bring back anything from the dump: one table's rows, a
+schema, or everything. To rebuild in a new Supabase project, create the
+structure from this repo (`npx supabase db push`), empty the tables the
+migrations fill (roles, permissions, settings, buckets), then load the data:
+
+```
+pg_restore --list backup/database/godoctor.dump \
+  | grep -vE 'TABLE DATA (auth schema_migrations|storage migrations) ' > keep.list
+pg_restore --data-only -n public -n auth -n storage -L keep.list -f data.sql backup/database/godoctor.dump
+psql "<new project's connection string>" --single-transaction -v ON_ERROR_STOP=1 \
+  -c "SET session_replication_role = replica" -f data.sql
 ```
 
 Then upload `backup/files/<bucket>/...` to the same buckets with overwrite on
-(the file records came back with the database), deploy `supabase/functions/`
+(the file records came back with the data), deploy `supabase/functions/`
 with their secrets, and point `app/.env` and the `APP_ENV` secret at the new
 project.
 

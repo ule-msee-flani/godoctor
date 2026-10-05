@@ -40,13 +40,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # supabase/config.toml tells the CLI which Postgres version to dump with.
-      - uses: actions/checkout@v5
-
-      - uses: supabase/setup-cli@v3
-        with:
-          version: latest
-
       - name: Dump the database
         env:
           DB_URL: ${{ secrets.BACKUP_DB_URL }}
@@ -56,13 +49,35 @@ jobs:
           echo "::add-mask::$(printf '%s' "$DB_URL" | sed -E 's#^[^:]+://[^:]+:([^@]+)@.*#\1#')"
           OUT="$RUNNER_TEMP/backup/database"
           mkdir -p "$OUT"
-          supabase db dump --db-url "$DB_URL" -f "$OUT/roles.sql" --role-only
-          supabase db dump --db-url "$DB_URL" -f "$OUT/schema.sql"
-          supabase db dump --db-url "$DB_URL" -f "$OUT/data.sql" --data-only --use-copy
+          cat > "$RUNNER_TEMP/rows.sql" <<'SQL'
+          select n.nspname || '.' || c.relname as "table",
+                 (xpath('/row/c/text()', query_to_xml(
+                   format('select count(*) as c from %I.%I', n.nspname, c.relname),
+                   false, true, '')))[1]::text::bigint as "rows"
+          from pg_class c join pg_namespace n on n.oid = c.relnamespace
+          where c.relkind in ('r', 'p') and not c.relispartition
+            and n.nspname in ('public', 'auth', 'storage')
+          order by 1;
+          SQL
+          # Postgres 17 tools, like the database. The DB_URL is expanded inside
+          # the container, so it never appears in a command line.
+          PG="docker run --rm --network host --user $(id -u):$(id -g) -e DB_URL -v $OUT:/out -v $RUNNER_TEMP/rows.sql:/rows.sql:ro public.ecr.aws/docker/library/postgres:17-alpine"
+          # The whole database, schema and data, in pg_dump's custom format.
+          # It runs as the read-only role; only passing traffic (realtime and
+          # pg_net) is left out.
+          $PG sh -c 'pg_dump "$DB_URL" --format=custom --file=/out/godoctor.dump \
+            --no-unlogged-table-data --exclude-table-data="realtime.*" --exclude-table-data="net.*"'
+          $PG sh -c 'psql "$DB_URL" --no-psqlrc --quiet --file=/rows.sql' > "$OUT/tables.txt"
+          $PG pg_restore --list /out/godoctor.dump > "$OUT/contents.txt"
           ls -la "$OUT"
-          # A dump this small means something went wrong.
-          test "$(stat -c %s "$OUT/data.sql")" -gt 100000 \
-            || { echo "::error::data.sql is suspiciously small"; exit 1; }
+          # A dump this small, or one missing these tables, means something went wrong.
+          test "$(stat -c %s "$OUT/godoctor.dump")" -gt 100000 \
+            || { echo "::error::The database dump is suspiciously small"; exit 1; }
+          for t in 'public users' 'auth users' 'public consultations' 'storage objects'; do
+            grep -q "TABLE DATA $t " "$OUT/contents.txt" \
+              || { echo "::error::The dump has no data for ${t/ /.}"; exit 1; }
+          done
+          echo "Database: $(grep -c 'TABLE DATA' "$OUT/contents.txt") tables with data."
 
       - name: Download the stored files
         env:
@@ -96,7 +111,8 @@ jobs:
           cd "$RUNNER_TEMP"
           printf '%s\n' \
             "GoDoctor backup, made $(date -u '+%Y-%m-%d %H:%M') UTC." \
-            "database/  roles.sql, schema.sql, data.sql (Supabase CLI dump)" \
+            "database/  godoctor.dump (pg_dump custom format: schema and data)," \
+            "           tables.txt (rows per table), contents.txt (pg_restore --list)" \
             "files/     every stored file, by bucket; files.json lists them" \
             "README > Backups in the repo explains how to restore." > backup/README.txt
           tar -czf - backup | age -r "$AGE_RECIPIENT" -o "$NAME.tar.gz.age"
