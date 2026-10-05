@@ -417,3 +417,12 @@ enabled = true
 [functions.push]
 # Called by the database trigger with a shared secret, not a user JWT.
 verify_jwt = false
+
+[functions.erp-staff]
+# GoDoctor HQ checks the caller's session itself; the gateway check would
+# also refuse the browser's CORS preflight.
+verify_jwt = false
+
+[functions.backup-files]
+# Called by the weekly backup workflow with a shared secret, not a user JWT.
+verify_jwt = false
